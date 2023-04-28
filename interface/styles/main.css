@@ -1,0 +1,42 @@
+
+:root {
+    --menu-width: 400px;
+    --blue: #445fb8;
+    --text-color: #121a23;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+#graph-view {
+    background-color: aquamarine;
+    height: 70%;
+    width: calc(100% - var(--menu-width));
+    left: 0;
+    top: 0;
+    position: absolute;
+}
+
+
+#editor-view {
+    background-color: blueviolet;
+    height: 30%;
+    width: calc(100% - var(--menu-width));
+    position: absolute;
+    left: 0;
+    bottom: 0;
+}
+
+#timeline-view {
+    background-color: #e0e0e0;
+    height: 100%;
+    width: var(--menu-width);
+    position: absolute;
+    right: 0;
+}

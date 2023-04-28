@@ -20,3 +20,11 @@ Framework for Distributed Algorithms in Python
 ## Hard Problems
   - Subroutines: Calling child algorithm to use its result in the parent algorithm
   - Recreating previous states of the system if the user uses global variables outside DIALs control
+
+
+## TODO
+- Finish the interface
+- Error-handling
+- Documentation and extensive comments
+- Network adapter
+- Example algorithms

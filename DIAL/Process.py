@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import Callable
+from typing import Callable, Tuple
 import types
 from inspect import signature, Signature
 from Address import NodeAddress, ProcessAddress, ProgramAddress, InstanceAddress
@@ -66,7 +66,6 @@ class Process:
         function = self._program_table[instance_address.program_address()]
         result_context, result_msg = function(context, message)
         self._instance_context[instance_address] = result_context
-
         return result_msg
 
     def __init__(self, address: ProcessAddress, neighbors: list[ProcessAddress]):
@@ -74,3 +73,5 @@ class Process:
         self._neighbors = neighbors
         self._program_table = {}
         self._instance_context = {}
+
+
