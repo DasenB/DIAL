@@ -4,10 +4,13 @@ const timeline_template = document.createElement("template");
 timeline_template.innerHTML = `
     <style>
     
+        @import url(https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap);
+
+        #container {
+            scroll-behavior: smooth;
+        }
+        
         .action {
-            /*background-color: #fffcba;*/
-            /*background-color: #ff93b0;*/
-            /*background-color: yellow;*/
             background-color: #d4ff7d;
             width: calc(100% - 20px);
             font-family: Arial, Verdana, Helvetica, sans-serif;
@@ -22,7 +25,6 @@ timeline_template.innerHTML = `
         }
         
         #past-queue .action {
-            /*background: #f5a630 !important;*/
             background-color: #5bda97;
             color: #2f2f2f;
         }
@@ -69,7 +71,6 @@ timeline_template.innerHTML = `
             margin-bottom: -11px;
         }
         
-        
         .sortable-selected {
             background: #e6f3ff;
         }
@@ -105,13 +106,9 @@ timeline_template.innerHTML = `
             width: 100%;
             height: 80px;
             position: absolute;
-            /*background-color: deeppink;*/
-            /*background-color: #445fb8;*/
-            /*background-color: #00adcc;*/
-            /*background-color: #00ff8c;*/
-            background-color: #0080ff;
-            /*background-color: #bf00ff;*/
-            /*background-color: #ff0088;*/
+            background-color: #ffea00;
+            box-shadow: 1px 16px 24px 8px rgba(0, 0, 0, 0.5);
+            -webkit-box-shadow: 1px 16px 24px 8px rgba(0, 0, 0, 0.5);
             bottom: 0;
         }
         
@@ -133,7 +130,24 @@ timeline_template.innerHTML = `
         }
         
         .control-button:active {
-            background-color: #d21079;
+            background-color: #ff69ba;
+        }
+        
+        .step-indicator {
+            display: block;
+            height: 20px;
+            background-color: coral;
+            color: #ffffff;
+            width: 20px;
+            font-size: 15px;
+            line-height: 20px;
+            text-align: center;
+            position: relative;
+            margin-top: -5px;
+            left: 100%;
+            margin-left: -15px;
+            border-radius: 10px;
+            font-family: Fira Code, monospace;
         }
         
         #start-button {
@@ -167,19 +181,17 @@ timeline_template.innerHTML = `
         </div>
         <div id="control-menu">
             <div id="start-button" class="control-button"></div>
-            <div id="prev-button" class="control-button"></div>
+            <div id="prev-button" class="control-button">
+                <div class="step-indicator"></div>
+            </div>
             <div id="play-button" class="control-button"></div>
-            <div id="next-button" class="control-button"></div>
+            <div id="next-button" class="control-button">
+                <div class="step-indicator"></div>
+            </div>
             <div id="end-button" class="control-button"></div>
         </div>
     </div>
 `;
-
-function uuidv4() {
-    return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-    );
-}
 
 
 class Timeline extends HTMLElement {
@@ -188,159 +200,256 @@ class Timeline extends HTMLElement {
         super();
         this.attachShadow({mode: 'open'});
         this.shadowRoot.appendChild(timeline_template.content.cloneNode(true));
+
+        // Select relevant DOM-Elements
         this.$pastQueue = this.shadowRoot.querySelector('#past-queue');
         this.$currentQueue = this.shadowRoot.querySelector('#current-queue');
         this.$futureQueue = this.shadowRoot.querySelector('#future-queue');
         this.$timeCursor = this.shadowRoot.querySelector('#time-cursor');
+        this.$startButton = this.shadowRoot.querySelector('#start-button');
+        this.$prevButton = this.shadowRoot.querySelector('#prev-button');
+        this.$playButton = this.shadowRoot.querySelector('#play-button');
+        this.$nextButton = this.shadowRoot.querySelector('#next-button');
+        this.$endButton = this.shadowRoot.querySelector('#end-button');
+
+        // Variables for the animation
         this.position = 0;
         this.animationProgress = 0;
         this.animationLastFrameTime = 0;
-        this.animationSpeed = 10; // Move to global config or distribute with event
+        this.animationQueue = [];
+        this.currentAnimation = undefined;
+        this.animationSpeed = 10; // TODO: Move to global config or distribute with event
+
+        // Font color of action within the different queues
         this.pastQueueLabelColor = "#305b21";
         this.currentQueueLabelColor = "#8a892b";
         this.futureQueueLabelColor = "#67812e";
 
-
-        this.addAction("Process A", "Process 1", uuidv4());
-        this.addAction("Process B", "Process 2", uuidv4());
-        this.addAction("Process C", "Process Testing a really long name", uuidv4());
-        this.addAction("Process D", "Process Testing an even way longer name", uuidv4());
-        this.addAction("Process E", "Process 5", uuidv4());
-        this.addAction("Process F", "Process 6", uuidv4());
-        this.addAction("Process G", "Process 7", uuidv4());
-        this.addAction("Process H", "Process 8", uuidv4());
-        this.addAction("Process I", "Process 9", uuidv4());
-        this.addAction("Process J", "Process 0", uuidv4());
-        this.addAction("Process K", "Process 11", uuidv4());
-        this.addAction("Process L", "Process 12", uuidv4());
-        this.addAction("Process M", "Process 13", uuidv4());
-        this.addAction("Process N", "Process 14", uuidv4());
-        this.addAction("Process O", "Process 15", uuidv4());
-
-        const pUUID =  uuidv4();
-        this.addAction("Process P", "Process 6", pUUID);
-        this.removeAction(pUUID);
-
-
+        // Make the futureQueue sortable
         new Sortable(this.$futureQueue, {
-            multiDrag: true, // Enable multi-drag
-            selectedClass: 'sortable-selected', // The class applied to the selected items
+            multiDrag: true,
+            selectedClass: 'sortable-selected',
             ghostClass: 'sortable-ghost',
-            fallbackTolerance: 3, // So that we can select items on mobile
+            fallbackTolerance: 3,
             animation: 150,
             draggable: '.action',
         });
 
+        // Create events for user interaction with the individual buttons
+        const eventOptions = {
+            bubbles: true,
+            cancelable: true,
+            composed: true,
+        };
+        const clickNextEvent = new CustomEvent('dial-timeline-clickNext', eventOptions);
+        const clickPrevEvent = new CustomEvent('dial-timeline-clickPrev', eventOptions);
+        const clickPlayPauseEvent = new CustomEvent('dial-timeline-clickPlayPause', eventOptions);
+        this.$nextButton.addEventListener("click", event => {
+            window.dispatchEvent(clickNextEvent);
+        });
+        this.$prevButton.addEventListener("click", event => {
+            window.dispatchEvent(clickPrevEvent);
+        });
+        this.$playButton.addEventListener("click", event => {
+            window.dispatchEvent(clickPlayPauseEvent);
+        });
 
-        window.addEventListener("timelineStartAction", (event) => this.startAction(event));
-        window.addEventListener("timelineFinishAction", (event) => this.finishAction(event));
-
-        this.setPosition(2);
-
+        this.setNextStepIndicator(0);
     }
 
-    startAction(event) {
-        if (this.animationProgress !== 0) {
-            console.log("Can not start a new animation before the last animation finieshed.");
-            return;
-        }
-        const element = this.$futureQueue.firstElementChild;
-        element.firstElementChild.setAttribute("label-color", this.currentQueueLabelColor);
-        this.$currentQueue.appendChild(this.$futureQueue.firstElementChild);
-        requestAnimationFrame(() => {
-            this.animationLastFrameTime = Date.now();
-            this.animateTimecursorStart();
+    /**
+     * Sets the position of the time-indicator within the timeline
+     *
+     * @param {number} start The initial offset of the timecursor within the action. (0 <= start <= 1)
+     * @param {number} end The final offset of the timecursor within the action. (0 <= end <= 1)
+     */
+    animateTimeCursor(start, end) {
+        if (start < 0 || start > 1) console.log("Invalid start parameter. Must be: 0 <= start <= 1");
+        if (end < 0 || end > 1) console.log("Invalid end parameter. Must be: 0 <= end <= 1");
+        if (start === end) console.log("Invalid animation interval: start == end");
+        return new Promise((resolve, reject) => {
+            // Cave: pushing to the animationQueue in the promise might lead to a race-condition.
+            // As this has not yet been observed the additional effort is postponed until problems arise.
+            this.animationQueue.push({start: start, end: end, resolvePromise: resolve});
+            if (this.currentAnimation === undefined && this.animationQueue.length > 0) {
+                this.animationLastFrameTime = Date.now();
+                requestAnimationFrame(() => {
+                    this.runAnimation();
+                });
+            }
         });
     }
 
-    animateTimecursorStart() {
-        const current_frame_time = Date.now();
-        const timeDelta = (current_frame_time - this.animationLastFrameTime)/1000;
-        this.animationProgress += timeDelta * this.animationSpeed;
-        this.animationLastFrameTime = current_frame_time;
-
-        if (this.animationProgress > 1.0 || this.animationProgress < 0) {
+    /**
+     * Function that is called by requestAnimationFrame to execute the timeline-cursor-animation.
+     */
+    runAnimation() {
+        // If no animation is currently running, select the next animation
+        if (this.currentAnimation === undefined) {
+            if (this.animationQueue.length === 0) {
+                console.log("No animation available to run.");
+                return;
+            }
+            this.currentAnimation = this.animationQueue.shift();
             this.animationProgress = 0;
-            return;
         }
 
-        this.$timeCursor.style.transform = "translateY(" + (this.animationProgress * 70) + "px)";
-        requestAnimationFrame(() => {
-            this.animateTimecursorStart();
-        });
-    }
-
-    finishAction(event) {
-        if (this.animationProgress !== 0) {
-            console.log("Can not start a new animation before the last animation finieshed.");
-            return;
+        // An action is moved from the future-queue into the current-queue while moving forward
+        if (this.animationProgress === 0 && this.currentAnimation.start === 0) {
+            const element = this.$futureQueue.firstElementChild;
+            element.firstElementChild.setAttribute("label-color", this.currentQueueLabelColor);
+            this.$currentQueue.appendChild(element);
         }
-        requestAnimationFrame(() => {
-            this.animationLastFrameTime = Date.now();
-            this.animateTimecursorFinish();
-        });
-    }
 
-    animateTimecursorFinish() {
+        // An action is moved from the past-queue into the current-queue while moving backward
+        if (this.animationProgress === 0 && this.currentAnimation.start === 1) {
+            const element = this.$pastQueue.lastElementChild;
+            element.firstElementChild.setAttribute("label-color", this.currentQueueLabelColor);
+            this.$currentQueue.appendChild(element);
+        }
+
+        // Calculate the new animation progress
         const current_frame_time = Date.now();
         const timeDelta = (current_frame_time - this.animationLastFrameTime)/1000;
         this.animationProgress += timeDelta * this.animationSpeed;
         this.animationLastFrameTime = current_frame_time;
 
-        if (this.animationProgress > 1.0 || this.animationProgress < 0) {
+        // An action is moved from the current-queue into the past-queue while moving forward
+        if (this.animationProgress >= 1 && this.currentAnimation.end === 1) {
             const element = this.$currentQueue.firstElementChild;
             element.firstElementChild.setAttribute("label-color", this.pastQueueLabelColor);
+            this.$timeCursor.style.transform = `translateY( 0px)`;
             this.$pastQueue.appendChild(element);
-            this.$timeCursor.style.transform = "translateY(0px)";
+        }
+
+        // An action is moved from the current-queue into the future-queue while moving backward
+        if (this.animationProgress >= 1 && this.currentAnimation.end === 0) {
+            const element = this.$currentQueue.firstElementChild;
+            element.firstElementChild.setAttribute("label-color", this.pastQueueLabelColor);
+            this.$timeCursor.style.transform = `translateY( 0px)`;
+            this.$futureQueue.prepend(element);
+        }
+
+        // If the animation has >= 100% progress, finish it and start the next animation if available.
+        if (this.animationProgress >= 1.0) {
             this.animationProgress = 0;
+            this.currentAnimation.resolvePromise();
+            this.currentAnimation = undefined;
+            if (this.animationQueue.length > 0) {
+                requestAnimationFrame(() => {
+                    this.runAnimation();
+                });
+            }
             return;
         }
 
-        this.$timeCursor.style.transform = "translateY(" + ( 70 + (this.animationProgress * 70)) + "px)";
+        // Draw the actual movement of the animation
+        const totalHeight = 140;
+        const startHeight = this.currentAnimation.start * totalHeight;
+        const endHeight = this.currentAnimation.end * totalHeight;
+        const deltaHeight = endHeight - startHeight;
+        const yTranslation = startHeight + (deltaHeight * this.animationProgress);
+        this.$timeCursor.style.transform = `translateY( ${yTranslation}px)`;
+        // this.$timeCursor.scrollIntoView({
+        //     block: "center",
+        //     behavior: "smooth"
+        // });
         requestAnimationFrame(() => {
-            this.animateTimecursorFinish();
+            this.runAnimation();
         });
     }
 
-    setPosition(x) {
-        const all_actions = this.shadowRoot.querySelectorAll(`.action`);
-        if (x > all_actions.length || x < 0) {
-            console.log("invalid");
-            return
+    /**
+     * Sets the markers on the next and prev buttons that indicate how many steps are still pending after the current
+     * step.
+     *
+     * @param {number} x The number of steps being executed after the current step (negative: previous; positive: next)
+     */
+    setNextStepIndicator(x) {
+        if (x === 0) {
+            this.$prevButton.firstElementChild.style.display = "none";
+            this.$nextButton.firstElementChild.style.display = "none";
+        }
+        if (x > 0) {
+            this.$nextButton.firstElementChild.textContent = x.toString();
+            this.$nextButton.firstElementChild.style.display = "block";
+            this.$prevButton.firstElementChild.style.display = "none";
+        }
+        if (x < 0) {
+            this.$prevButton.firstElementChild.textContent = Math.abs(x).toString();
+            this.$prevButton.firstElementChild.style.display = "block";
+            this.$nextButton.firstElementChild.style.display = "none";
         }
 
+        this.shadowRoot.ownerDocument.documentElement.style.setProperty("--next-button-step-indicator-display", "block");
+    }
+
+    /**
+     * Sets the position of the time-indicator within the timeline
+     *
+     * @param {number} x The position to use.
+     */
+    setPosition(x) {
+        const all_actions = Array.from(this.shadowRoot.querySelectorAll(`.action`));
+        if (x < 0 || x > all_actions.length) {
+            console.log("Invalid position. The time-cursors position must be within the limits of the timeline."); // TODO: Display warning
+            return;
+        }
         this.position = x;
-        const y = all_actions.length - x;
-
-        const past_actions = this.shadowRoot.querySelectorAll(`.action:nth-child(-n+${x})`);
-        const future_actions = this.shadowRoot.querySelectorAll(`.action:nth-last-child(-n+${y})`);
-
+        const past_actions = all_actions.slice(0, x);
+        const future_actions = all_actions.slice(x - all_actions.length);
         past_actions.forEach(element => {
             element.firstElementChild.setAttribute("label-color", this.pastQueueLabelColor);
             this.$pastQueue.appendChild(element);
-        })
+        });
         future_actions.forEach(element => {
             element.firstElementChild.setAttribute("label-color", this.futureQueueLabelColor);
             this.$futureQueue.appendChild(element);
-        })
-
+        });
     }
 
+    /**
+     * Appends a new action to the future part of the timeline.
+     *
+     * @param {string} source The source of the message consumed in the action.
+     * @param {string} target The address of the process executing the action.
+     * @param {string} message_uuid The UUID of the message consumed in the action.
+     */
     addAction(source, target, message_uuid) {
-        var action = document.createElement( 'div');
-        // action.innerHTML = `<span class='link'>${target}</span> received Message <span class='link'>${message_uuid}</span> from <span class='link'>${source}</span>`
-        action.innerHTML = `<dial-timeline-action source-address="${target}" target-address="${source}" message-uuid="${message_uuid}" label-color="red"></dial-timeline-action>`
+        let action = document.createElement( 'div');
+        action.innerHTML = `<dial-timeline-action source-address="${source}" target-address="${target}" message-uuid="${message_uuid}" label-color="${this.futureQueueLabelColor}"></dial-timeline-action>`
+        action.setAttribute("class", "list-group-item action");
         action.setAttribute("class", "list-group-item action");
         action.setAttribute("id", message_uuid);
         this.$futureQueue.appendChild(action);
     }
 
+    /**
+     * Removes an action with a given UUID from the timeline.
+     *
+     * @param {string} message_uuid The UUID of the message that should be removed.
+     */
     removeAction(message_uuid) {
-        var action = this.shadowRoot.getElementById(message_uuid);
-        action.remove();
+        let action = this.shadowRoot.getElementById(message_uuid);
+        if (action === null) {
+            console.log(`Can not remove action with unknown UUID: ${message_uuid}`);
+            return;
+        }
+        action.style.transformOrigin = `bottom center`;
+        console.log(action.style.marginTop);
+        action.animate(
+            [
+                { transform: `scaleY(1)`, opacity: "1", marginTop: `0`},
+                { transform: `scaleY(0)`, opacity: "1", marginTop: `-${action.clientHeight + 10}`}
+            ],
+            {
+                duration: 300,
+                iterations: 1,
+            }
+        ).finished.then( () => {
+            action.remove();
+        });
     }
-
-
-
 }
+
 customElements.define('dial-timeline', Timeline);

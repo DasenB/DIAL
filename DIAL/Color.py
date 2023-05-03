@@ -8,7 +8,7 @@ class Color:
         self.green = g
         self.blue = b
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         r_str = "%2X" % self.red
         g_str = "%2X" % self.green
         b_str = "%2X" % self.blue

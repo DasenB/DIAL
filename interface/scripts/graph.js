@@ -13,17 +13,6 @@ graphView_template.innerHTML = `
     <div id="container"></div>
 `;
 
-class DialMessage {
-    constructor(obj) {
-        this.source = obj.source;
-        this.target = obj.target;
-        this.data = obj.data;
-        this.uuid = obj.uuid;
-        this.color = obj.color;
-    }
-
-}
-
 class MessageIndicator {
     constructor(to, from, number) {
         this.target_node = to;
@@ -35,29 +24,27 @@ class MessageIndicator {
 }
 
 class MessageTransferAnimation {
-    constructor(message) {
+    constructor(message, resolvePromise, reversed) {
         this.message = message;
         this.progress = 0;
         this.timestamp = Date.now();
+        this.resolvePromise = resolvePromise;
+        this.reversed = reversed;
     }
 }
 
 class GraphView extends HTMLElement {
 
-    nodes = ["A", "B", "C", "D"];
-    links = [["A", "B"], ["A", "C"], ["C", "C"]];
-
     constructor() {
         super();
         this.attachShadow({mode: 'open'});
         this.shadowRoot.appendChild(graphView_template.content.cloneNode(true));
-        this.$container = this.shadowRoot.querySelector("#container");
-        this.messageIndicators = {};
-        this.skipClickEvent = false;
-        this.receiveAnimations = [];
-        this.emitAnimations = [];
-        this.animationSpeed = 0.2;
 
+        // Select relevant DOM-Elements
+        this.$container = this.shadowRoot.querySelector("#container");
+
+        // Set configurations that determine the look of the indicators and of the animations
+        this.animationSpeed = 0.2;
         this.messageIndicatorConfig = {
             width: 5,
             height: 15,
@@ -68,28 +55,55 @@ class GraphView extends HTMLElement {
             arrow_head_angle: 75
         };
 
+        // Variables related to the animation and display (reinitialized in initializeGraph())
+        this.messageIndicators = {};
+        this.skipClickEvent = false;
+        this.receiveAnimations = [];
+        this.emitAnimations = [];
 
-        var nodes = new vis.DataSet([
-            {id: 1, label: 'Node 1'},
-            {id: 2, label: 'Node 2'},
-            {id: 3, label: 'Node 3'},
-            {id: 4, label: 'Node 4'},
-            {id: 5, label: 'Node 5'}
-        ]);
+    }
 
-        // create an array with edges
-        var edges = new vis.DataSet([
-            {from: 1, to: 3},
-            {from: 1, to: 2},
-            {from: 2, to: 4},
-            {from: 2, to: 5}
-        ]);
-        // provide the data in the vis format
+    /**
+     * Provides the component with information about the topology and creates the graph.
+     * This does not happen in the constructor as information about the topology might not be available at load time
+     * and might also change and thus require a reinitialization.
+     * @param {Object[]} edges The connection between nodes.
+     * @param {Object[]} nodes The nodes of the network.
+     * @param {Object} nodes The nodes of the network.
+     */
+    initializeGraph(edges, nodes, indicators) {
+        // Reset the indicators and animations
+        this.messageIndicators = {};
+        this.skipClickEvent = false;
+        this.receiveAnimations = [];
+        this.emitAnimations = [];
+
+        // Create the topology
         this.topology = {
-            nodes: nodes,
-            edges: edges
+            nodes: new vis.DataSet(nodes),
+            edges: new vis.DataSet(edges)
         };
-        const options = {
+
+        // Create Message indicator objects for all edges to store their numbers of pending messages
+        edges.forEach((edge) => {
+            const indicator_from_to = new MessageIndicator(edge.to, edge.from, 0);
+            const indicator_to_from = new MessageIndicator(edge.to, edge.from, 0);
+            indicator_from_to.number = 0;
+            indicator_to_from.number = 0;
+            const from_to_key = "from=" + edge.from + "_to=" + edge.to;
+            const to_from_key = "from=" + edge.to + "_to=" + edge.from;
+            this.messageIndicators[from_to_key] = indicator_from_to;
+            this.messageIndicators[to_from_key] = indicator_to_from;
+        });
+
+        // Set message indicator-values to the values specified in the parameter "indicators"
+        indicators.forEach(indicator => {
+            const key = "from=" + indicator.from + "_to=" + indicator.to;
+            this.messageIndicators[key].number = indicator.number;
+        });
+
+        // Set config for visjs that generates the graph
+        const visjsOptions = {
             "edges": {
                 "smooth": false
             },
@@ -105,32 +119,74 @@ class GraphView extends HTMLElement {
             }
         }
 
-        // Create Message indicator objects
-        edges.forEach((edge) => {
-            const indicator_from_to = new MessageIndicator(edge.to, edge.from, 0);
-            const indicator_to_from = new MessageIndicator(edge.to, edge.from, 0);
-            indicator_from_to.number = Math.floor(Math.random() * 10);
-            indicator_to_from.number = Math.floor(Math.random() * 100);
-            const from_to_key = "from=" + edge.from + "_to=" + edge.to;
-            const to_from_key = "from=" + edge.to + "_to=" + edge.from;
-            this.messageIndicators[from_to_key] = indicator_from_to;
-            this.messageIndicators[to_from_key] = indicator_to_from;
-        });
-
-        this.network = new vis.Network(this.$container, this.topology, options);
+        // Create the graph and save a reference to the resulting canvas for later use
+        this.network = new vis.Network(this.$container, this.topology, visjsOptions);
         this.$canvas = this.shadowRoot.querySelector("canvas");
 
-
-        this.network.on("afterDrawing", (context) => this.draw(context, this));
+        // Add event handlers to events produced by the visjs graph.
+        this.network.on("afterDrawing", (context) => this.draw(context));
         this.network.on('click', (event) => this.onClick(event), false);
         this.network.on('selectEdge', (event) => this.onSelectEdge(event), false);
-        // this.network.on('selectNode', (event) => this.network.unselectAll, false);
-
-        window.addEventListener("receiveMessage", (event) => this.onReceiveMessage(event));
-        window.addEventListener("emitMessage", (event) => this.onEmitMessage(event));
     }
 
-    animateTransferMessage() {
+    /**
+     * Starts an animation of a message being received by a node.
+     *
+     * @param {Object} message The message that is being received.
+     * @param {boolean} reversed Boolean indicating that the animation should be run backwards.
+     * @return {Promise} A promise that resolves after the animation finished.
+     */
+    receiveMessage(message, reversed) {
+        return new Promise((resolve, reject) => {
+            const receiveAnimation = new MessageTransferAnimation(message, reversed);
+            receiveAnimation.reversed = reversed;
+            receiveAnimation.resolvePromise = resolve;
+            const messageIndicatorKey = "from=" + message.source + "_to=" + message.target;
+            if (!(messageIndicatorKey in this.messageIndicators)) {
+                reject();
+                return;
+            }
+            this.receiveAnimations.push(receiveAnimation);
+            if (!reversed) {
+                this.messageIndicators[messageIndicatorKey].number -= 1;
+            }
+            requestAnimationFrame(() => {
+                this.runMessageTransferAnimation();
+            });
+        });
+    }
+
+    /**
+     * Starts an animation of a message being send by a node.
+     *
+     * @param {Object} message The message that is being send.
+     * @param {boolean} reversed Boolean indicating that the animation should be run backwards.
+     * @return {Promise} A promise that resolves after the animation finished.
+     */
+    emitMessage(message, reversed) {
+        return new Promise((resolve, reject) => {
+            const emitAnimation = new MessageTransferAnimation(message, reversed);
+            emitAnimation.reversed = reversed;
+            emitAnimation.resolvePromise = resolve;
+            const messageIndicatorKey = "from=" + message.source + "_to=" + message.target;
+            if (!(messageIndicatorKey in this.messageIndicators)) {
+                reject();
+                return;
+            }
+            this.emitAnimations.push(emitAnimation);
+            if (reversed) {
+                this.messageIndicators[messageIndicatorKey].number -= 1;
+            }
+            requestAnimationFrame(() => {
+                this.runMessageTransferAnimation();
+            });
+        });
+    }
+
+    /**
+     * Function to run the animation that visualizes traveling messages being send and received.
+     */
+    runMessageTransferAnimation() {
         const current_frame_time = Date.now();
 
         // Move receive transfers forward
@@ -140,9 +196,19 @@ class GraphView extends HTMLElement {
             receiveAnimation.timestamp = current_frame_time;
             receiveAnimation.progress += tInSeconds * this.animationSpeed;
         });
+
         // Remove finished receive transfers
         this.receiveAnimations = this.receiveAnimations.filter(item => {
-            return item.progress <= 1;
+            if (item.progress <= 1) {
+                return true;
+            } else {
+                if (item.reversed) {
+                    const messageIndicatorKey = "from=" + item.message.source + "_to=" + item.message.target;
+                    this.messageIndicators[messageIndicatorKey].number += 1;
+                }
+                item.resolvePromise();
+                return false;
+            }
         });
 
         // Move emit transfers forward
@@ -152,13 +218,17 @@ class GraphView extends HTMLElement {
             emitAnimation.timestamp = current_frame_time;
             emitAnimation.progress += tInSeconds * this.animationSpeed;
         });
-        // Remove emit receive transfers
+
+        // Remove finished emit transfers
         this.emitAnimations = this.emitAnimations.filter(item => {
             if(item.progress <= 1) {
                 return true;
             } else {
-                const messageIndicatorKey = "from=" + item.message.source + "_to=" + item.message.target;
-                this.messageIndicators[messageIndicatorKey].number += 1;
+                if (!item.reversed) {
+                    const messageIndicatorKey = "from=" + item.message.source + "_to=" + item.message.target;
+                    this.messageIndicators[messageIndicatorKey].number += 1;
+                }
+                item.resolvePromise();
                 return false;
             }
         });
@@ -167,40 +237,29 @@ class GraphView extends HTMLElement {
         this.network.redraw();
         if (this.receiveAnimations.length > 0 || this.emitAnimations.length > 0) {
             requestAnimationFrame(() => {
-                this.animateTransferMessage();
+                this.runMessageTransferAnimation();
             });
         }
     }
 
-    onReceiveMessage(event) {
-        const message = event.detail;
-        const receiveAnimation = new MessageTransferAnimation(message);
-        this.receiveAnimations.push(receiveAnimation);
-        const messageIndicatorKey = "from=" + message.source + "_to=" + message.target;
-        this.messageIndicators[messageIndicatorKey].number -= 1;
-        requestAnimationFrame(() => {
-            this.animateTransferMessage();
-        });
-    }
+    /**
+     * Function to draw a MessageIndicator for a edge displaying how many messages are currently traveling on that edge.
+     *
+     * @param {Object} context The 2D-context of the visjs canvas.
+     * @param {Object} vectors An object containing all the vectors needed to draw a message indicator.
+     * @param {Object} messageIndicator The MessageIndicator-Object that should be drawn.
+     */
+    drawMessageIndicator(context, vectors, messageIndicator) {
 
-    onEmitMessage(event) {
-        const message = event.detail;
-        const emitAnimation = new MessageTransferAnimation(message);
-        this.emitAnimations.push(emitAnimation);
-        requestAnimationFrame(() => {
-            this.animateTransferMessage();
-        });
-    }
-
-    drawMessageBox(context, vectors, messageIndicator) {
+        // Do not draw a message indicator for edges without messages traveling along them.
         if (messageIndicator.number === 0) {
             messageIndicator.boundingBox = new Path2D();
             return;
         }
 
+        // Calculate the dimensions based on the configuration and on the length of the text inside the box.
         const indicatorWidth = 15 + (Math.floor(Math.log10(messageIndicator.number))) * this.messageIndicatorConfig.width;
         const indicatorDistance = Math.max(this.messageIndicatorConfig.distance, (indicatorWidth/2) + 5);
-
         var vec_scale_to_distance  = new Victor(indicatorDistance, indicatorDistance);
         var boxCenter = vectors.edge_center.clone().add(vectors.edge_direction.clone().normalize().multiply(vec_scale_to_distance).rotateToDeg(vectors.edge_direction.angleDeg() + 90));
         var boxCorner = new Victor(boxCenter.x - (indicatorWidth / 2), boxCenter.y - (this.messageIndicatorConfig.height / 2));
@@ -208,6 +267,7 @@ class GraphView extends HTMLElement {
         var boxArrowTip1 = boxArrowEnd.clone().add(vectors.edge_direction.clone().normalize().multiply(vectors.vec_scale_arrow_tip).rotateToDeg(vectors.edge_direction.angleDeg() + 90 + this.messageIndicatorConfig.arrow_head_angle));
         var boxArrowTip2 = boxArrowEnd.clone().add(vectors.edge_direction.clone().normalize().multiply(vectors.vec_scale_arrow_tip).rotateToDeg(vectors.edge_direction.angleDeg() - (90 + this.messageIndicatorConfig.arrow_head_angle)));
 
+        // Save the current canvas drawing config to prevent unwanted side effects in the visjs internal drawing.
         const originalStrokeStyle = context.strokeStyle;
         const originalFillStyle = context.fillStyle;
         const originalLineWidth  = context.lineWidth;
@@ -246,20 +306,31 @@ class GraphView extends HTMLElement {
         context.fillText(messageIndicator.number.toString(), boxCenter.x, boxCenter.y);
         context.stroke();
 
+        // Update the bounding box of the MessageIndicator-Object
         messageIndicator.boundingBox = box;
 
+        // Reset the drawing configuration of the canvas to the initial one.
         context.strokeStyle = originalStrokeStyle;
         context.fillStyle = originalFillStyle;
         context.lineWidth = originalLineWidth;
     }
 
+
+    /**
+     * Function that gets called when clicking onto the canvas and checks if a message indicator was selected.
+     *
+     * @param {Object} event The event generated by visjs (https://visjs.github.io/vis-network/docs/network/#Events)
+     */
     onClick(event) {
+        // Skip click-events that happen after a onSelectEdge-event as they are handled in their own function.
         if (this.skipClickEvent === true) {
             this.skipClickEvent = false;
             return
         }
+
+        // Check for all MessageIndicator-Objects if the click happened within their bounding-box
         const context = this.$canvas.getContext("2d");
-        for (var key in this.messageIndicators) {
+        for (const key in this.messageIndicators) {
             const messageIndicator = this.messageIndicators[key];
             if (context.isPointInPath(messageIndicator.boundingBox, event.pointer.canvas.x, event.pointer.canvas.y)) {
                 messageIndicator.selected = true;
@@ -270,9 +341,15 @@ class GraphView extends HTMLElement {
         }
     }
 
+    /**
+     * Function that gets called when clicking onto an edge and selects all MessageIndicator-objects belonging to that
+     * edge.
+     *
+     * @param {Object} event The event generated by visjs (https://visjs.github.io/vis-network/docs/network/#Events)
+     */
     onSelectEdge(event) {
 
-        // Unselect all other message indicators
+        // Unselect all message indicators
         for (var key in this.messageIndicators) {
             const messageIndicator = this.messageIndicators[key];
             messageIndicator.selected = false;
@@ -281,6 +358,7 @@ class GraphView extends HTMLElement {
         // Prevent the next Click-Event that follows on an onSelectEdge-Event
         this.skipClickEvent = true;
 
+        // Find all message indicators along the edge and highlight them
         event.edges.forEach((edgeID) => {
             const nodeIDs = this.network.getConnectedNodes(edgeID);
             if (nodeIDs.length !== 2) {
@@ -288,27 +366,32 @@ class GraphView extends HTMLElement {
             }
             const from_to_key = "from=" + nodeIDs[0] + "_to=" + nodeIDs[1];
             const to_from_key = "from=" + nodeIDs[1] + "_to=" + nodeIDs[0];
-
             this.messageIndicators[from_to_key].selected = true;
             this.messageIndicators[to_from_key].selected = true;
         });
-
-
     }
 
-    draw(context, graphView) {
+    /**
+     * Function that gets called after visjs finished drawing and is responsible for drawing custom elements like the
+     * animation of message transfers.
+     *
+     * @param {Object} context The 2D-context to use for rendering.
+     */
+    draw(context) {
+
         // Draw MessageIndicators
-        graphView.topology.edges.forEach(edge => {
-            // Common vectors
-            const vec_scale_to_position = new Victor(graphView.messageIndicatorConfig.position, graphView.messageIndicatorConfig.position);
-            const vec_scale_arrow = new Victor(graphView.messageIndicatorConfig.arrowLength, graphView.messageIndicatorConfig.arrowLength);
-            const vec_scale_arrow_tip = new Victor(graphView.messageIndicatorConfig.arrowHeadLength, graphView.messageIndicatorConfig.arrowHeadLength);
-            const vec_start = new Victor.fromObject(graphView.network.getPosition(edge.from));
-            const vec_end = new Victor.fromObject(graphView.network.getPosition(edge.to));
+        this.topology.edges.forEach(edge => {
+            // Vectors common for both MessageIndicators along a edge
+            const vec_scale_to_position = new Victor(this.messageIndicatorConfig.position, this.messageIndicatorConfig.position);
+            const vec_scale_arrow = new Victor(this.messageIndicatorConfig.arrowLength, this.messageIndicatorConfig.arrowLength);
+            const vec_scale_arrow_tip = new Victor(this.messageIndicatorConfig.arrowHeadLength, this.messageIndicatorConfig.arrowHeadLength);
+            const vec_start = new Victor.fromObject(this.network.getPosition(edge.from));
+            const vec_end = new Victor.fromObject(this.network.getPosition(edge.to));
             const vec_position = vec_start.clone();
             const vec_direction = vec_end.clone().subtract(vec_start);
             const vec_edge_center = vec_position.clone().add(vec_direction.clone().multiply(vec_scale_to_position));
 
+            // Create the object containing the vectors
             const vectors = {
                 edge_direction: vec_direction,
                 edge_center: vec_edge_center,
@@ -316,12 +399,12 @@ class GraphView extends HTMLElement {
                 vec_scale_arrow: vec_scale_arrow
             }
 
+            // Draw both MessageIndicators
             const from_to_key = "from=" + edge.from + "_to=" + edge.to;
             const to_from_key = "from=" + edge.to + "_to=" + edge.from;
-
-            graphView.drawMessageBox(context, vectors, graphView.messageIndicators[from_to_key]);
+            this.drawMessageIndicator(context, vectors, this.messageIndicators[from_to_key]);
             vectors.edge_direction.invert()
-            graphView.drawMessageBox(context, vectors, graphView.messageIndicators[to_from_key]);
+            this.drawMessageIndicator(context, vectors, this.messageIndicators[to_from_key]);
         });
 
         // Store original context configuration
@@ -330,13 +413,21 @@ class GraphView extends HTMLElement {
         const originalLineWidth = context.lineWidth;
 
         // Draw Receive-MessageTransfers
-        graphView.receiveAnimations.forEach(receiveAnimation => {
-            const vec_start = new Victor.fromObject(graphView.network.getPosition(receiveAnimation.message.source));
-            const vec_end = new Victor.fromObject(graphView.network.getPosition(receiveAnimation.message.target));
+        this.receiveAnimations.forEach(receiveAnimation => {
+            // Calculate vectors that determine the position of the message
+            let vec_start = new Victor.fromObject(this.network.getPosition(receiveAnimation.message.source));
+            let vec_end = new Victor.fromObject(this.network.getPosition(receiveAnimation.message.target));
             const direction = vec_end.clone().subtract(vec_start);
-            const scaledDirection = direction.clone().multiplyScalar(0.5 + (receiveAnimation.progress * 0.5));
+
+            let p = receiveAnimation.progress;
+            if (receiveAnimation.reversed) {
+                p = 1 - p;
+            }
+
+            let scaledDirection = direction.clone().multiplyScalar(0.5 + (p * 0.5));
             const position = vec_start.clone().add(scaledDirection);
 
+            // Make the message grow/shrink at the beginning/end of an animation
             let radius = 10;
             if (receiveAnimation.progress < 0.1) {
                 radius = 100 * receiveAnimation.progress;
@@ -344,9 +435,9 @@ class GraphView extends HTMLElement {
                 radius = 100 * (1 - receiveAnimation.progress);
             }
 
-            // Include the message-transfer in the selection of its corresponding indicator
+            // Visually include the message in the selection of its corresponding indicator by adjusting the line-width
             const key = "from=" + receiveAnimation.message.source + "_to=" + receiveAnimation.message.target;
-            const messageIndicator = graphView.messageIndicators[key];
+            const messageIndicator = this.messageIndicators[key];
             if (messageIndicator === undefined) {
                 context.lineWidth = 1;
             } else if (messageIndicator.selected === true) {
@@ -354,21 +445,43 @@ class GraphView extends HTMLElement {
             } else {
                 context.lineWidth = 1;
             }
+
+            // Draw the message
             context.beginPath();
             context.arc(position.x, position.y, radius, 0, 2 * Math.PI);
             context.fillStyle = receiveAnimation.message.color;
             context.fill();
             context.stroke();
+
+            if (receiveAnimation.reversed) {
+                context.beginPath();
+                context.moveTo(position.x, position.y);
+                const cross_length = radius * Math.sin(Math.PI * 0.25);
+                context.lineTo(position.x + cross_length, position.y + cross_length);
+                context.moveTo(position.x, position.y);
+                context.lineTo(position.x + cross_length, position.y - cross_length);
+                context.moveTo(position.x, position.y);
+                context.lineTo(position.x - cross_length, position.y + cross_length);
+                context.moveTo(position.x, position.y);
+                context.lineTo(position.x - cross_length, position.y - cross_length);
+                context.stroke();
+            }
         });
 
         // Draw Emit-MessageTransfers
-        graphView.emitAnimations.forEach(emitAnimation => {
-            const vec_start = new Victor.fromObject(graphView.network.getPosition(emitAnimation.message.source));
-            const vec_end = new Victor.fromObject(graphView.network.getPosition(emitAnimation.message.target));
+        this.emitAnimations.forEach(emitAnimation => {
+            // Calculate vectors that determine the position of the message
+            const vec_start = new Victor.fromObject(this.network.getPosition(emitAnimation.message.source));
+            const vec_end = new Victor.fromObject(this.network.getPosition(emitAnimation.message.target));
             const direction = vec_end.clone().subtract(vec_start);
-            const scaledDirection = direction.clone().multiplyScalar(emitAnimation.progress * 0.5);
+            let p = emitAnimation.progress;
+            if (emitAnimation.reversed) {
+                p = 1 - p;
+            }
+            let scaledDirection = direction.clone().multiplyScalar(p * 0.5);
             const position = vec_start.clone().add(scaledDirection);
 
+            // Make the message grow/shrink at the beginning/end of an animation
             let radius = 10;
             if (emitAnimation.progress < 0.1) {
                 radius = 100 * emitAnimation.progress;
@@ -376,9 +489,9 @@ class GraphView extends HTMLElement {
                 radius = 100 * (1 - emitAnimation.progress);
             }
 
-            // Include the message-transfer in the selection of its corresponding indicator
+            // Visually include the message in the selection of its corresponding indicator by adjusting the line-width
             const key = "from=" + emitAnimation.message.source + "_to=" + emitAnimation.message.target;
-            const messageIndicator = graphView.messageIndicators[key];
+            const messageIndicator = this.messageIndicators[key];
             if (messageIndicator === undefined) {
                 context.lineWidth = 1;
             } else if (messageIndicator.selected === true) {
@@ -386,21 +499,34 @@ class GraphView extends HTMLElement {
             } else {
                 context.lineWidth = 1;
             }
+
+            // Draw the message
             context.beginPath();
             context.arc(position.x, position.y, radius, 0, 2 * Math.PI);
             context.fillStyle = emitAnimation.message.color;
             context.fill();
             context.stroke();
+
+            if (emitAnimation.reversed) {
+                context.beginPath();
+                context.moveTo(position.x, position.y);
+                const cross_length = radius * Math.sin(Math.PI * 0.25);
+                context.lineTo(position.x + cross_length, position.y + cross_length);
+                context.moveTo(position.x, position.y);
+                context.lineTo(position.x + cross_length, position.y - cross_length);
+                context.moveTo(position.x, position.y);
+                context.lineTo(position.x - cross_length, position.y + cross_length);
+                context.moveTo(position.x, position.y);
+                context.lineTo(position.x - cross_length, position.y - cross_length);
+                context.stroke();
+            }
         });
 
         // Restore original context configuration
         context.strokeStyle = originalStrokeStyle;
         context.fillStyle = originalFillStyle;
         context.lineWidth = originalLineWidth;
-
     }
-
-
 }
 
 customElements.define('dial-graph', GraphView);

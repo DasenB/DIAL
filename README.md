@@ -22,9 +22,34 @@ Framework for Distributed Algorithms in Python
   - Recreating previous states of the system if the user uses global variables outside DIALs control
 
 
+## Next Week
+- Colors in graph
+- Colors in Timeline
+- Detail-View
+- Highlight message indicator before receiving
+
 ## TODO
 - Finish the interface
-- Error-handling
 - Documentation and extensive comments
+
+### Improvements
+- Error-handling
+- URL-compliant address scheme
+- Animate timeline.addMessage 
+- highlight messageIndicator before removing an item for receiving
+- animate messages to/from outside of the topology
+- delete animation for reverse emits leaving a node 
+
+### Features
 - Network adapter
 - Example algorithms
+- Creating new messages from the webinterface
+- Simulate unreliable links and nodes
+- Random receive order (not only fifo queue)
+- Setting animation-speed
+- Display current position number in the interface
+- Extend the graph-View with a list of running instances to choose which instance defines a nodes color
+
+
+
+

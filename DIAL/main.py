@@ -44,13 +44,13 @@ def example_topology() -> nx.Graph:
     topology.add_node("K", address=ProcessAddress(node="127.0.0.1", port=10101, process="K"))
     topology.add_node("L", address=ProcessAddress(node="127.0.0.1", port=10101, process="L"))
     topology.add_node("M", address=ProcessAddress(node="127.0.0.1", port=10101, process="M"))
-    topology.add_node("N", address=ProcessAddress(node="127.0.0.1", port=10101, process="N"))
-    topology.add_node("O", address=ProcessAddress(node="127.0.0.1", port=10101, process="O"))
-    topology.add_node("P", address=ProcessAddress(node="127.0.0.1", port=10101, process="P"))
-    topology.add_node("Q", address=ProcessAddress(node="127.0.0.1", port=10101, process="Q"))
-    topology.add_node("R", address=ProcessAddress(node="127.0.0.1", port=10101, process="R"))
-    topology.add_node("S", address=ProcessAddress(node="127.0.0.1", port=10101, process="S"))
-    topology.add_node("T", address=ProcessAddress(node="127.0.0.1", port=10101, process="T"))
+    # topology.add_node("N", address=ProcessAddress(node="127.0.0.1", port=10101, process="N"))
+    # topology.add_node("O", address=ProcessAddress(node="127.0.0.1", port=10101, process="O"))
+    # topology.add_node("P", address=ProcessAddress(node="127.0.0.1", port=10101, process="P"))
+    # topology.add_node("Q", address=ProcessAddress(node="127.0.0.1", port=10101, process="Q"))
+    # topology.add_node("R", address=ProcessAddress(node="127.0.0.1", port=10101, process="R"))
+    # topology.add_node("S", address=ProcessAddress(node="127.0.0.1", port=10101, process="S"))
+    # topology.add_node("T", address=ProcessAddress(node="127.0.0.1", port=10101, process="T"))
 
     topology.add_edge("A", "B")
     topology.add_edge("B", "C")
@@ -65,13 +65,13 @@ def example_topology() -> nx.Graph:
     topology.add_edge("I", "K")
     topology.add_edge("I", "L")
     topology.add_edge("I", "M")
-    topology.add_edge("I", "N")
-    topology.add_edge("I", "O")
-    topology.add_edge("I", "P")
-    topology.add_edge("I", "Q")
-    topology.add_edge("I", "R")
-    topology.add_edge("I", "S")
-    topology.add_edge("I", "T")
+    # topology.add_edge("I", "N")
+    # topology.add_edge("I", "O")
+    # topology.add_edge("I", "P")
+    # topology.add_edge("I", "Q")
+    # topology.add_edge("I", "R")
+    # topology.add_edge("I", "S")
+    # topology.add_edge("I", "T")
 
     return topology
 
@@ -124,19 +124,6 @@ if __name__ == "__main__":
 
     api = SimulatorWebserver(host="localhost", port=10101, topology=G, programs=P)
     api.simulator.add_message(initial_message)
-    # Run Program
-    counter = 0
-    while True:
-        err = api.simulator.next()
-        guard(err)
-        err = api.simulator.prev()
-        guard(err)
-        err = api.simulator.next()
-        guard(err)
-        print(get_size(api.simulator)/1024)
-        counter += 1
-        if counter == 5:
-            print(api.simulator.get_instances("flooding"))
-            api.run()
-        print("==============")
+
+    api.run()
 

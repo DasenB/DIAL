@@ -11,6 +11,7 @@ from ipaddr import IPAddress
 from flask import Flask, jsonify, Response, request
 
 from DIAL.Address import ProcessAddress, InstanceAddress, ProgramAddress
+from DIAL.Color import Color
 from DIAL.Context import Context
 from DIAL.Message import Message
 from DIAL.Process import Program, Process
@@ -57,22 +58,28 @@ class SimulatorWebserver:
         self.api.route('/message_details/<message_id>', methods=['GET'])(self.get_message_details)
         self.api.route('/process_details/<node>:<port>/<process>', methods=['GET'])(self.get_process_details)
         self.api.route('/program_details/<program>', methods=['GET'])(self.get_program_details)
-        self.api.route('/instance_details/<node>:<port>/<process>/<program>/<instance>', methods=['GET'])(self.get_instance_details)
+        self.api.route('/program_details/', methods=['GET'])(self.get_program_details)
+        self.api.route('/instance_details/<node>:<port>/<process>/<program>/<instance>', methods=['GET'])(
+            self.get_instance_details)
 
         self.api.route('/message_details/<message_id>', methods=['PUT'])(self.put_message_details)
-
+        self.api.route('/next', methods=['GET'])(self.get_next)
+        self.api.route('/prev', methods=['GET'])(self.get_prev)
 
     def run(self):
         self.api.run(host=self.host, port=self.port, ssl_context=('../certs/cert.pem', '../certs/key.pem'))
 
-    def _str_to_address(self, address_string: str) -> ProgramAddress | InstanceAddress:
+    def _str_to_address(self, address_string: str | None) -> ProgramAddress | InstanceAddress:
+        print(address_string)
         arr: list[str] = address_string.split("/")
+        if len(arr) != 3:
+            return None
         node_and_port = arr[0]
         process = arr[1]
         program_and_instance = arr[2]
         arr1: list[str] = node_and_port.split(":")
         arr2: list[str] = program_and_instance.split("#")
-        address = ProgramAddress(node=arr1[0], port=int(arr1[2]), process=process, program=arr2[0])
+        address = ProgramAddress(node=arr1[0], port=int(arr1[1]), process=process, program=arr2[0])
         if len(arr2) > 1:
             address = address.extend(instance=UUID(arr2[1]))
         return address
@@ -106,8 +113,9 @@ class SimulatorWebserver:
         response = self.api.response_class(
             response=json.dumps(topology),
             status=200,
-            mimetype='application/json'
+            mimetype='application/json',
         )
+        response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
     def get_programs(self) -> Response:
@@ -122,6 +130,7 @@ class SimulatorWebserver:
             status=200,
             mimetype='application/json'
         )
+        response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
     def get_messages(self) -> Response:
@@ -145,6 +154,7 @@ class SimulatorWebserver:
             status=200,
             mimetype='application/json'
         )
+        response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
     def get_message_details(self, message_id: str) -> Response:
@@ -163,6 +173,7 @@ class SimulatorWebserver:
             status=200,
             mimetype='application/json'
         )
+        response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
     def get_process_details(self, node: str, port: str, process: str) -> Response:
@@ -189,13 +200,14 @@ class SimulatorWebserver:
             status=200,
             mimetype='application/json'
         )
+        response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
-    def get_program_details(self, program: str) -> Response:
+    def get_program_details(self, program: str | None = None) -> Response:
         instances_adresses: list[InstanceAddress] = self.simulator.get_instances(program_name=program)
         response_data: dict[str, any] = {}
         for ia in instances_adresses:
-            instance_id = program + "#" + ia.instance.__str__()
+            instance_id = ia.program + "#" + ia.instance.__str__()
             if instance_id not in response_data.keys():
                 response_data[instance_id] = {
                     "instances": [],
@@ -229,6 +241,7 @@ class SimulatorWebserver:
             status=200,
             mimetype='application/json'
         )
+        response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
     def get_instance_details(self, node: str, port: str, process: str, program: str, instance: str):
@@ -273,21 +286,109 @@ class SimulatorWebserver:
             status=200,
             mimetype='application/json'
         )
+        response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
-    def put_message_details(self, message_id: str):
-        if message_id not in self.simulator.pending_messages:
-            return
-        content = request.get_json()
+    def put_message_details(self, message_id: str) -> Response:
+        def hex_to_rgb(hexa):
+            return tuple(int(hexa[i:i + 2], 16) for i in (0, 2, 4))
+
         msg_id = uuid.UUID(message_id)
+        if msg_id not in self.simulator.pending_messages:
+            return self.api.response_class(status=403)
+        content = request.get_json()
         msg_source = self._str_to_address(content['source'])
         msg_target = self._str_to_address(content['target'])
         msg_return = self._str_to_address(content['return'])
-        msg_color = content['color']
+        color_tuple = hex_to_rgb(content['color'].replace("#", ""))
+        msg_color = Color(r=color_tuple[0], g=color_tuple[1], b=color_tuple[2])
         msg_data = content['data']
         message = Message(source=msg_source, target=msg_target, return_address=msg_return, color=msg_color)
         message.uuid = msg_id
         message.data = msg_data
         self.simulator.messages[msg_id] = message
 
+        response = self.api.response_class(status=200)
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
 
+    def get_next(self) -> Response:
+
+        if len(self.simulator.pending_messages) < 1:
+            return self.api.response_class(status=404, message="No pending messages to consume")
+        consumed_message_uuid = self.simulator.pending_messages[0]
+        self.simulator.next()
+        new_message_ids = self.simulator.message_tree[consumed_message_uuid]
+
+        new_messages: list[any] = []
+        for msg_uuid in new_message_ids:
+            message = self.simulator.messages[msg_uuid]
+            m: dict[str, any] = {
+                "uuid": msg_uuid.__str__(),
+                "source": message.source_address.__repr__(),
+                "target": message.target_address.__repr__(),
+                "return": message.return_address.__repr__(),
+                "color": message.color.__repr__(),
+            }
+            new_messages.append(m)
+
+        consumed_message: dict[str, any] = {
+            "uuid": consumed_message_uuid.__str__(),
+            "source": self.simulator.messages[consumed_message_uuid].source_address.__repr__(),
+            "target": self.simulator.messages[consumed_message_uuid].target_address.__repr__(),
+            "return": self.simulator.messages[consumed_message_uuid].return_address.__repr__(),
+            "color": self.simulator.messages[consumed_message_uuid].color.__repr__(),
+        }
+
+        response_data = {
+            "consumed_message": consumed_message,
+            "produced_messages": new_messages,
+        }
+
+        response = self.api.response_class(
+            response=json.dumps(response_data),
+            status=200,
+            mimetype='application/json'
+        )
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
+
+    def get_prev(self) -> Response:
+
+        if len(self.simulator.consumed_messages) < 1:
+            return self.api.response_class(status=404)  # "No previous messages to consume"
+
+        err, touched_messages = self.simulator.prev()
+
+        removed_messages: list[any] = []
+        for message in touched_messages["removed_messages"]:
+            m: dict[str, any] = {
+                "uuid": message.uuid.__str__(),
+                "source": message.source_address.__repr__(),
+                "target": message.target_address.__repr__(),
+                "return": message.return_address.__repr__(),
+                "color": message.color.__repr__(),
+            }
+            removed_messages.append(m)
+
+        reverted_message: Message = touched_messages["reverted_message"]
+        reverted_message_dict: dict[str, any] = {
+            "uuid": reverted_message.uuid.__str__(),
+            "source": reverted_message.source_address.__repr__(),
+            "target": reverted_message.target_address.__repr__(),
+            "return": reverted_message.return_address.__repr__(),
+            "color": reverted_message.color.__repr__(),
+        }
+
+        response_data = {
+            "reverted_message": reverted_message_dict,
+            "removed_messages": removed_messages
+        }
+
+        response = self.api.response_class(
+            response=json.dumps(response_data),
+            status=200,
+            mimetype='application/json'
+        )
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response

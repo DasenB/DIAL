@@ -78,21 +78,31 @@ class Simulator:
             self.messages[new_msg.uuid] = new_msg
         return None
 
-    def prev(self) -> Error | None:
+    def prev(self) -> Tuple[Error | None, dict[str, any] | None]:
         if len(self.consumed_messages) == 0:
-            return Error(msg="No previous messages consumed.")
+            return Error(msg="No previous messages consumed."), None
 
         msg_uuid = self.consumed_messages.pop()
+
+        reverted_message: Message = self.messages[msg_uuid]
+        removed_messages: list[Message] = []
+
         self.pending_messages.insert(0, msg_uuid)
         headless_message_uuids = self.message_tree[msg_uuid]
         for hm_uuid in headless_message_uuids:
+            removed_messages.append(self.messages[hm_uuid])
             self.pending_messages.remove(hm_uuid)
             self.messages.pop(hm_uuid)
 
         msg = self.messages[msg_uuid]
         process_address = msg.target_address.process_address()
         self.processes[process_address].pop()
-        return None
+
+        touched_messages: dict[str, any] = {
+            "reverted_message": reverted_message,
+            "removed_messages": removed_messages
+        }
+        return None, touched_messages
 
     def reorder(self, new_pending: list[UUID]) -> Error | None:
         if set(new_pending) != set(self.pending_messages):

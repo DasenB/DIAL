@@ -10,105 +10,157 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/keymap/sublime.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js"></script>
-        <link href="styles/main.css" rel="stylesheet" type="text/css">
+
+    <link href="styles/main.css" rel="stylesheet" type="text/css">
     <script type="text/javascript" src="scripts/action.js"></script>
     <script type="text/javascript" src="scripts/timeline.js"></script>
     <script type="text/javascript" src="scripts/graph.js"></script>
     <script type="text/javascript" src="scripts/editor.js"></script>
     <script type="text/javascript" src="scripts/table.js"></script>
+    <script type="text/javascript" src="scripts/warning.js"></script>
+    <script type="text/javascript" src="scripts/dial.js"></script>
 
 
-    <!--    <link href="styles/highlightjs/default.min.css" rel="stylesheet" >-->
-    <!--    <script src="scripts/highlight.min.js"></script>-->
-    <!--    <script type="text/javascript" src="scripts/showdown.min.js"></script>-->
-    <!--    <script type="text/javascript" src="scripts/loader.js"></script>-->
     </head>
 
     <body>
-        <div id="timeline-view">
-            <dial-timeline></dial-timeline>
-<!--            <dial-action source-address="source" target-address="target" message-uuid="msg"></dial-action>-->
-<!--            <dial-action source-address="source" target-address="target" message-uuid="msg"></dial-action>-->
-        </div>
-        <div id="graph-view">
-            <dial-graph></dial-graph>
-        </div>
-        <div id="editor-view">
-            <!--            <dial-editor></dial-editor>-->
-            <dial-table></dial-table>
-        </div>
+        <dial-simulator></dial-simulator>
         <script type="text/javascript">
-            const obj = {
-                source: 4,
-                target: 2,
-                data: "{ 'test': 'Hello World' }",
-                uuid: "d0bf966e-6ad0-4bb3-96cd-4bf2b2c6bce5",
-                color: "#2d96ff"
-            };
-            const obj2 = {
-                source: 2,
-                target: 1,
-                data: "{ 'test': 'Hello World' }",
-                uuid: "d7d920a8-94ec-4152-b024-bce669c1895d",
-                color: "#7aff2d"
-            };
-            const obj3 = {
-                source: 2,
-                target: 5,
-                data: "{ 'test': 'Hello World' }",
-                uuid: "098eaec4-2be5-49de-b9f6-0460b101c39a",
-                color: "#7aff2d"
-            };
-            const message = new DialMessage(obj);
-            const message2 = new DialMessage(obj2);
-            const message3 = new DialMessage(obj3);
-
-            const receiveMessageEvent = new CustomEvent('receiveMessage', {
-                detail: message,
-                bubbles: true,
-                cancelable: true,
-                composed: true,
-            });
-            const emitMessageEvent = new CustomEvent('emitMessage', {
-                detail: message2,
-                bubbles: true,
-                cancelable: true,
-                composed: true,
-            });
-            const emitMessageEvent2 = new CustomEvent('emitMessage', {
-                detail: message3,
-                bubbles: true,
-                cancelable: true,
-                composed: true,
-            });
-
-
-            const startTimelineEvent = new CustomEvent('timelineStartAction', {
-                detail: {},
-                bubbles: true,
-                cancelable: true,
-                composed: true,
-            });
-            const finishTimelineEvent = new CustomEvent('timelineFinishAction', {
-                detail: {},
-                bubbles: true,
-                cancelable: true,
-                composed: true,
-            });
-
-
-
-            setTimeout(function () {
-                window.dispatchEvent(receiveMessageEvent);
-                window.dispatchEvent(startTimelineEvent);
-                console.log("Receive-Dispatch");
-            }, 3000);
-            setTimeout(function () {
-                window.dispatchEvent(emitMessageEvent);
-                window.dispatchEvent(emitMessageEvent2);
-                window.dispatchEvent(finishTimelineEvent);
-                console.log("Emit-Dispatch");
-            }, 9000);
+            // const obj = {
+            //     source: 4,
+            //     target: 2,
+            //     data: "{ 'test': 'Hello World' }",
+            //     uuid: "d0bf966e-6ad0-4bb3-96cd-4bf2b2c6bce5",
+            //     color: "#2d96ff"
+            // };
+            // const obj2 = {
+            //     source: 2,
+            //     target: 1,
+            //     data: "{ 'test': 'Hello World' }",
+            //     uuid: "d7d920a8-94ec-4152-b024-bce669c1895d",
+            //     color: "#7aff2d"
+            // };
+            // const obj3 = {
+            //     source: 2,
+            //     target: 5,
+            //     data: "{ 'test': 'Hello World' }",
+            //     uuid: "098eaec4-2be5-49de-b9f6-0460b101c39a",
+            //     color: "#7aff2d"
+            // };
+            // const message = new DialMessage(obj);
+            // const message2 = new DialMessage(obj2);
+            // const message3 = new DialMessage(obj3);
+            //
+            // const receiveMessageEvent = new CustomEvent('receiveMessage', {
+            //     detail: message,
+            //     bubbles: true,
+            //     cancelable: true,
+            //     composed: true,
+            // });
+            // const emitMessageEvent = new CustomEvent('emitMessage', {
+            //     detail: message2,
+            //     bubbles: true,
+            //     cancelable: true,
+            //     composed: true,
+            // });
+            // const emitMessageEvent2 = new CustomEvent('emitMessage', {
+            //     detail: message3,
+            //     bubbles: true,
+            //     cancelable: true,
+            //     composed: true,
+            // });
+            //
+            //
+            // const startTimelineEvent = new CustomEvent('timelineStartAction', {
+            //     detail: {},
+            //     bubbles: true,
+            //     cancelable: true,
+            //     composed: true,
+            // });
+            // const finishTimelineEvent = new CustomEvent('timelineFinishAction', {
+            //     detail: {},
+            //     bubbles: true,
+            //     cancelable: true,
+            //     composed: true,
+            // });
+            //
+            //
+            //
+            // setTimeout(function () {
+            //     window.dispatchEvent(receiveMessageEvent);
+            //     window.dispatchEvent(startTimelineEvent);
+            //     document.getElementById("warning").alert("Receive next message.")
+            //
+            // }, 3000);
+            // setTimeout(function () {
+            //     window.dispatchEvent(emitMessageEvent);
+            //     window.dispatchEvent(emitMessageEvent2);
+            //     window.dispatchEvent(finishTimelineEvent);
+            //     document.getElementById("warning").alert("Emit next messages.")
+            // }, 9000);
+            //
+            //
+            // Promise.all([
+            //     fetch("https://localhost:10101/topology").then(response => response.json()),
+            //     fetch("https://localhost:10101/messages").then(response => response.json()),
+            //     fetch("https://localhost:10101/program_details/").then(response => response.json()),
+            //     fetch("https://localhost:10101/programs").then(response => response.json())
+            //
+            // ]).then(data => {
+            //     const processes = Object.keys(data[0].processes);
+            //     var instances = [];
+            //     Object.keys(data[2]).forEach(key => {
+            //         instances = instances.concat(data[2][key].instances);
+            //     });
+            //     var messages = data[1].messages.map(message => {
+            //         return message.uuid;
+            //     });
+            //     messages.splice(0, data[1].position);
+            //     const programs = Object.keys(data[3]);
+            //     document.getElementById("table").display({
+            //         "title": "Simulator",
+            //         "tables": [
+            //             {
+            //                 "title": "Processes",
+            //                 "data": processes
+            //             },
+            //             {
+            //                 "title": "Programs",
+            //                 "data": programs
+            //             },
+            //             {
+            //                 "title": "Instances",
+            //                 "data": instances
+            //             },
+            //             {
+            //                 "title": "Messages",
+            //                 "data": messages
+            //             }
+            //         ]
+            //     });
+            // })
+            // document.getElementById("table").display([
+            //     {
+            //         "title": "Processes",
+            //         "data": [
+            //             ["localhost:10101/Process 11"],
+            //             ["localhost:10101/Process 12"],
+            //             ["localhost:10101/Process 13"],
+            //             ["localhost:10101/Process 14"],
+            //             ["localhost:10101/Process 15"]
+            //         ]
+            //     },
+            //     {
+            //         "title": "Messages",
+            //         "data": [
+            //             ["Hi", "Ho"],
+            //             ["Pi", "Po"],
+            //             ["Li", "Lo"],
+            //             ["Mi", "Mo"],
+            //             ["Gi", "Go"],
+            //         ]
+            //     }
+            // ]);
 
 
             // const runActionEvent = new CustomEvent('runAction', {

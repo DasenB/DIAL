@@ -20,7 +20,7 @@ table_template.innerHTML = `
             width: 100%;
             background-color: #202129;
             color: #f8f8f2;
-            font-family:Fira Code, monospace;
+            font-family: Fira Code, monospace;
             border-collapse: collapse;
         }
         
@@ -139,7 +139,7 @@ table_template.innerHTML = `
             <div id="address">message#a23e3cc4-a7d0-48ab-b2fb-9621f00577a7</div>
         </div>
         <div id="table-background">
-            <table>
+            <table id="instance-table">
                 <tr><th>Instances</th></tr>
                 <tr><td>flooding/15d8817f-a6ed-4e14-8a70-72630de7afa2</td></tr>
                 <tr><td>flooding/0c208590-c284-4b5e-9a78-1363099ad962</td></tr>
@@ -147,7 +147,7 @@ table_template.innerHTML = `
                 <tr><td>termination/7e3670ee-ef06-49b5-94ac-3a68f7ea7643</td></tr>
                 <tr><td>voting/28c3a8c8-136d-4678-97ec-dbb145ae8a37</td></tr>
             </table>
-            <table>
+            <table id="process-table">
                 <tr><th>Processes</th></tr>
                 <tr><td>localhost:10101/Process 1</td></tr>
                 <tr><td>localhost:10101/Process 2</td></tr>
@@ -155,7 +155,7 @@ table_template.innerHTML = `
                 <tr><td>localhost:10101/Process 4</td></tr>
                 <tr><td>localhost:10101/Process 5</td></tr>
             </table>
-            <table>
+            <table id="message-table">
                 <tr><th colspan="2">Messages</th></tr>
                 <tr><td>bf44a149-bc10-4e91-aba8-2b48ac152d53</td><td>Process 1 -> Process 4</td></tr>
                 <tr><td>67b8b872-e0a0-4be1-98e8-182c872a8c03</td><td>Process 2 -> Process 3</td></tr>
@@ -169,7 +169,7 @@ table_template.innerHTML = `
 
 // All ( Processes, Instances, MessageUUIDs)
 // Process: ProcessAddress -> ( Instances, NeighborProcesses, Incomming_MessageUUIDs, Outgoing_MessageUUIDs)
-// Program: ProgramAddress -> ( Instances, MessageUUIDs )
+// (Program: ProgramAddress -> ( Instances, MessageUUIDs ))
 // Instance: InstanceAddress -> ( Context, MessageUUIDs )
 // Message: UUID -> Message
 // Context -> Editor
@@ -181,11 +181,54 @@ class Table extends HTMLElement {
         super();
         this.attachShadow({mode: 'open'});
         this.shadowRoot.appendChild(table_template.content.cloneNode(true));
+        this.$tableBackground = this.shadowRoot.querySelector("#table-background");
+        this.$address = this.shadowRoot.querySelector("#address");
+    }
 
-        this.$table = this.shadowRoot.querySelector("#editor");
 
-        console.log("Table");
+    display(obj) {
+        this.$address.textContent = obj.title;
+        this.$tableBackground.textContent = "";
+        obj.tables.forEach(tableItem => {
+            if (tableItem.data.length > 0) {
+                let table = document.createElement("table");
+                let headerRow = table.insertRow();
+                let th = document.createElement("th");
+                th.setAttribute("colspan", tableItem.data[0].length)
+                th.innerText = tableItem.title;
+                headerRow.appendChild(th);
 
+                tableItem.data.forEach(rowItem => {
+                    let row = table.insertRow();
+
+                    if (Array.isArray(rowItem)) {
+                        rowItem.forEach( cellItem => {
+                            let td = document.createElement("td");
+                            td.innerText = cellItem;
+                            row.appendChild(td);
+                        });
+                    } else {
+                        let td = document.createElement("td");
+                        td.innerText = rowItem;
+                        row.appendChild(td);
+                    }
+
+                    row.firstChild.addEventListener("click", event => {
+                        let openEvent = new CustomEvent("open", {
+                            type: "process",
+                            address: row.firstChild.textContent
+                        });
+                        window.dispatchEvent(openEvent);
+                    })
+                });
+                this.$tableBackground.appendChild(table);
+            }
+        } );
+    }
+
+
+    open(type, address) {
+        console.log(type + " " + address);
     }
 
 }

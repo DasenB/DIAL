@@ -3,7 +3,7 @@ const action_template = document.createElement("template");
 action_template.innerHTML = `
     <style>
     
-        .container {
+        #container {
             width: 100%;
             font-family: Arial, Verdana, Helvetica, sans-serif;
             line-height: 20px;
@@ -15,7 +15,6 @@ action_template.innerHTML = `
             -ms-user-select: none;
             user-select: none;
         }
-        
         
         .link {
             color: #445fb8;
@@ -54,6 +53,7 @@ action_template.innerHTML = `
             box-sizing: border-box;
             margin-bottom: 5px;
         }
+        
         .address-header:last-child {
             margin-bottom: 0;
         }
@@ -64,14 +64,11 @@ action_template.innerHTML = `
             line-height: 30px;
             float: left;
         }
-
-       
-        
-        
-        
+           
     </style>
-    <div class="container"> 
-        <div class="address-header fromto">
+
+    <div id="container"> 
+        <div class="address-header">
            <div class="address-label">Source:</div>
            <div class="link" id="source"></div>
         </div>
@@ -99,16 +96,11 @@ class Action extends HTMLElement {
         this.$source.addEventListener("mousedown", (event) => this.onMouseDown(event));
         this.$message.addEventListener("mousedown", (event) => this.onMouseDown(event));
         this.$target.addEventListener("mousedown", (event) => this.onMouseDown(event));
-
-
-
     }
 
     onMouseDown(event) {
-        console.log("hi");
         event.stopPropagation();
     }
-
 
     static get observedAttributes() {
         return ['source-address', 'target-address', 'message-uuid', 'label-color'];
