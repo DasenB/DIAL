@@ -187,6 +187,7 @@ class Table extends HTMLElement {
 
 
     display(obj) {
+        console.log(obj);
         this.$address.textContent = obj.title;
         this.$tableBackground.textContent = "";
         obj.tables.forEach(tableItem => {

@@ -150,6 +150,12 @@ timeline_template.innerHTML = `
             font-family: Fira Code, monospace;
         }
         
+        .disabled {
+            pointer-events: none;
+            cursor: default;
+            background-color: #caf3f5 !important;
+        }
+        
         #start-button {
             background-image: url( 'assets/svg/start.svg' );
         }
@@ -158,8 +164,12 @@ timeline_template.innerHTML = `
             background-image: url( 'assets/svg/previous.svg' );
         }
         
-        #play-button {
+        #play-button.paused {
             background-image: url( 'assets/svg/play.svg' );
+        }
+        
+        #play-button.playing {
+            background-image: url( 'assets/svg/pause.svg' );
         }
         
         #next-button {
@@ -184,7 +194,7 @@ timeline_template.innerHTML = `
             <div id="prev-button" class="control-button">
                 <div class="step-indicator"></div>
             </div>
-            <div id="play-button" class="control-button"></div>
+            <div id="play-button" class="control-button paused"></div>
             <div id="next-button" class="control-button">
                 <div class="step-indicator"></div>
             </div>
@@ -219,21 +229,12 @@ class Timeline extends HTMLElement {
         this.animationQueue = [];
         this.currentAnimation = undefined;
         this.animationSpeed = 10; // TODO: Move to global config or distribute with event
+        this.playButtonState = false;
 
         // Font color of action within the different queues
         this.pastQueueLabelColor = "#305b21";
         this.currentQueueLabelColor = "#8a892b";
         this.futureQueueLabelColor = "#67812e";
-
-        // Make the futureQueue sortable
-        new Sortable(this.$futureQueue, {
-            multiDrag: true,
-            selectedClass: 'sortable-selected',
-            ghostClass: 'sortable-ghost',
-            fallbackTolerance: 3,
-            animation: 150,
-            draggable: '.action',
-        });
 
         // Create events for user interaction with the individual buttons
         const eventOptions = {
@@ -244,6 +245,22 @@ class Timeline extends HTMLElement {
         const clickNextEvent = new CustomEvent('dial-timeline-clickNext', eventOptions);
         const clickPrevEvent = new CustomEvent('dial-timeline-clickPrev', eventOptions);
         const clickPlayPauseEvent = new CustomEvent('dial-timeline-clickPlayPause', eventOptions);
+        const clickJumpToEnd = new CustomEvent('dial-timeline-clickJumpToEnd', eventOptions);
+        const clickJumpToStart = new CustomEvent('dial-timeline-clickJumpToStart', eventOptions);
+        const reorderedEvent = new CustomEvent('dial-timeline-reordered', eventOptions);
+
+        // Make the futureQueue sortable
+        this.sortable = new Sortable(this.$futureQueue, {
+            multiDrag: true,
+            selectedClass: 'sortable-selected',
+            ghostClass: 'sortable-ghost',
+            fallbackTolerance: 3,
+            animation: 150,
+            draggable: '.action',
+            onChange: (event) => window.dispatchEvent(reorderedEvent)
+        });
+
+        // Attach EventListener for user interaction
         this.$nextButton.addEventListener("click", event => {
             window.dispatchEvent(clickNextEvent);
         });
@@ -251,7 +268,18 @@ class Timeline extends HTMLElement {
             window.dispatchEvent(clickPrevEvent);
         });
         this.$playButton.addEventListener("click", event => {
+            if (this.playButtonState) {
+                this.setPlayButtonState(false);
+            } else {
+                this.setPlayButtonState(true);
+            }
             window.dispatchEvent(clickPlayPauseEvent);
+        });
+        this.$endButton.addEventListener("click", event => {
+            window.dispatchEvent(clickJumpToEnd);
+        });
+        this.$startButton.addEventListener("click", event => {
+            window.dispatchEvent(clickJumpToStart);
         });
 
         this.setNextStepIndicator(0);
@@ -264,10 +292,38 @@ class Timeline extends HTMLElement {
      * @param {number} end The final offset of the timecursor within the action. (0 <= end <= 1)
      */
     animateTimeCursor(start, end) {
-        if (start < 0 || start > 1) console.log("Invalid start parameter. Must be: 0 <= start <= 1");
-        if (end < 0 || end > 1) console.log("Invalid end parameter. Must be: 0 <= end <= 1");
-        if (start === end) console.log("Invalid animation interval: start == end");
         return new Promise((resolve, reject) => {
+            if (start < 0 || start > 1) {
+                const err = new Error("Invalid start parameter for timeline-animation. Must be: 0 <= start <= 1");
+                reject(err);
+                return;
+            }
+            if (end < 0 || end > 1) {
+                const err = new Error("Invalid end parameter for timeline-animation. Must be: 0 <= end <= 1");
+                reject(err);
+                return;
+            }
+            if (start === end) {
+                const err = new Error("Invalid timeline-animation interval: start == end");
+                reject(err);
+                return;
+            }
+            if (start === 0 && this.$futureQueue.childElementCount === 0) {
+                const err = new Error("Can not start timeline-animation without a future action-element.");
+                reject(err);
+                return;
+            }
+            if (start === 1 && this.$pastQueue.childElementCount === 0) {
+                const err = new Error("Can not start reverse timeline-animation without a past action-element.");
+                reject(err);
+                return;
+            }
+            if (( end === 1 || end === 0) && this.$currentQueue.childElementCount === 0) {
+                const err = new Error("Can not finish timeline-animation without a current action-element.");
+                reject(err);
+                return;
+            }
+
             // Cave: pushing to the animationQueue in the promise might lead to a race-condition.
             // As this has not yet been observed the additional effort is postponed until problems arise.
             this.animationQueue.push({start: start, end: end, resolvePromise: resolve});
@@ -297,6 +353,12 @@ class Timeline extends HTMLElement {
         // An action is moved from the future-queue into the current-queue while moving forward
         if (this.animationProgress === 0 && this.currentAnimation.start === 0) {
             const element = this.$futureQueue.firstElementChild;
+            var evt = new MouseEvent("dragend", {
+                view: window,
+                bubbles: true,
+                cancelable: true,
+            });
+            element.dispatchEvent(evt);
             element.firstElementChild.setAttribute("label-color", this.currentQueueLabelColor);
             this.$currentQueue.appendChild(element);
         }
@@ -350,10 +412,10 @@ class Timeline extends HTMLElement {
         const deltaHeight = endHeight - startHeight;
         const yTranslation = startHeight + (deltaHeight * this.animationProgress);
         this.$timeCursor.style.transform = `translateY( ${yTranslation}px)`;
-        // this.$timeCursor.scrollIntoView({
-        //     block: "center",
-        //     behavior: "smooth"
-        // });
+        this.$timeCursor.scrollIntoView({
+            block: "center",
+            behavior: "smooth"
+        });
         requestAnimationFrame(() => {
             this.runAnimation();
         });
@@ -380,7 +442,6 @@ class Timeline extends HTMLElement {
             this.$prevButton.firstElementChild.style.display = "block";
             this.$nextButton.firstElementChild.style.display = "none";
         }
-
         this.shadowRoot.ownerDocument.documentElement.style.setProperty("--next-button-step-indicator-display", "block");
     }
 
@@ -395,17 +456,24 @@ class Timeline extends HTMLElement {
             console.log("Invalid position. The time-cursors position must be within the limits of the timeline."); // TODO: Display warning
             return;
         }
-        this.position = x;
         const past_actions = all_actions.slice(0, x);
         const future_actions = all_actions.slice(x - all_actions.length);
         past_actions.forEach(element => {
             element.firstElementChild.setAttribute("label-color", this.pastQueueLabelColor);
             this.$pastQueue.appendChild(element);
         });
-        future_actions.forEach(element => {
-            element.firstElementChild.setAttribute("label-color", this.futureQueueLabelColor);
-            this.$futureQueue.appendChild(element);
-        });
+        if (x < all_actions.length) {
+            future_actions.forEach(element => {
+                element.firstElementChild.setAttribute("label-color", this.futureQueueLabelColor);
+                this.$futureQueue.appendChild(element);
+            });
+        }
+        this.$timeCursor.style.transform = `translateY(0px)`;
+        this.animationProgress = 0;
+        this.animationLastFrameTime = 0;
+        this.animationQueue = [];
+        this.currentAnimation = undefined;
+        this.setPlayButtonState(false);
     }
 
     /**
@@ -436,7 +504,6 @@ class Timeline extends HTMLElement {
             return;
         }
         action.style.transformOrigin = `bottom center`;
-        console.log(action.style.marginTop);
         action.animate(
             [
                 { transform: `scaleY(1)`, opacity: "1", marginTop: `0`},
@@ -449,6 +516,49 @@ class Timeline extends HTMLElement {
         ).finished.then( () => {
             action.remove();
         });
+    }
+
+    removeAllActions() {
+        this.playButtonState = false;
+        let actions = this.shadowRoot.querySelectorAll(".action");
+        actions.forEach(action => {
+           action.remove();
+        });
+        this.setPosition(0);
+    }
+
+    setPlayButtonState(playing) {
+        if (!playing) {
+            this.playButtonState = false;
+            this.$playButton.classList.remove("playing");
+            this.$playButton.classList.add("paused");
+            this.$nextButton.classList.remove("disabled");
+            this.$prevButton.classList.remove("disabled");
+            this.$endButton.classList.remove("disabled");
+            this.$startButton.classList.remove("disabled");
+        } else {
+            this.playButtonState = true;
+            this.$playButton.classList.remove("paused");
+            this.$playButton.classList.add("playing");
+            this.$nextButton.classList.add("disabled");
+            this.$prevButton.classList.add("disabled");
+            this.$endButton.classList.add("disabled");
+            this.$startButton.classList.add("disabled");
+        }
+    }
+
+    getActionOrder() {
+        let uuidList = [];
+        for (let child of this.$pastQueue.children) {
+            uuidList.push(child.id);
+        }
+        for (let child of this.$currentQueue.children) {
+            uuidList.push(child.id);
+        }
+        for (let child of this.$futureQueue.children) {
+            uuidList.push(child.id);
+        }
+        return uuidList;
     }
 }
 

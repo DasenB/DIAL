@@ -19,6 +19,8 @@ def flooding_program(context: Context, message: Message) -> tuple[Context, list[
         context.state['test'] = message.data['test']
         print(f"Process: {context.address.process_address()}: { message.data['test'] }")
         for n in context.neighbors:
+            if message.source_address.process_address() == n:
+                continue
             target_program_addr = n.extend(program=context.address.program)
             target_instance_addr = target_program_addr.extend(instance=context.address.instance)
             m = Message(source=context.address, target=target_instance_addr)

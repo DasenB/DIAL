@@ -65,6 +65,8 @@ class SimulatorWebserver:
         self.api.route('/message_details/<message_id>', methods=['PUT'])(self.put_message_details)
         self.api.route('/next', methods=['GET'])(self.get_next)
         self.api.route('/prev', methods=['GET'])(self.get_prev)
+        self.api.route('/jump_to_end', methods=['GET'])(self.get_jump_to_end)
+        self.api.route('/jump_to_start', methods=['GET'])(self.get_jump_to_start)
 
     def run(self):
         self.api.run(host=self.host, port=self.port, ssl_context=('../certs/cert.pem', '../certs/key.pem'))
@@ -315,7 +317,10 @@ class SimulatorWebserver:
     def get_next(self) -> Response:
 
         if len(self.simulator.pending_messages) < 1:
-            return self.api.response_class(status=404, message="No pending messages to consume")
+            response = self.api.response_class(status=204)
+            response.set_data("No pending messages to consume")
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            return response
         consumed_message_uuid = self.simulator.pending_messages[0]
         self.simulator.next()
         new_message_ids = self.simulator.message_tree[consumed_message_uuid]
@@ -356,8 +361,10 @@ class SimulatorWebserver:
     def get_prev(self) -> Response:
 
         if len(self.simulator.consumed_messages) < 1:
-            return self.api.response_class(status=404)  # "No previous messages to consume"
-
+            response = self.api.response_class(status=204)
+            response.set_data("No previous messages to revert")
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            return response
         err, touched_messages = self.simulator.prev()
 
         removed_messages: list[any] = []
@@ -392,3 +399,25 @@ class SimulatorWebserver:
         )
         response.headers['Access-Control-Allow-Origin'] = '*'
         return response
+
+    def get_jump_to_end(self):
+        while True:
+            err = self.simulator.next()
+            if err is not None:
+                response = self.api.response_class(
+                    status=200,
+                    mimetype='application/json'
+                )
+                response.headers['Access-Control-Allow-Origin'] = '*'
+                return response
+
+    def get_jump_to_start(self):
+        while True:
+            err, _ = self.simulator.prev()
+            if err is not None:
+                response = self.api.response_class(
+                    status=200,
+                    mimetype='application/json'
+                )
+                response.headers['Access-Control-Allow-Origin'] = '*'
+                return response

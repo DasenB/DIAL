@@ -39,6 +39,7 @@ Framework for Distributed Algorithms in Python
 - highlight messageIndicator before removing an item for receiving
 - animate messages to/from outside of the topology
 - delete animation for reverse emits leaving a node 
+- Indicate "busy-state" while jumpToEnd to indicate infinite loops
 
 ### Features
 - Network adapter

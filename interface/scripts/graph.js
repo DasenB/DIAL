@@ -143,7 +143,8 @@ class GraphView extends HTMLElement {
             receiveAnimation.resolvePromise = resolve;
             const messageIndicatorKey = "from=" + message.source + "_to=" + message.target;
             if (!(messageIndicatorKey in this.messageIndicators)) {
-                reject();
+                const err = new Error("Can not run receive animation for unknown edge.")
+                reject(err);
                 return;
             }
             this.receiveAnimations.push(receiveAnimation);
@@ -170,7 +171,8 @@ class GraphView extends HTMLElement {
             emitAnimation.resolvePromise = resolve;
             const messageIndicatorKey = "from=" + message.source + "_to=" + message.target;
             if (!(messageIndicatorKey in this.messageIndicators)) {
-                reject();
+                const err = new Error("Can not run emit animation for unknown edge.")
+                reject(err);
                 return;
             }
             this.emitAnimations.push(emitAnimation);
