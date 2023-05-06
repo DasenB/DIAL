@@ -186,8 +186,7 @@ class Table extends HTMLElement {
     }
 
 
-    display(obj) {
-        console.log(obj);
+    displayData(obj) {
         this.$address.textContent = obj.title;
         this.$tableBackground.textContent = "";
         obj.tables.forEach(tableItem => {
@@ -215,11 +214,7 @@ class Table extends HTMLElement {
                     }
 
                     row.firstChild.addEventListener("click", event => {
-                        let openEvent = new CustomEvent("open", {
-                            type: "process",
-                            address: row.firstChild.textContent
-                        });
-                        window.dispatchEvent(openEvent);
+                        tableItem.clickHandler(event);
                     })
                 });
                 this.$tableBackground.appendChild(table);

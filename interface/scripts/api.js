@@ -16,20 +16,36 @@ class API {
     }
 
     loadPath(path) {
-        return fetch(`https://${this.host}:${this.port}/${path}`).then(response => {
-                return response.json().catch(reason => {
-                    throw new Error("Failed to decode API response to json.", { cause: reason});
-                });
+        const url = `https://${this.host}:${this.port}/${path}`;
+        return fetch(url).then(response => {
+                return response.json();
             }).catch(reason => {
-                throw new Error("Failed to load data from the API.", { cause: reason});
+                if (reason.message === "Load failed") {
+                    const err = new Error(`Failed to load api ${url}.`, {cause: reason});
+                    console.error(err.message);
+                }
             });
+    }
+
+    postPath(path, data) {
+        const url = `https://${this.host}:${this.port}/${path}`;
+        return fetch(url, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+        }).catch(reason => {
+            if (reason.message === "Load failed") {
+                const err = new Error(`Failed to load api ${url}.`, {cause: reason});
+                console.error(err.message);
+            }
+        });
     }
 
 
     nextStep() {
-        return this.loadPath("next").catch(reason => {
-            throw new Error("Can not load next step from the API.", {cause: reason});
-        }).then(data => {
+        return this.loadPath("next").then(data => {
             return new Promise( (resolve, reject) => {
                 const getProcessAddress = function (address) {
                     const addressArray = address.split("/");
@@ -42,16 +58,12 @@ class API {
                     message.target = getProcessAddress(message.target);
                 });
                 resolve(data);
-            }).catch(reason => {
-                throw new Error("Failed to parse API-response for next step.", {cause: reason});
             });
         });
     }
 
     prevStep() {
-        return this.loadPath("prev").catch(reason => {
-            throw new Error("Can not load previous step from the API.", {cause: reason});
-        }).then(data => {
+        return this.loadPath("prev").then(data => {
             return new Promise( (resolve, reject) => {
                 const getProcessAddress = function (address) {
                     const addressArray = address.split("/");
@@ -64,9 +76,86 @@ class API {
                     message.target = getProcessAddress(message.target);
                 });
                 resolve(data);
-            }).catch(reason => {
-                throw new Error("Failed to parse API-response for previous step.", {cause: reason});
             });
         })
+    }
+
+    loadNavigatorOverview() {
+        return Promise.all([
+            this.loadPath("topology"),
+            this.loadPath("messages"),
+            this.loadPath("program_details/"),
+            this.loadPath("programs")
+        ]).then(data => {
+            const processes = Object.keys(data[0].processes);
+            var instances = [];
+            Object.keys(data[2]).forEach(key => {
+                instances = instances.concat(data[2][key].instances);
+            });
+            var messages = data[1].messages.map(message => {
+                const source = new Address(message.source);
+                const target = new Address(message.target);
+                return [message.uuid, `${source.process} -> ${target.process}` ];
+            });
+            messages.splice(0, data[1].position);
+            const programs = Object.keys(data[3]);
+
+            const response = {
+                "processes": processes,
+                "programs": programs,
+                "instances": instances,
+                "messages": messages
+            };
+            return response;
+        });
+    }
+
+    loadGraphTopology() {
+        return Promise.all([
+            this.loadPath("topology"),
+            this.loadPath("messages")
+        ]).then(data => {
+            const processes = Object.keys(data[0].processes).map(key => {
+                return {id: data[0].processes[key].address, label: data[0].processes[key].name}
+            });
+            var messageCount = {};
+            for (let i = data[1].position; i < data[1].messages.length; i++) {
+                const sourceProcessArr = data[1].messages[i].source.split("/");
+                const targetProcessArr = data[1].messages[i].target.split("/");
+                const sourceProcess = sourceProcessArr[0] + "/" + sourceProcessArr[1];
+                const targetProcess = targetProcessArr[0] + "/" + targetProcessArr[1];
+
+                const key = "from=" + sourceProcess + "_to=" + targetProcess;
+                if (messageCount[key] === undefined) {
+                    messageCount[key] = 0;
+                }
+                messageCount[key] += 1;
+            }
+            const edges = data[0].edges.map(item => {
+                return {from: item.A, to: item.B}
+            });
+            const indicators = data[0].edges.flatMap(item => {
+                const from_to_key = "from=" + item.A + "_to=" + item.B;
+                const to_from_key = "from=" + item.B + "_to=" + item.A;
+                const from_to_count = messageCount[from_to_key] ?? 0
+                const to_from_count = messageCount[to_from_key] ?? 0
+                return [{from: item.A, to: item.B, number: from_to_count}, {
+                    from: item.B,
+                    to: item.A,
+                    number: to_from_count
+                }];
+            });
+
+            const response = {
+                "processes": processes,
+                "edges": edges,
+                "indicators": indicators
+            };
+            return response;
+        });
+    }
+
+    updateOrder(uuids){
+        return this.postPath("reorder", uuids);
     }
 }

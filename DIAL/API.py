@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from itertools import chain
 from uuid import UUID
 
 import flask
@@ -51,7 +52,9 @@ class SimulatorWebserver:
         self.simulator = Simulator(topology=topology, programs=programs)
         self.host = host
         self.port = port
-        self.api = Flask(__name__)
+        self.api = Flask(__name__, static_url_path='/', static_folder='../interface')
+
+
         self.api.route('/topology', methods=['GET'])(self.get_topology)
         self.api.route('/programs', methods=['GET'])(self.get_programs)
         self.api.route('/messages', methods=['GET'])(self.get_messages)
@@ -63,10 +66,14 @@ class SimulatorWebserver:
             self.get_instance_details)
 
         self.api.route('/message_details/<message_id>', methods=['PUT'])(self.put_message_details)
+        self.api.route('/reorder', methods=['PUT'])(self.put_reorder)
+
         self.api.route('/next', methods=['GET'])(self.get_next)
         self.api.route('/prev', methods=['GET'])(self.get_prev)
         self.api.route('/jump_to_end', methods=['GET'])(self.get_jump_to_end)
         self.api.route('/jump_to_start', methods=['GET'])(self.get_jump_to_start)
+        self.api.route('/navigator/', methods=['GET'])(self.get_navigator_root)
+        self.api.route('/navigator/process/<node>:<port>/<process>', methods=['GET'])(self.get_navigator_process)
 
     def run(self):
         self.api.run(host=self.host, port=self.port, ssl_context=('../certs/cert.pem', '../certs/key.pem'))
@@ -421,3 +428,71 @@ class SimulatorWebserver:
                 )
                 response.headers['Access-Control-Allow-Origin'] = '*'
                 return response
+
+    def put_reorder(self):
+        data = request.get_json()
+        pending_uuids = [UUID(item) for item in data]
+
+        err = self.simulator.reorder(new_pending=pending_uuids)
+
+        response_code = 200
+        if err is not None:
+            response_code = 300
+
+        response = self.api.response_class(
+            status=response_code,
+            mimetype='application/json'
+        )
+        response.headers['Content-Type'] = 'application/json'
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
+
+    def get_navigator_root(self):
+        instances2DArray = [item[-1]._instance_context.keys() for item in self.simulator.processes.values()]
+        instances = list(chain.from_iterable(instances2DArray))
+        programs2DArray = [item[-1]._program_table.keys() for item in self.simulator.processes.values()]
+        programAddressesList = list(chain.from_iterable(programs2DArray))
+        programNameList = [item.program for item in programAddressesList]
+        uniqueProgramNames = list(set(programNameList))
+        response_data = {
+            "processes": [str(item) for item in self.simulator.processes.keys()],
+            "instances": [str(item) for item in instances],
+            "consumed_messages": [self.simulator.messages[msg].summary() for msg in self.simulator.consumed_messages],
+            "pending_messages": [self.simulator.messages[msg].summary() for msg in self.simulator.pending_messages],
+            "programs": uniqueProgramNames
+        }
+        response = self.api.response_class(
+            response=json.dumps(response_data),
+            status=200,
+            mimetype='application/json'
+        )
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
+
+    def get_navigator_process(self, node, port, process):
+        process_address = ProcessAddress(node=node, port=int(port), process=process)
+
+        process = self.simulator.processes[process_address][-1]
+
+        incoming_messages: list[uuid] = []
+        outgoing_messages: list[uuid] = []
+        for uuid in self.simulator.pending_messages + self.simulator.consumed_messages:
+            if self.simulator.messages[uuid].target_address.__repr__().startswith(process_address.__repr__()):
+                incoming_messages.append(uuid)
+            if self.simulator.messages[uuid].source_address.__repr__().startswith(process_address.__repr__()):
+                outgoing_messages.append(uuid)
+
+        response_data = {
+            "neighbors": [str(item) for item in process._neighbors],
+            "programs": [str(item.program) for item in list(process._program_table.keys())],
+            "instances": [str(item) for item in list(process._instance_context.keys())],
+            "incoming_messages": [self.simulator.messages[msg].summary() for msg in incoming_messages],
+            "outgoing_messages": [self.simulator.messages[msg].summary() for msg in outgoing_messages],
+        }
+        response = self.api.response_class(
+            response=json.dumps(response_data),
+            status=200,
+            mimetype='application/json'
+        )
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response

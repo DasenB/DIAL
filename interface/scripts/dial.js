@@ -19,7 +19,7 @@ dial_template.innerHTML = `
         }
         
         
-        #editor-view {
+        #navigator-view {
             background-color: blueviolet;
             height: 30%;
             width: calc(100% - var(--menu-width));
@@ -43,9 +43,8 @@ dial_template.innerHTML = `
         <div id="graph-view">
             <dial-graph id="graph"></dial-graph>
         </div>
-        <div id="editor-view">
-<!--            <dial-editor id="editor"></dial-editor>-->
-            <dial-table id="navigator"></dial-table>
+        <div id="navigator-view">
+            <dial-navigator id="navigator"></dial-navigator>
         </div>
         <dial-warning id="warning"></dial-warning>
     </div>
@@ -58,30 +57,20 @@ class Dial extends HTMLElement {
         super();
         this.attachShadow({mode: 'open'});
         this.shadowRoot.appendChild(dial_template.content.cloneNode(true));
-        this.$graphView = this.shadowRoot.querySelector('#graph-view');
+        // this.$graphView = this.shadowRoot.querySelector('#graph-view');
         this.$graph = this.shadowRoot.querySelector('#graph');
-        this.$timelineView = this.shadowRoot.querySelector('#timeline-view');
+        // this.$timelineView = this.shadowRoot.querySelector('#timeline-view');
         this.$timeline = this.shadowRoot.querySelector('#timeline');
         this.$warning = this.shadowRoot.querySelector('#warning');
-        this.$editorView = this.shadowRoot.querySelector('#editor-view');
-        this.$editor = this.shadowRoot.querySelector('#editor');
+        // this.$editorView = this.shadowRoot.querySelector('#editor-view');
         this.$navigator = this.shadowRoot.querySelector('#navigator');
+
         this.API = new API("localhost", 10101);
-
-        this.loadEditorOverview();
-        this.loadTimelineMessages();
-        this.loadGraphTopology();
-
-        const eventOptions = {
-            bubbles: true,
-            cancelable: true,
-            composed: true,
-        };
 
         this.nextPrevCounter = 0;
         this.running = false;
         this.playPressed = false;
-
+        this.loadViews();
 
         window.addEventListener("dial-timeline-clickNext", event => {
             this.next();
@@ -94,6 +83,11 @@ class Dial extends HTMLElement {
         });
         window.addEventListener("dial-timeline-clickJumpToStart", event => {
             this.jumpToStart();
+        });
+
+        window.addEventListener("dial-navigator-init", event => {
+            this.$navigator.init(this.API);
+            this.$navigator.setAddress("");
         });
 
         window.addEventListener("dial-timeline-clickPlayPause", event => {
@@ -110,10 +104,26 @@ class Dial extends HTMLElement {
         });
 
         window.addEventListener("dial-timeline-reordered", event => {
-            const order = this.$timeline.getActionOrder();
-            console.log(order);
+            const order = this.$timeline.getFutureActionOrder();
+            this.API.updateOrder(order).catch(reason => {
+                this.$warning.displayText(reason);
+            });
         });
 
+        window.addEventListener("dial-timeline-startReorderDrag", event => {
+            this.stop();
+        });
+
+    }
+
+    loadViews() {
+        Promise.all([
+            // this.loadEditorOverview(),
+            this.loadTimelineMessages(),
+            this.loadGraphTopology()
+        ]).catch(reason => {
+            this.$warning.displayText("Can not connect to server.");
+        });
     }
 
 
@@ -140,19 +150,19 @@ class Dial extends HTMLElement {
     }
 
     jumpToEnd() {
-        fetch("https://localhost:10101/jump_to_end").then(() => {
-            this.loadGraphTopology();
-            this.loadTimelineMessages();
-            this.loadEditorOverview();
+        this.API.loadPath("jump_to_end").catch(reason => {
+            this.$warning.displayText("Failed to connect to server.");
+        }).then(() => {
+            this.loadViews();
             this.stop();
         });
     }
 
     jumpToStart() {
-        fetch("https://localhost:10101/jump_to_start").then(() => {
-            this.loadGraphTopology();
-            this.loadTimelineMessages();
-            this.loadEditorOverview();
+        this.API.loadPath("jump_to_start").catch(reason => {
+            this.$warning.displayText("Failed to connect to server.");
+        }).then(() => {
+            this.loadViews();
             this.stop();
         });
     }
@@ -162,7 +172,7 @@ class Dial extends HTMLElement {
 
         return this.API.nextStep().catch((reason) => {
             console.warn(reason);
-            this.$warning.displayText("Can not load the next step.");
+            this.$warning.displayText("Can not load next step.");
             this.stop();
             return { then: () => {}};
         }).then( (data) => {
@@ -197,7 +207,7 @@ class Dial extends HTMLElement {
         let apiResponse = undefined;
         return this.API.prevStep().catch((reason) => {
             console.warn(reason);
-            this.$warning.displayText("Failed to load previous step.");
+            this.$warning.displayText("Can not load previous step.");
             this.stop();
             return { then: () => {}};
         }).then(data => {
@@ -279,116 +289,28 @@ class Dial extends HTMLElement {
     }
 
     loadGraphTopology() {
-        Promise.all([
-            fetch("https://localhost:10101/topology").then(response => response.json()),
-            fetch("https://localhost:10101/messages").then(response => response.json())
-        ]).then(data => {
-            const processes = Object.keys(data[0].processes).map(key => {
-                return {id: data[0].processes[key].address, label: data[0].processes[key].name}
-            });
-            var messageCount = {};
-            for (let i = data[1].position; i < data[1].messages.length; i++) {
-                const sourceProcessArr = data[1].messages[i].source.split("/");
-                const targetProcessArr = data[1].messages[i].target.split("/");
-                const sourceProcess = sourceProcessArr[0] + "/" + sourceProcessArr[1];
-                const targetProcess = targetProcessArr[0] + "/" + targetProcessArr[1];
-
-                const key = "from=" + sourceProcess + "_to=" + targetProcess;
-                if (messageCount[key] === undefined) {
-                    messageCount[key] = 0;
-                }
-                messageCount[key] += 1;
-            }
-            const edges = data[0].edges.map(item => {
-                return {from: item.A, to: item.B}
-            });
-            const indicators = data[0].edges.flatMap(item => {
-                const from_to_key = "from=" + item.A + "_to=" + item.B;
-                const to_from_key = "from=" + item.B + "_to=" + item.A;
-                const from_to_count = messageCount[from_to_key] ?? 0
-                const to_from_count = messageCount[to_from_key] ?? 0
-                return [{from: item.A, to: item.B, number: from_to_count}, {from: item.B, to: item.A, number: to_from_count}];
-            });
-            this.$graph.initializeGraph(edges, processes, indicators);
+        return this.API.loadGraphTopology().catch(reason => {
+            throw new Error("Failed to load data for GraphTopology.", {cause: reason});
+        }).then( data => {
+            this.$graph.initializeGraph(data.edges, data.processes, data.indicators);
         });
     }
 
     loadTimelineMessages() {
-        Promise.all([
-            fetch("https://localhost:10101/messages").then(response => response.json())
-        ]).then(data => {
+        return this.API.loadPath("messages").catch(reason => {
+            throw new Error("Failed to load data for TimelineMessages.", {cause: reason});
+        }).then(data => {
             this.$timeline.removeAllActions();
-            data[0].messages.forEach(message => {
-                this.$timeline.addAction(message.source, message.target, message.uuid)
+            data.messages.forEach(message => {
+                const source = new Address(message.source);
+                const target = new Address(message.target);
+                const source_str = source.process + "/" + source.program  + (source.instance === undefined ? "" : "#" + source.instance);
+                const target_str = target.process + "/" + target.program + (target.instance === undefined ? "" : "#" + target.instance);
+                this.$timeline.addAction(source_str, target_str, message.uuid)
             });
-            this.$timeline.setPosition(data[0].position);
-            this.$timeline.setPosition(data[0].position);
+            this.$timeline.setPosition(data.position);
         });
     }
-
-    loadEditorProcess(processAddress) {
-        const tableData = {
-            "title": "Simulator",
-            "tables": [
-                {
-                    "title": "Processes",
-                    "data": ["asd", "ofo"]
-                },
-                {
-                    "title": "Programs",
-                    "data": ["lala", "lop", "lilp"]
-                }]
-        };
-        this.$navigator.display(tableData);
-    }
-
-    loadEditorOverview() {
-        Promise.all([
-            fetch("https://localhost:10101/topology").then(response => response.json()),
-            fetch("https://localhost:10101/messages").then(response => response.json()),
-            fetch("https://localhost:10101/program_details/").then(response => response.json()),
-            fetch("https://localhost:10101/programs").then(response => response.json())
-        ]).then(data => {
-            const processes = Object.keys(data[0].processes);
-            var instances = [];
-            Object.keys(data[2]).forEach(key => {
-                instances = instances.concat(data[2][key].instances);
-            });
-            var messages = data[1].messages.map(message => {
-                return message.uuid;
-            });
-            messages.splice(0, data[1].position);
-            const programs = Object.keys(data[3]);
-
-            const tableData = {
-                "title": "Simulator",
-                "tables": [
-                    {
-                        "title": "Processes",
-                        "data": processes,
-                        "clickHandler": this.loadEditorProcess
-                    },
-                    {
-                        "title": "Programs",
-                        "data": programs,
-                        "clickHandler": this.loadEditorProcess
-                    },
-                    {
-                        "title": "Instances",
-                        "data": instances,
-                        "clickHandler": this.loadEditorProcess
-                    },
-                    {
-                        "title": "Messages",
-                        "data": messages,
-                        "clickHandler": this.loadEditorProcess
-                    }
-                ]
-            };
-            this.$navigator.display(tableData);
-        });
-    }
-
 
 
 

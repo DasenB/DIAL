@@ -25,10 +25,16 @@ class Message:
         self.uuid = uuid4()
 
     def __repr__(self):
+        return json.dumps(self.summary(), indent=4)
+
+    def summary(self):
         str_dict: dict[str, str] = {
+            "uuid": self.uuid.__str__(),
             "source": str(self.source_address),
             "target": str(self.target_address),
             "return": str(self.return_address),
             "color": str(self.color)
         }
-        return json.dumps(str_dict, indent=4)
+        return str_dict
+
+

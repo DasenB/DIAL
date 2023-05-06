@@ -248,6 +248,7 @@ class Timeline extends HTMLElement {
         const clickJumpToEnd = new CustomEvent('dial-timeline-clickJumpToEnd', eventOptions);
         const clickJumpToStart = new CustomEvent('dial-timeline-clickJumpToStart', eventOptions);
         const reorderedEvent = new CustomEvent('dial-timeline-reordered', eventOptions);
+        const startDragEvent = new CustomEvent('dial-timeline-startReorderDrag', eventOptions);
 
         // Make the futureQueue sortable
         this.sortable = new Sortable(this.$futureQueue, {
@@ -257,7 +258,8 @@ class Timeline extends HTMLElement {
             fallbackTolerance: 3,
             animation: 150,
             draggable: '.action',
-            onChange: (event) => window.dispatchEvent(reorderedEvent)
+            onEnd: (event) => window.dispatchEvent(reorderedEvent),
+            onStart: (event) => window.dispatchEvent(startDragEvent)
         });
 
         // Attach EventListener for user interaction
@@ -547,14 +549,14 @@ class Timeline extends HTMLElement {
         }
     }
 
-    getActionOrder() {
+    getFutureActionOrder() {
         let uuidList = [];
-        for (let child of this.$pastQueue.children) {
-            uuidList.push(child.id);
-        }
-        for (let child of this.$currentQueue.children) {
-            uuidList.push(child.id);
-        }
+        // for (let child of this.$pastQueue.children) {
+        //     uuidList.push(child.id);
+        // }
+        // for (let child of this.$currentQueue.children) {
+        //     uuidList.push(child.id);
+        // }
         for (let child of this.$futureQueue.children) {
             uuidList.push(child.id);
         }

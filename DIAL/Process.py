@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import uuid
 from typing import Callable, Tuple
 import types
@@ -73,5 +74,14 @@ class Process:
         self._neighbors = neighbors
         self._program_table = {}
         self._instance_context = {}
+
+    def __repr__(self):
+        str_dict: dict[str, str] = {
+            "address": str(self._address),
+            "neighbors": [str(item) for item in self._neighbors],
+            "instances": [str(item) for item in self._instance_context.keys()],
+            "programs": [str(item) for item in self._program_table.keys()]
+        }
+        return json.dumps(str_dict, indent=4)
 
 
