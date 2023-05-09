@@ -4,15 +4,14 @@ table_template.innerHTML = `
     <style>
         @import url(https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap);
         #container {
-            height: 100%;
+            height: calc(100% - 25px);
             width: 100%;
             box-sizing: border-box;
-            padding: 10px;
         }
         
         #table-background {
             overflow: scroll;
-            height: calc(100% - 25px);
+            height: 100%;
             background-color: #202129;
         }
         
@@ -71,73 +70,12 @@ table_template.innerHTML = `
             background: yellow;
         }
         
-        #menu-bar {
-            height: 25px;
-            width: 100%;
-            background-color: deepskyblue;
-        }
         
-        #menu-bar>* {
-            margin-right: 0px;
-        }
-        
-        #menu-bar #address {
-            color: #1c274f;
-            height: 25px;
-            margin-left: 20px;
-            padding-left: 15px;
-            padding-right: 15px;
-            font-family: Monaco, Menlo, monospace;
-            font-size: 13px;
-            line-height: 25px;
-            -webkit-touch-callout:default;
-            -webkit-user-select:text;
-            -moz-user-select:text;
-            -ms-user-select:text;
-            user-select:text;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            overflow: hidden; 
-        }
-    
-        #menu-bar .button {
-            aspect-ratio: 1 / 1;
-            height: calc(100%);
-            background-repeat: no-repeat;
-            background-position: center;
-            background-size: 50%;
-            background-origin: content-box;
-            float: left;
-            cursor: pointer;
-        }
-        
-        #menu-bar .button:active {
-            background-color: #1093e5;
-        }
-        
-        #close-button {
-            background-image: url( 'assets/svg/close.svg' );
-            background-color: #fc5454;
-        }
-        
-        #back-button {
-            background-image: url( 'assets/svg/angle-left.svg' );
-            background-color: #f6fc54;
-        }
-        #next-button {
-            background-image: url( 'assets/svg/angle-right.svg' );
-            background-color: #54fc89;
-        }
         
     </style>
   
     <div id="container">
-        <div id="menu-bar">
-            <div class="button" id="close-button"></div>
-            <div class="button" id="back-button"></div>
-            <div class="button" id="next-button"></div>
-            <div id="address">message#a23e3cc4-a7d0-48ab-b2fb-9621f00577a7</div>
-        </div>
+        
         <div id="table-background">
             <table id="instance-table">
                 <tr><th>Instances</th></tr>
@@ -182,7 +120,6 @@ class Table extends HTMLElement {
         this.attachShadow({mode: 'open'});
         this.shadowRoot.appendChild(table_template.content.cloneNode(true));
         this.$tableBackground = this.shadowRoot.querySelector("#table-background");
-        this.$address = this.shadowRoot.querySelector("#address");
     }
 
     getScrollPosition() {
@@ -194,7 +131,6 @@ class Table extends HTMLElement {
     }
 
     displayData(obj) {
-        this.$address.textContent = obj.title;
         this.$tableBackground.textContent = "";
         obj.tables.forEach(tableItem => {
             if (tableItem.data.length > 0) {
