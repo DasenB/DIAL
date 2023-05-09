@@ -74,6 +74,8 @@ class SimulatorWebserver:
         self.api.route('/jump_to_start', methods=['GET'])(self.get_jump_to_start)
         self.api.route('/navigator/', methods=['GET'])(self.get_navigator_root)
         self.api.route('/navigator/process/<node>:<port>/<process>', methods=['GET'])(self.get_navigator_process)
+        self.api.route('/navigator/instance/<node>:<port>/<process>/<program>/<instance>', methods=['GET'])(self.get_navigator_instance)
+        self.api.route('/navigator/context/<node>:<port>/<process>/<program>/<instance>', methods=['GET'])(self.get_navigator_context)
 
     def run(self):
         self.api.run(host=self.host, port=self.port, ssl_context=('../certs/cert.pem', '../certs/key.pem'))
@@ -489,6 +491,74 @@ class SimulatorWebserver:
             "incoming_messages": [self.simulator.messages[msg].summary() for msg in incoming_messages],
             "outgoing_messages": [self.simulator.messages[msg].summary() for msg in outgoing_messages],
         }
+        response = self.api.response_class(
+            response=json.dumps(response_data),
+            status=200,
+            mimetype='application/json'
+        )
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
+
+    def get_navigator_instance(self, node, port, process, program, instance):
+        instance_address: InstanceAddress = InstanceAddress(
+            node=node,
+            port=int(port),
+            process=process,
+            program=program,
+            instance=uuid.UUID(instance)
+        )
+        # original_message_id = self.simulator.get_initial_message_of_instance(instance_address.instance)
+        # print(original_message_id.__str__())
+        # original_message = self.simulator.messages[original_message_id]
+        response_data: dict[str, any] = {
+            "context": [str(instance_address)],
+            "program": [instance_address.program],
+            # "initial_message": [original_message.summary()],
+            "pending_messages": [],
+            "consumed_messages": [],
+            "silblings": [str(addr) for addr in self.simulator.get_silbling_instances(instance_address.instance)]
+        }
+
+        for message in self.simulator.messages.values():
+            if instance_address.__eq__(message.source_address):
+                if message.uuid in self.simulator.pending_messages:
+                    response_data["pending_messages"].append(message.summary())
+                else:
+                    response_data["consumed_messages"].append(message.summary())
+                continue
+            if instance_address.__eq__(message.source_address):
+                if message.uuid in self.simulator.pending_messages:
+                    response_data["pending_messages"].append(message.summary())
+                else:
+                    response_data["consumed_messages"].append(message.summary())
+                continue
+
+        response = self.api.response_class(
+            response=json.dumps(response_data),
+            status=200,
+            mimetype='application/json'
+        )
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
+
+    def get_navigator_context(self, node: str, port: str, process: str, program: str, instance: str):
+        instance_address: InstanceAddress = InstanceAddress(
+            node=node,
+            port=int(port),
+            process=process,
+            program=program,
+            instance=uuid.UUID(instance)
+        )
+        process: Process = self.simulator.processes[instance_address.process_address()][-1]
+        context: Context = process._instance_context[instance_address]
+        response_data: dict[str, any] = {
+                "address": context.address.__repr__(),
+                "status": context.status.name,
+                "color": context.color.__repr__(),
+                "return_address": context.return_address.__repr__(),
+                "neighbors": [addr.__repr__() for addr in context.neighbors],
+                "state": context.state
+            }
         response = self.api.response_class(
             response=json.dumps(response_data),
             status=200,

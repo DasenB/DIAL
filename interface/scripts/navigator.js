@@ -25,12 +25,11 @@ navigator_template.innerHTML = `
     </div>
 `;
 
-class LocationStackItem {
-    constructor(type, location) {
+class NavigatorLocation {
+    constructor(address, type) {
+        this.address = address;
         this.type = type;
-        this.location = location;
     }
-
 }
 
 class Navigator extends HTMLElement {
@@ -43,10 +42,10 @@ class Navigator extends HTMLElement {
         this.$editor = this.shadowRoot.querySelector('#editor');
         this.$table = this.shadowRoot.querySelector('#table');
         this.showNone();
-        this.locationStack = [];
-        this.locationStackPosition = 0;
 
-        this.location = new Address("");
+        this.locationStack = [];
+        this.stackPosition = 0;
+
         const eventOptions = {
             bubbles: true,
             cancelable: true,
@@ -60,23 +59,39 @@ class Navigator extends HTMLElement {
         this.api = api;
     }
 
-    setAddress(location) {
+    refresh() {
+        const currentLocation = this.locationStack[this.stackPosition - 1];
+        const scrollPosition = this.$table.getScrollPosition();
+        this.openLocation(currentLocation).then(() => {
+            this.$table.setScrollPosition(scrollPosition);
+        });
+    }
+
+    openLocation(location) {
         if (this.api === undefined) {
             console.error("navigator.setAddress() is used before call to navigator.init!");
         }
-        this.location = new Address(location);
-        if (this.location.type === "root") {
-            this.setRootInfo();
+
+        if (this.stackPosition < this.locationStack.length) {
+            this.locationStack.splice(this.stackPosition + 1);
+        }
+        this.locationStack.push(location)
+        this.stackPosition += 1;
+
+        if(location.type === "root") {
+            return this.setRootInfo();
+        }
+        if (location.type === "process") {
+            return this.setProcessInfo(location.address);
+        }
+        if (location.type === "instance") {
+            return this.setInstanceInfo(location.address);
+        }
+        if (location.type === "context") {
+            return this.setContextInfo(location.address);
         }
     }
 
-    pushToLocationStack(location) {
-        if (this.locationStackPosition < this.locationStack.length) {
-            this.locationStack.splice(this.locationStackPosition + 1);
-        }
-        this.locationStackPosition += 1;
-        this.locationStack.push(location);
-    }
 
     showNone() {
         this.$table.remove();
@@ -107,21 +122,27 @@ class Navigator extends HTMLElement {
                         "title": "Neighbors",
                         "data": data.neighbors,
                         "clickHandler": (event) => {
-                            this.setProcessInfo(event.target.innerText);
+                            const address = event.target.innerText;
+                            const loc = new NavigatorLocation(address, "process");
+                            this.openLocation(loc);
                         }
                     },
                     {
                         "title": "Programs",
                         "data": data.programs,
                         "clickHandler": (event) => {
-                            this.setProgramInfo(event.target.innerText);
+                            const address = event.target.innerText;
+                            const loc = new NavigatorLocation(address, "program");
+                            this.openLocation(loc);
                         }
                     },
                     {
                         "title": "Instances",
                         "data": data.instances,
                         "clickHandler": (event) => {
-                            this.setInstanceInfo(event.target.innerText);
+                            const address = event.target.innerText;
+                            const loc = new NavigatorLocation(address, "instance");
+                            this.openLocation(loc);
                         }
                     },
                     {
@@ -133,7 +154,9 @@ class Navigator extends HTMLElement {
                             return [item.uuid, edgeStr];
                         }),
                         "clickHandler": (event) => {
-                            this.setMessageInfo(event.target.innerText);
+                            const address = event.target.innerText;
+                            const loc = new NavigatorLocation(address, "message");
+                            this.openLocation(loc);
                         }
                     },
                     {
@@ -145,7 +168,9 @@ class Navigator extends HTMLElement {
                             return [item.uuid, edgeStr];
                         }),
                         "clickHandler": (event) => {
-                            this.setMessageInfo(event.target.innerText);
+                            const address = event.target.innerText;
+                            const loc = new NavigatorLocation(address, "message");
+                            this.openLocation(loc);
                         }
                     }
                 ]
@@ -159,11 +184,90 @@ class Navigator extends HTMLElement {
     }
 
     setInstanceInfo(instance) {
-        console.log(instance);
+        this.showTable();
+        const addr = new Address(instance);
+        return this.api.loadPath(`navigator/instance/${addr.host}:${addr.port}/${addr.process}/${addr.program}/${addr.instance}`).catch(reason => {
+            throw new Error("Failed to load data for setInstanceInfo.", {cause: reason});
+        }).then(data => {
+            const tableData = {
+                "title": instance,
+                "tables": [
+                    {
+                        "title": "Program",
+                        "data": data.program,
+                        "clickHandler": (event) => {
+                            const address = event.target.innerText;
+                            const loc = new NavigatorLocation(address, "program");
+                            this.openLocation(loc);
+                        }
+                    },
+                    {
+                        "title": "Context",
+                        "data": data.context,
+                        "clickHandler": (event) => {
+                            const address = event.target.innerText;
+                            const loc = new NavigatorLocation(address, "context");
+                            this.openLocation(loc);
+                        }
+                    },
+                    {
+                        "title": "Silblings",
+                        "data": data.silblings,
+                        "clickHandler": (event) => {
+                            const address = event.target.innerText;
+                            const loc = new NavigatorLocation(address, "instance");
+                            this.openLocation(loc);
+                        }
+                    },
+                    {
+                        "title": "Past Messages",
+                        "data": data.consumed_messages.map(item => {
+                            const sourceAddress = new Address(item.source);
+                            const targetAddress = new Address(item.target);
+                            const edgeStr = sourceAddress.process + " -> " + targetAddress.process;
+                            return [item.uuid, edgeStr];
+                        }),
+                        "clickHandler": (event) => {
+                            const address = event.target.innerText;
+                            const loc = new NavigatorLocation(address, "message");
+                            this.openLocation(loc);
+                        }
+                    },
+                    {
+                        "title": "Future Messages",
+                        "data": data.pending_messages.map(item => {
+                            const sourceAddress = new Address(item.source);
+                            const targetAddress = new Address(item.target);
+                            const edgeStr = sourceAddress.process + " -> " + targetAddress.process;
+                            return [item.uuid, edgeStr];
+                        }),
+                        "clickHandler": (event) => {
+                            const address = event.target.innerText;
+                            const loc = new NavigatorLocation(address, "message");
+                            this.openLocation(loc);
+                        }
+                    }
+                ]
+            };
+            this.$table.displayData(tableData);
+        });
     }
 
     setMessageInfo(message) {
         console.log(message);
+    }
+
+    setContextInfo(context) {
+
+        this.showEditor();
+        const addr = new Address(context);
+        return this.api.loadPath(`navigator/context/${addr.host}:${addr.port}/${addr.process}/${addr.program}/${addr.instance}`).catch(reason => {
+            throw new Error("Failed to load data for setContextInfo.", {cause: reason});
+        }).then(data => {
+            console.log(data);
+            this.$editor.loadContent(context, JSON.stringify(data, null, 4));
+        });
+
     }
 
     setRootInfo() {
@@ -180,21 +284,27 @@ class Navigator extends HTMLElement {
                         "title": "Processes",
                         "data": data.processes,
                         "clickHandler": (event) => {
-                            this.setProcessInfo(event.target.innerText);
+                            const address = event.target.innerText;
+                            const loc = new NavigatorLocation(address, "process");
+                            this.openLocation(loc);
                         }
                     },
                     {
                         "title": "Programs",
                         "data": data.programs,
                         "clickHandler": (event) => {
-                            this.setProgramInfo(event.target.innerText);
+                            const address = event.target.innerText;
+                            const loc = new NavigatorLocation(address, "program");
+                            this.openLocation(loc);
                         }
                     },
                     {
                         "title": "Instances",
                         "data": data.instances,
                         "clickHandler": (event) => {
-                            this.setInstanceInfo(event.target.innerText);
+                            const address = event.target.innerText;
+                            const loc = new NavigatorLocation(address, "instance");
+                            this.openLocation(loc);
                         }
                     },
                     {
@@ -206,7 +316,9 @@ class Navigator extends HTMLElement {
                             return [item.uuid, edgeStr];
                         }),
                         "clickHandler": (event) => {
-                            this.setMessageInfo(event.target.innerText);
+                            const address = event.target.innerText;
+                            const loc = new NavigatorLocation(address, "message");
+                            this.openLocation(loc);
                         }
                     },
                     {
@@ -218,7 +330,9 @@ class Navigator extends HTMLElement {
                             return [item.uuid, edgeStr];
                         }),
                         "clickHandler": (event) => {
-                            this.setMessageInfo(event.target.innerText);
+                            const address = event.target.innerText;
+                            const loc = new NavigatorLocation(address, "message");
+                            this.openLocation(loc);
                         }
                     }
                 ]

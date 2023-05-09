@@ -185,6 +185,13 @@ class Table extends HTMLElement {
         this.$address = this.shadowRoot.querySelector("#address");
     }
 
+    getScrollPosition() {
+        return this.$tableBackground.scrollTop;
+    }
+
+    setScrollPosition(x) {
+        this.$tableBackground.scrollTop = x;
+    }
 
     displayData(obj) {
         this.$address.textContent = obj.title;

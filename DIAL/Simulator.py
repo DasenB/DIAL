@@ -182,6 +182,18 @@ class Simulator:
                     instance_addresses.append(i)
         return instance_addresses
 
+    def get_silbling_instances(self, instance_id: UUID) -> list[InstanceAddress]:
+        result_list: list[InstanceAddress] = []
+        for process_stack in self.processes.values():
+            process = process_stack[-1]
+            for instance_address in process._instance_context.keys():
+                if instance_address.instance == instance_id:
+                    result_list.append(instance_address)
+        return result_list
+
+
+
+    # TODO: Fix, currently not working at all
     def get_initial_message_of_instance(self, instance: UUID):
         previous: UUID | None = None
 

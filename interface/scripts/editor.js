@@ -15,6 +15,11 @@ editor_template.innerHTML = `
             height: calc(100% - 25px);
         }
         
+        .CodeMirror {
+            width: 100%;
+            height: 100% !important;
+        }
+        
         ::-moz-selection {
             background: yellow;
         }
@@ -105,6 +110,8 @@ class Editor extends HTMLElement {
         this.$backButton = this.shadowRoot.querySelector("#back-button");
         this.$nextButton = this.shadowRoot.querySelector("#next-button");
         this.$editorDiv = this.shadowRoot.querySelector("#editor");
+        this.$address = this.shadowRoot.querySelector("#address");
+
         this.codemirror = CodeMirror(this.$editorDiv, {
             value: "abcdee",
             mode:  {name: "javascript", json: true},
@@ -120,14 +127,16 @@ class Editor extends HTMLElement {
         this.$nextButton.addEventListener("mousedown", (event) => this.onNext(event));
     }
 
-    open(address, content) {
-        this.codemirror = CodeMirror(this.$editorDiv, {
-            value: content,
-            mode:  {name: "javascript", json: true},
-            theme: "dracula",
-            lineNumbers: true,
-            gutter: true
-        });
+    loadContent(address, content) {
+        // this.codemirror = CodeMirror(this.$editorDiv, {
+        //     value: content,
+        //     mode:  {name: "javascript", json: true},
+        //     theme: "dracula",
+        //     lineNumbers: true,
+        //     gutter: true
+        // });
+        this.codemirror.getDoc().setValue(content);
+        this.$address.textContent = address;
         this.codemirror.refresh();
     }
 

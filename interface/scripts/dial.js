@@ -11,7 +11,7 @@ dial_template.innerHTML = `
                 
         #graph-view {
             background-color: aquamarine;
-            height: 70%;
+            height: 50%;
             width: calc(100% - var(--menu-width));
             left: 0;
             top: 0;
@@ -21,7 +21,7 @@ dial_template.innerHTML = `
         
         #navigator-view {
             background-color: blueviolet;
-            height: 30%;
+            height: 50%;
             width: calc(100% - var(--menu-width));
             position: absolute;
             left: 0;
@@ -87,7 +87,8 @@ class Dial extends HTMLElement {
 
         window.addEventListener("dial-navigator-init", event => {
             this.$navigator.init(this.API);
-            this.$navigator.setAddress("");
+            const location = new NavigatorLocation("", "root");
+            this.$navigator.openLocation(location);
         });
 
         window.addEventListener("dial-timeline-clickPlayPause", event => {
@@ -184,6 +185,8 @@ class Dial extends HTMLElement {
             return this.$graph.receiveMessage(apiResponse.consumed_message, false).catch((reason) => {
                 console.warn("Can not run receive-animation for message:", apiResponse.consumed_message);
             });
+        }).then( () => {
+            this.$navigator.refresh();
         }).then(() => {
             apiResponse.produced_messages.forEach(message => {
                 this.$timeline.addAction(message.source, message.target, message.uuid);
@@ -226,6 +229,8 @@ class Dial extends HTMLElement {
                 promiseArray.push(emitPromise);
             });
             return Promise.allSettled(promiseArray);
+        }).then( () => {
+            this.$navigator.refresh();
         }).then(() => {
             return this.$graph.receiveMessage(apiResponse.reverted_message, true).catch(() => {
                 console.warn("Can not run receive-animation for message:", apiResponse.reverted_message);
