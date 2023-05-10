@@ -12,9 +12,10 @@ import uuid
 import networkx as nx
 
 
+
+
 def flooding_program(context: Context, message: Message) -> tuple[Context, list[Message]]:
     response_messages: list[Message] = []
-
     if context.status == Status.ACTIVE:
         context.state['test'] = message.data['test']
         print(f"Process: {context.address.process_address()}: { message.data['test'] }")
@@ -29,30 +30,28 @@ def flooding_program(context: Context, message: Message) -> tuple[Context, list[
         context.status = Status.PASSIVE
     return context, response_messages
 
+# def lift(message: Message) -> tuple[Context, list[Message]]:
+#     # your code ...
+#     send("x" node4)
+#     contex.state = 4
+#     return context
 
 def example_topology() -> nx.Graph:
     topology: nx.Graph = nx.Graph()
 
-    topology.add_node("A", address=ProcessAddress(node="127.0.0.1", port=10101, process="A"))
-    topology.add_node("B", address=ProcessAddress(node="127.0.0.1", port=10101, process="B"))
-    topology.add_node("C", address=ProcessAddress(node="127.0.0.1", port=10101, process="C"))
-    topology.add_node("D", address=ProcessAddress(node="127.0.0.1", port=10101, process="D"))
-    topology.add_node("E", address=ProcessAddress(node="127.0.0.1", port=10101, process="E"))
-    topology.add_node("F", address=ProcessAddress(node="127.0.0.1", port=10101, process="F"))
-    topology.add_node("G", address=ProcessAddress(node="127.0.0.1", port=10101, process="G"))
-    topology.add_node("H", address=ProcessAddress(node="127.0.0.1", port=10101, process="H"))
-    topology.add_node("I", address=ProcessAddress(node="127.0.0.1", port=10101, process="I"))
-    topology.add_node("J", address=ProcessAddress(node="127.0.0.1", port=10101, process="J"))
-    topology.add_node("K", address=ProcessAddress(node="127.0.0.1", port=10101, process="K"))
-    topology.add_node("L", address=ProcessAddress(node="127.0.0.1", port=10101, process="L"))
-    topology.add_node("M", address=ProcessAddress(node="127.0.0.1", port=10101, process="M"))
-    # topology.add_node("N", address=ProcessAddress(node="127.0.0.1", port=10101, process="N"))
-    # topology.add_node("O", address=ProcessAddress(node="127.0.0.1", port=10101, process="O"))
-    # topology.add_node("P", address=ProcessAddress(node="127.0.0.1", port=10101, process="P"))
-    # topology.add_node("Q", address=ProcessAddress(node="127.0.0.1", port=10101, process="Q"))
-    # topology.add_node("R", address=ProcessAddress(node="127.0.0.1", port=10101, process="R"))
-    # topology.add_node("S", address=ProcessAddress(node="127.0.0.1", port=10101, process="S"))
-    # topology.add_node("T", address=ProcessAddress(node="127.0.0.1", port=10101, process="T"))
+    topology.add_node("A", address=ProcessAddress(process="A"))
+    topology.add_node("B", address=ProcessAddress(process="B"))
+    topology.add_node("C", address=ProcessAddress(process="C"))
+    topology.add_node("D", address=ProcessAddress(process="D"))
+    topology.add_node("E", address=ProcessAddress(process="E"))
+    topology.add_node("F", address=ProcessAddress(process="F"))
+    topology.add_node("G", address=ProcessAddress(process="G"))
+    topology.add_node("H", address=ProcessAddress(process="H"))
+    topology.add_node("I", address=ProcessAddress(process="I"))
+    topology.add_node("J", address=ProcessAddress(process="J"))
+    topology.add_node("K", address=ProcessAddress(process="K"))
+    topology.add_node("L", address=ProcessAddress(process="L"))
+    topology.add_node("M", address=ProcessAddress(process="M"))
 
     topology.add_edge("A", "B")
     topology.add_edge("B", "C")
@@ -67,18 +66,9 @@ def example_topology() -> nx.Graph:
     topology.add_edge("I", "K")
     topology.add_edge("I", "L")
     topology.add_edge("I", "M")
-    # topology.add_edge("I", "N")
-    # topology.add_edge("I", "O")
-    # topology.add_edge("I", "P")
-    # topology.add_edge("I", "Q")
-    # topology.add_edge("I", "R")
-    # topology.add_edge("I", "S")
-    # topology.add_edge("I", "T")
 
     return topology
 
-#     print(sys.getsizeof(processes))
-#     print(inspect.getsource(flooding_program))
 
 def get_size(obj, seen=None):
     """Recursively finds size of objects"""
@@ -109,8 +99,8 @@ def get_size(obj, seen=None):
 if __name__ == "__main__":
 
     # Create initial message
-    source = InstanceAddress(node="127.0.0.1", port=10101, process="X", program="sensor", instance=uuid.uuid4())
-    target = ProgramAddress(node="127.0.0.1", port=10101, process="A", program="flooding")
+    source = InstanceAddress(process="A", program="initiator", instance=uuid.uuid4())
+    target = ProgramAddress(process="A", program="flooding")
     initial_message = Message(source=source, target=target, return_address=source)
     initial_message.data = {"test": "hello_world"}
 
@@ -121,11 +111,7 @@ if __name__ == "__main__":
     }
 
     # Setup simulator
-    # s = Simulator(topology=G, programs=P)
-    # s.add_message(initial_message)
-
     api = SimulatorWebserver(host="localhost", port=10101, topology=G, programs=P)
     api.simulator.add_message(initial_message)
-
     api.run()
 

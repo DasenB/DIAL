@@ -59,10 +59,10 @@ class SimulatorWebserver:
         self.api.route('/programs', methods=['GET'])(self.get_programs)
         self.api.route('/messages', methods=['GET'])(self.get_messages)
         self.api.route('/message_details/<message_id>', methods=['GET'])(self.get_message_details)
-        self.api.route('/process_details/<node>:<port>/<process>', methods=['GET'])(self.get_process_details)
+        self.api.route('/process_details/<process>', methods=['GET'])(self.get_process_details)
         self.api.route('/program_details/<program>', methods=['GET'])(self.get_program_details)
         self.api.route('/program_details/', methods=['GET'])(self.get_program_details)
-        self.api.route('/instance_details/<node>:<port>/<process>/<program>/<instance>', methods=['GET'])(
+        self.api.route('/instance_details/<process>/<program>/<instance>', methods=['GET'])(
             self.get_instance_details)
 
         self.api.route('/message_details/<message_id>', methods=['PUT'])(self.put_message_details)
@@ -73,26 +73,23 @@ class SimulatorWebserver:
         self.api.route('/jump_to_end', methods=['GET'])(self.get_jump_to_end)
         self.api.route('/jump_to_start', methods=['GET'])(self.get_jump_to_start)
         self.api.route('/navigator/', methods=['GET'])(self.get_navigator_root)
-        self.api.route('/navigator/process/<node>:<port>/<process>', methods=['GET'])(self.get_navigator_process)
-        self.api.route('/navigator/instance/<node>:<port>/<process>/<program>/<instance>', methods=['GET'])(self.get_navigator_instance)
-        self.api.route('/navigator/context/<node>:<port>/<process>/<program>/<instance>', methods=['GET'])(self.get_navigator_context)
+        self.api.route('/navigator/process/<process>', methods=['GET'])(self.get_navigator_process)
+        self.api.route('/navigator/instance/<process>/<program>/<instance>', methods=['GET'])(self.get_navigator_instance)
+        self.api.route('/navigator/context/<process>/<program>/<instance>', methods=['GET'])(self.get_navigator_context)
 
     def run(self):
         self.api.run(host=self.host, port=self.port, ssl_context=('../certs/cert.pem', '../certs/key.pem'))
 
     def _str_to_address(self, address_string: str | None) -> ProgramAddress | InstanceAddress:
-        print(address_string)
         arr: list[str] = address_string.split("/")
-        if len(arr) != 3:
+        if len(arr) < 2:
             return None
-        node_and_port = arr[0]
-        process = arr[1]
-        program_and_instance = arr[2]
-        arr1: list[str] = node_and_port.split(":")
-        arr2: list[str] = program_and_instance.split("#")
-        address = ProgramAddress(node=arr1[0], port=int(arr1[1]), process=process, program=arr2[0])
-        if len(arr2) > 1:
-            address = address.extend(instance=UUID(arr2[1]))
+        process = arr[0]
+        program = arr[1]
+        address = ProgramAddress(process=process, program=program)
+        if len(arr) > 2:
+            instance = arr[2]
+            address = address.extend(instance=UUID(instance))
         return address
 
     def get_topology(self) -> Response:
@@ -104,7 +101,6 @@ class SimulatorWebserver:
                                                         in neighbors]
             process: dict[str, any] = {
                 "address": address.__repr__(),
-                "name": address.process,
                 "neighbors": [n.__repr__() for n in neighbor_addresses],
             }
             processes[address.__repr__()] = process
@@ -146,7 +142,7 @@ class SimulatorWebserver:
 
     def get_messages(self) -> Response:
         messages: list[any] = []
-        for msg_uuid in self.simulator.consumed_messages + self.simulator.pending_messages:
+        for msg_uuid in self.simulator.consumed_messages:
             message = self.simulator.messages[msg_uuid]
             m: dict[str, any] = {
                 "uuid": msg_uuid.__str__(),
@@ -154,6 +150,18 @@ class SimulatorWebserver:
                 "target": message.target_address.__repr__(),
                 "return": message.return_address.__repr__(),
                 "color": message.color.__repr__(),
+                "consumed": True,
+            }
+            messages.append(m)
+        for msg_uuid in self.simulator.pending_messages:
+            message = self.simulator.messages[msg_uuid]
+            m: dict[str, any] = {
+                "uuid": msg_uuid.__str__(),
+                "source": message.source_address.__repr__(),
+                "target": message.target_address.__repr__(),
+                "return": message.return_address.__repr__(),
+                "color": message.color.__repr__(),
+                "consumed": False,
             }
             messages.append(m)
         response_data: dict[str, any] = {
@@ -187,8 +195,8 @@ class SimulatorWebserver:
         response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
-    def get_process_details(self, node: str, port: str, process: str) -> Response:
-        process_address = ProcessAddress(node=node, port=int(port), process=process)
+    def get_process_details(self,process: str) -> Response:
+        process_address = ProcessAddress(process=process)
 
         process = self.simulator.processes[process_address][-1]
 
@@ -255,10 +263,8 @@ class SimulatorWebserver:
         response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
-    def get_instance_details(self, node: str, port: str, process: str, program: str, instance: str):
+    def get_instance_details(self, process: str, program: str, instance: str):
         instance_address: InstanceAddress = InstanceAddress(
-            node=node,
-            port=int(port),
             process=process,
             program=program,
             instance=uuid.UUID(instance)
@@ -471,8 +477,8 @@ class SimulatorWebserver:
         response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
-    def get_navigator_process(self, node, port, process):
-        process_address = ProcessAddress(node=node, port=int(port), process=process)
+    def get_navigator_process(self, process):
+        process_address = ProcessAddress(process=process)
 
         process = self.simulator.processes[process_address][-1]
 
@@ -499,10 +505,8 @@ class SimulatorWebserver:
         response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
-    def get_navigator_instance(self, node, port, process, program, instance):
+    def get_navigator_instance(self, process, program, instance):
         instance_address: InstanceAddress = InstanceAddress(
-            node=node,
-            port=int(port),
             process=process,
             program=program,
             instance=uuid.UUID(instance)
@@ -541,10 +545,8 @@ class SimulatorWebserver:
         response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
-    def get_navigator_context(self, node: str, port: str, process: str, program: str, instance: str):
+    def get_navigator_context(self, process: str, program: str, instance: str):
         instance_address: InstanceAddress = InstanceAddress(
-            node=node,
-            port=int(port),
             process=process,
             program=program,
             instance=uuid.UUID(instance)

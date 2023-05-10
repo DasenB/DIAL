@@ -5,7 +5,7 @@ import uuid
 from typing import Callable, Tuple
 import types
 from inspect import signature, Signature
-from Address import NodeAddress, ProcessAddress, ProgramAddress, InstanceAddress
+from Address import ProcessAddress, ProgramAddress, InstanceAddress
 from DIAL.Color import Color
 from DIAL.Context import Context, Status
 from DIAL.Error import Error
@@ -28,14 +28,13 @@ class Process:
         scope: dict[str, any] = {
             "Status": Status,
             "print": print,
-            "NodeAddress": NodeAddress,
             "ProcessAddress": ProcessAddress,
             "ProgramAddress": ProgramAddress,
             "InstanceAddress": InstanceAddress,
             "Color": Color,
             "Message": Message
         }
-        program_address = ProgramAddress(node=self._address.node, port=self._address.port, process=self._address.process, program=name)
+        program_address = ProgramAddress(process=self._address.process, program=name)
         self._program_table[program_address] = types.FunctionType(function.__code__, scope, name=name)
         return None
 
@@ -46,12 +45,10 @@ class Process:
         if message.target_address.__class__.__name__ == "InstanceAddress":
             instance_address = message.target_address
         elif message.target_address.__class__.__name__ == "ProgramAddress":
-            node = message.target_address.node
-            port = message.target_address.port
             process = message.target_address.process
             program = message.target_address.program
             instance = uuid.uuid4()
-            instance_address = InstanceAddress(node=node, port=port, process=process, program=program, instance=instance)
+            instance_address = InstanceAddress(process=process, program=program, instance=instance)
         else:
             return []
 

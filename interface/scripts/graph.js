@@ -141,9 +141,9 @@ class GraphView extends HTMLElement {
             const receiveAnimation = new MessageTransferAnimation(message, reversed);
             receiveAnimation.reversed = reversed;
             receiveAnimation.resolvePromise = resolve;
-            const messageIndicatorKey = "from=" + message.source + "_to=" + message.target;
+            const messageIndicatorKey = "from=" + message.source.process + "_to=" + message.target.process;
             if (!(messageIndicatorKey in this.messageIndicators)) {
-                const err = new Error("Can not run receive animation for unknown edge.")
+                const err = new Error("Can not run receive animation for unknown edge.");
                 reject(err);
                 return;
             }
@@ -151,6 +151,7 @@ class GraphView extends HTMLElement {
             if (!reversed) {
                 this.messageIndicators[messageIndicatorKey].number -= 1;
             }
+
             requestAnimationFrame(() => {
                 this.runMessageTransferAnimation();
             });
@@ -169,7 +170,7 @@ class GraphView extends HTMLElement {
             const emitAnimation = new MessageTransferAnimation(message, reversed);
             emitAnimation.reversed = reversed;
             emitAnimation.resolvePromise = resolve;
-            const messageIndicatorKey = "from=" + message.source + "_to=" + message.target;
+            const messageIndicatorKey = "from=" + message.source.process + "_to=" + message.target.process;
             if (!(messageIndicatorKey in this.messageIndicators)) {
                 const err = new Error("Can not run emit animation for unknown edge.")
                 reject(err);
@@ -205,7 +206,7 @@ class GraphView extends HTMLElement {
                 return true;
             } else {
                 if (item.reversed) {
-                    const messageIndicatorKey = "from=" + item.message.source + "_to=" + item.message.target;
+                    const messageIndicatorKey = "from=" + item.message.source.process + "_to=" + item.message.target.process;
                     this.messageIndicators[messageIndicatorKey].number += 1;
                 }
                 item.resolvePromise();
@@ -227,7 +228,7 @@ class GraphView extends HTMLElement {
                 return true;
             } else {
                 if (!item.reversed) {
-                    const messageIndicatorKey = "from=" + item.message.source + "_to=" + item.message.target;
+                    const messageIndicatorKey = "from=" + item.message.source.process + "_to=" + item.message.target.process;
                     this.messageIndicators[messageIndicatorKey].number += 1;
                 }
                 item.resolvePromise();
@@ -417,8 +418,8 @@ class GraphView extends HTMLElement {
         // Draw Receive-MessageTransfers
         this.receiveAnimations.forEach(receiveAnimation => {
             // Calculate vectors that determine the position of the message
-            let vec_start = new Victor.fromObject(this.network.getPosition(receiveAnimation.message.source));
-            let vec_end = new Victor.fromObject(this.network.getPosition(receiveAnimation.message.target));
+            let vec_start = new Victor.fromObject(this.network.getPosition(receiveAnimation.message.source.process));
+            let vec_end = new Victor.fromObject(this.network.getPosition(receiveAnimation.message.target.process));
             const direction = vec_end.clone().subtract(vec_start);
 
             let p = receiveAnimation.progress;
@@ -438,7 +439,7 @@ class GraphView extends HTMLElement {
             }
 
             // Visually include the message in the selection of its corresponding indicator by adjusting the line-width
-            const key = "from=" + receiveAnimation.message.source + "_to=" + receiveAnimation.message.target;
+            const key = "from=" + receiveAnimation.message.source.process + "_to=" + receiveAnimation.message.target.process;
             const messageIndicator = this.messageIndicators[key];
             if (messageIndicator === undefined) {
                 context.lineWidth = 1;
@@ -473,8 +474,8 @@ class GraphView extends HTMLElement {
         // Draw Emit-MessageTransfers
         this.emitAnimations.forEach(emitAnimation => {
             // Calculate vectors that determine the position of the message
-            const vec_start = new Victor.fromObject(this.network.getPosition(emitAnimation.message.source));
-            const vec_end = new Victor.fromObject(this.network.getPosition(emitAnimation.message.target));
+            const vec_start = new Victor.fromObject(this.network.getPosition(emitAnimation.message.source.process));
+            const vec_end = new Victor.fromObject(this.network.getPosition(emitAnimation.message.target.process));
             const direction = vec_end.clone().subtract(vec_start);
             let p = emitAnimation.progress;
             if (emitAnimation.reversed) {
@@ -492,7 +493,7 @@ class GraphView extends HTMLElement {
             }
 
             // Visually include the message in the selection of its corresponding indicator by adjusting the line-width
-            const key = "from=" + emitAnimation.message.source + "_to=" + emitAnimation.message.target;
+            const key = "from=" + emitAnimation.message.source.process + "_to=" + emitAnimation.message.target.processes;
             const messageIndicator = this.messageIndicators[key];
             if (messageIndicator === undefined) {
                 context.lineWidth = 1;

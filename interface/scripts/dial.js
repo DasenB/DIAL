@@ -189,7 +189,7 @@ class Dial extends HTMLElement {
             this.$navigator.refresh();
         }).then(() => {
             apiResponse.produced_messages.forEach(message => {
-                this.$timeline.addAction(message.source, message.target, message.uuid);
+                this.$timeline.addAction(message.source.str, message.target.str, message.uuid);
             });
             const promiseArray = [];
             apiResponse.produced_messages.forEach(message => {
@@ -309,8 +309,8 @@ class Dial extends HTMLElement {
             data.messages.forEach(message => {
                 const source = new Address(message.source);
                 const target = new Address(message.target);
-                const source_str = source.process + "/" + source.program  + (source.instance === undefined ? "" : "#" + source.instance);
-                const target_str = target.process + "/" + target.program + (target.instance === undefined ? "" : "#" + target.instance);
+                const source_str = source.process + "/" + source.program  + (source.instance === undefined ? "" : "/" + source.instance);
+                const target_str = target.process + "/" + target.program + (target.instance === undefined ? "" : "/" + target.instance);
                 this.$timeline.addAction(source_str, target_str, message.uuid)
             });
             this.$timeline.setPosition(data.position);
