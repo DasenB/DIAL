@@ -16,6 +16,7 @@ class Message:
     _id: UUID
     _parent_message: UUID
     _child_messages: list[UUID]
+    _is_lost: bool
 
     def __init__(self, target_address: Address, source_address: Address, title: str = None, color: Color = None, data: dict[str, any] = None):
         self._id = uuid.uuid4()
@@ -35,6 +36,9 @@ class Message:
         else:
             self.data = data
 
+        self._child_messages = []
+        self._parent_message = None
+        self._is_lost = False
         self.target_address = target_address
         self.source_address = source_address
 
@@ -54,7 +58,8 @@ class Message:
             "target": str(self.target_address),
             "color": str(self.color),
             "title": self.title,
-            "id": str(self._id)
+            "id": str(self._id),
+            "children": [str(child) for child in self._child_messages]
         }
         return summary
 

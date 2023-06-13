@@ -1,12 +1,18 @@
-from typing import Callable
+from typing import Callable, Generator
+
+import numpy.random
 
 from State import State
 from Message import Message
-from Topology import Topology
+from Topology import Topology, EdgeMessageOrder
 from Address import Address
 from copy import deepcopy
+from uuid import UUID
+from numpy import random
 
+#Algorithm = Callable[[State, Message], tuple[State, list[Message]]]
 Algorithm = Callable[[State, Message], tuple[State, list[Message]]]
+
 
 
 class Simulator:
@@ -15,15 +21,34 @@ class Simulator:
     messages: list[Message]
     states: dict[Address, list[State]]
     algorithms: dict[str, Algorithm]
+    random_generator: numpy.random.Generator
 
-    def __init__(self, topology: Topology, algorithms: dict[str, Algorithm], initial_messages: list[Message]):
+    def __init__(self, topology: Topology, algorithms: dict[str, Algorithm], initial_messages: list[Message], seed=0):
         self.topology = topology
         self.algorithms = algorithms
         self.messages = initial_messages
         self.states = {}
         self.time = 0
+        self.random_generator = random.default_rng(seed)
 
-    def step_forward(self, verbose=False) -> Message | None:
+    def insert_message_to_queue(self, message: Message):
+
+        edge_config = self.topology.get_edge_config(message.source_address.node, message.target_address.node)
+        message._is_lost = self.random_generator.random() < edge_config.reliability
+
+        lowest_index_respecting_fifo = 0
+        if edge_config.message_order == EdgeMessageOrder.FIFO:
+            counter = 0
+            for m in self.messages:
+                if m.source_address.node == message.source_address.node and m.target_address.node == message.target_address.node:
+                    lowest_index_respecting_fifo = counter
+                counter += 1
+
+        minimal_insert_index = max(self.time + 1, lowest_index_respecting_fifo)
+        insert_index = self.random_generator.integers(low=minimal_insert_index, high=len(self.messages) + 1)
+        self.messages.insert(insert_index, message)
+
+    def step_forward(self, verbose=False):
         if self.time == len(self.messages):
             return None
 
@@ -44,7 +69,7 @@ class Simulator:
         current_message._child_messages = [msg._id for msg in new_messages]
         for msg in new_messages:
             msg._parent_message = current_message._id
-        self.messages.extend(new_messages)
+            self.insert_message_to_queue(msg)
         self.time += 1
 
         if verbose:

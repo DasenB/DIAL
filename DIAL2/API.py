@@ -18,10 +18,11 @@ class API:
         self.simulator = simulator
         self.host = host
         self.port = port
-        self.api = Flask(__name__, static_url_path='/', static_folder='../interface')
+        self.api = Flask(__name__, static_url_path='/', static_folder='../interface2')
 
         self.api.route('/topology', methods=['GET'])(self.get_topology)
         self.api.route('/messages', methods=['GET'])(self.get_messages)
+        self.api.route('/reset', methods=['GET'])(self.get_reset)
 
         self.api.route('/next', methods=['GET'])(self.get_next)
         self.api.route('/prev', methods=['GET'])(self.get_prev)
@@ -44,9 +45,25 @@ class API:
         response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
-    def get_messages(self):
+    def get_reset(self):
+        while self.simulator.time > 0:
+            self.simulator.step_backward()
+        self.simulator.messages = [self.simulator.messages[0]]
         response = self.api.response_class(
-            response=json.dumps([msg.summary() for msg in self.simulator.messages]),
+            response=json.dumps("OK"),
+            status=200,
+            mimetype='application/json',
+        )
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
+
+    def get_messages(self):
+        response_data = {
+            "time": self.simulator.time,
+            "messages": [msg.summary() for msg in self.simulator.messages]
+        }
+        response = self.api.response_class(
+            response=json.dumps(response_data),
             status=200,
             mimetype='application/json',
         )

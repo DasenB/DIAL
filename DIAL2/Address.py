@@ -10,6 +10,15 @@ class Address:
         self.algorithm = algorithm
         self.instance = instance
 
+    def copy(self, node: str = None, algorithm: str = None, instance: str = None):
+        if node is None:
+            node = self.node
+        if algorithm is None:
+            algorithm = self.algorithm
+        if instance is None:
+            instance = self.instance
+        return Address(node, algorithm, instance)
+
     def __repr__(self):
         return f"{self.node}/{self.algorithm}/{self.instance}"
 
