@@ -23,9 +23,9 @@ Framework for Distributed Algorithms in Python
 
 ## Change Requests
 - (State, Message) -> State, [Message] ==> (Node, Message) -> void+
-  - State => Node
+  - State => Node (Problematic, as a node has multiple states and the "State"-Object is more suitably named "AlgorithmState")
   - node => node_name
-  - send(neighbor, message)
+  - send(neighbor, message) # neighbor is not necessary as it is already provided in message.target
 - t.add_edge Options
   - FIFO / Random
   - Reliable / Unreliable
@@ -36,6 +36,10 @@ Framework for Distributed Algorithms in Python
   - Wird eine condition erfüllt, wird eine aktion ausgeführt, bevor die nächste reguläre aktion aus der Message-Queue ausgewählt wird
 - Periodische Aktionen an nodes / SetTimeout and Redo
   - Einfach Nachrichten an sich selbst senden und bei empfang testen, ob ausreichend Zeit vergangen ist
+  - Zeit wird als paramter an algoritmus übergeben
+  - kein periodic(4, xyz), da dies zwei Zeitmechanismen erfordern würde (simulationszeit 1,2,3,4,... und virtuelle zeit für jeden algorithmus.)
+    - wie würde sonst mit zwei prozessen umgegangen werden, die beide periodic(2, xyz) ausführen? (A, B, A, B, A) es könnten keine weiteren "normalen" nachrichten mehr empfangen werden
+    - periodic(1, abc) => deadlock
 - Optional: Statistics View
 - Optional: View für Nachrichten Call-Tree (vgl. Terminierungs Algorithmus VL)
 

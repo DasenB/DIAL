@@ -1,4 +1,3 @@
-
 from API import API
 from Message import Message
 from State import State
@@ -6,7 +5,7 @@ from Topology import Topology, EdgeConfig, EdgeDirection, EdgeMessageOrder
 from Color import Color, Colors
 from copy import deepcopy
 from Address import Address
-from Simulator import Simulator
+from Simulator import Simulator, send
 import random
 
 
@@ -35,17 +34,16 @@ def voting_ring(state: State, message: Message) -> (State, list[Message]):
         m = Message(source_address=state.address, target_address=relay_address, data=state.data)
         return state, [m]
 
-def flooding(state: State, message: Message) -> (State, list[Message]):
+
+def flooding(state: State, message: Message, time: int):
     if state.color == Colors.RED:
         return state, []
     state.color = Colors.RED
-    new_messages: list[Message] = []
     for neighbor in state.neighbors:
         m = message.copy()
         m.source_address = state.address
         m.target_address = state.address.copy(node=neighbor)
-        new_messages.append(m)
-    return state, new_messages
+        send(m)
 
 def echo(state: State, message: Message) -> (State, list[Message]):
     if state.color == Colors.RED:
@@ -71,8 +69,8 @@ t.add_node("E")
 t.add_node("F")
 
 reliable_fifo = EdgeConfig(reliability=1.0, direction=EdgeDirection.BIDIRECTIONAL, message_order=EdgeMessageOrder.FIFO)
-unrelieable_random = EdgeConfig(reliability=0.5, direction=EdgeDirection.BIDIRECTIONAL, message_order=EdgeMessageOrder.RANDOM)
-
+unrelieable_random = EdgeConfig(reliability=0.5, direction=EdgeDirection.BIDIRECTIONAL,
+                                message_order=EdgeMessageOrder.RANDOM)
 
 t.add_edge("A", "E", reliable_fifo)
 t.add_edge("C", "E", reliable_fifo)
@@ -97,6 +95,5 @@ s = Simulator(topology=t, algorithms=a, initial_messages=[initial_message])
 for n in range(0, 100):
     s.step_forward(verbose=True)
 
-#api = API(simulator=s)
-#api.run()
-
+# api = API(simulator=s)
+# api.run()

@@ -1,19 +1,25 @@
-from typing import Callable, Generator
+import types
+from copy import deepcopy
+from typing import Callable
 
 import numpy.random
-
-from State import State
-from Message import Message
-from Topology import Topology, EdgeMessageOrder
-from Address import Address
-from copy import deepcopy
-from uuid import UUID
 from numpy import random
 
+from Address import Address
+from Color import Colors, Color
+from Message import Message
+from State import State
+from Topology import Topology, EdgeMessageOrder
+
 #Algorithm = Callable[[State, Message], tuple[State, list[Message]]]
-Algorithm = Callable[[State, Message], tuple[State, list[Message]]]
+Algorithm = Callable[[State, Message], None]
 
 
+_send_messages_: list[Message] = []
+
+def send(message: Message):
+    global _send_messages_
+    _send_messages_.append(message)
 
 class Simulator:
     time: int
@@ -63,8 +69,28 @@ class Simulator:
         current_state.current_time = self.time
         algorithm = self.algorithms[target_address.algorithm]
 
+        # Modify algorithm to always include relevant objects for better usability
+        # also possible that this reduces usability as users can not import their own modules anymore
+        # TODO: Test and remove if necessary
+        scope: dict[str, any] = {
+            "Colors": Colors,
+            "Color": Color,
+            "Message": Message,
+            "send": send,
+        }
+        algorithm = types.FunctionType(algorithm.__code__, dict(scope, **__builtins__))
+
+        # Execute the algorithm function and retrieve its results
+        global _send_messages_
+        _send_messages_ = []
+        new_state = deepcopy(current_state)
+        algorithm(new_state, current_message, self.time)
+        new_messages = _send_messages_
+        _send_messages_ = []
+
+
         # Update state
-        new_state, new_messages = algorithm(deepcopy(current_state), current_message)
+        #new_state, new_messages = algorithm(deepcopy(current_state), current_message)
         self.states[target_address].append(new_state)
         current_message._child_messages = [msg._id for msg in new_messages]
         for msg in new_messages:
