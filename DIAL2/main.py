@@ -71,6 +71,12 @@ t.add_node("F")
 reliable_fifo = EdgeConfig(reliability=1.0, direction=EdgeDirection.BIDIRECTIONAL, message_order=EdgeMessageOrder.FIFO)
 unrelieable_random = EdgeConfig(reliability=0.5, direction=EdgeDirection.BIDIRECTIONAL,
                                 message_order=EdgeMessageOrder.RANDOM)
+t.add_edge("A", "A", reliable_fifo)
+t.add_edge("B", "B", reliable_fifo)
+t.add_edge("C", "C", reliable_fifo)
+t.add_edge("D", "D", reliable_fifo)
+t.add_edge("E", "E", reliable_fifo)
+t.add_edge("F", "F", reliable_fifo)
 
 t.add_edge("A", "E", reliable_fifo)
 t.add_edge("C", "E", reliable_fifo)
@@ -92,8 +98,14 @@ a = {
 }
 s = Simulator(topology=t, algorithms=a, initial_messages=[initial_message])
 
+
+
 for n in range(0, 100):
     s.step_forward(verbose=True)
+    s.step_backward(verbose=True)
+    s.step_forward(verbose=True)
+
+
 
 # api = API(simulator=s)
 # api.run()
