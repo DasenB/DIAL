@@ -12,7 +12,8 @@ from State import State
 from Topology import Topology, EdgeMessageOrder, EdgeConfig
 
 #Algorithm = Callable[[State, Message], tuple[State, list[Message]]]
-Algorithm = Callable[[State, Message], None]
+Algorithm = Callable[[State, Message, int], None]
+ConditionHook = Callable[[State, list[Message], int], None]
 
 
 _send_messages_: list[Message] = []
@@ -29,12 +30,14 @@ class Simulator:
     random_number_generator_states: list[any]
     algorithms: dict[str, Algorithm]
     random_generator: numpy.random.Generator
+    condition_hooks: list[ConditionHook]
 
-    def __init__(self, topology: Topology, algorithms: dict[str, Algorithm], initial_messages: list[Message], seed=0):
+    def __init__(self, topology: Topology, algorithms: dict[str, Algorithm], initial_messages: list[Message], seed=0, condition_hooks: list[ConditionHook] = []):
         self.random_generator = random.default_rng(seed)
         self.random_number_generator_states = [self.random_generator.__getstate__()]
         self.topology = topology
         self.algorithms = algorithms
+        self.condition_hooks = condition_hooks
         self.messages = []
         self.time = -1
         for initial_message in initial_messages:
@@ -103,6 +106,8 @@ class Simulator:
         _send_messages_ = []
         new_state = deepcopy(current_state)
         algorithm(new_state, current_message, self.time)
+        for hook in self.condition_hooks:
+            hook(new_state, _send_messages_, self.time)
         new_messages = _send_messages_
         _send_messages_ = []
 
