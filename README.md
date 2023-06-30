@@ -74,5 +74,9 @@ Framework for Distributed Algorithms in Python
 - Extend the graph-View with a list of running instances to choose which instance defines a nodes color
 
 
+## Lizenz
 
-
+Dieses Projekt steht unter der Creative Commons BY-NC-ND 3.0 DE Lizenz.
+Unter https://creativecommons.org/licenses/by-nc-nd/3.0/de/legalcode ist die Lizenz einsehbar.
+Eine Kopie dieser Lizenz ist diesem Projekt beigefügt.
+Unter https://creativecommons.org/licenses/by-nc-nd/3.0/de/ ist eine einfache Zusammenfassung der Lizenz einsehbar. 
