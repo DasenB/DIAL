@@ -1,40 +1,73 @@
-from __future__ import annotations
+import uuid
+from copy import deepcopy
+from uuid import UUID
 
-import json
-from uuid import UUID, uuid4
-
-from DIAL.Address import ProgramAddress, InstanceAddress
 from DIAL.Color import Color
+from DIAL.Address import Address
 
 
 class Message:
-    uuid: UUID
-    source_address: ProgramAddress | InstanceAddress
-    target_address: ProgramAddress | InstanceAddress
-    return_address: ProgramAddress | InstanceAddress | None
-    data: dict[str, any]
+    title: str
     color: Color
+    target_address: Address
+    source_address: Address
+    data: dict[str, any]
 
-    def __init__(self, source: ProgramAddress, target: ProgramAddress, return_address: ProgramAddress | None = None,
-                 color=Color()):
-        self.source_address = source
-        self.target_address = target
-        self.return_address = return_address
-        self.data = {}
-        self.color = color
-        self.uuid = uuid4()
+    _id: UUID
+    _parent_message: UUID
+    _child_messages: list[UUID]
+    _is_lost: bool
+    _is_self_message: bool
+    _self_message_delay: int
+    _arrival_time: int
+    _arrival_theta: int
 
-    def __repr__(self):
-        return json.dumps(self.summary(), indent=4)
+    def __init__(self, target_address: Address, source_address: Address, title: str = None, color: Color = None, data: dict[str, any] = None):
+        self._id = uuid.uuid4()
+
+        if title is None:
+            self.title = self._id.__str__()
+        else:
+            self.title = title
+
+        if color is None:
+            self.color = Color()
+        else:
+            self.color = color
+
+        if data is None:
+            self.data = {}
+        else:
+            self.data = data
+
+        self._child_messages = []
+        self._parent_message = None
+        self._is_lost = False
+        self._is_self_message = False
+        self._self_message_delay = 0
+        self._arrival_time = -1
+        self._arrival_theta = -1
+        self.target_address = target_address
+        self.source_address = source_address
+
+    def copy(self):
+        new_message: Message = Message(
+            target_address=deepcopy(self.target_address),
+            source_address=deepcopy(self.source_address)
+        )
+        new_message.title = self.title
+        new_message.color = deepcopy(self.color)
+        new_message.data = deepcopy(self.data)
+        return new_message
 
     def summary(self):
-        str_dict: dict[str, str] = {
-            "uuid": self.uuid.__str__(),
+        summary: dict[str, str] = {
             "source": str(self.source_address),
             "target": str(self.target_address),
-            "return": str(self.return_address),
-            "color": str(self.color)
+            "color": str(self.color),
+            "title": self.title,
+            "id": str(self._id),
+            "children": [str(child) for child in self._child_messages]
         }
-        return str_dict
-
+        return summary
 

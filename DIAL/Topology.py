@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Tuple, Callable
 import numpy
-from Message import Message
+from DIAL.Message import Message
 
 Scheduler = Callable[
     [any, int, int, dict[int, list[Message]], Message, numpy.random.Generator],

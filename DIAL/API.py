@@ -1,121 +1,41 @@
-from __future__ import annotations
-
-import uuid
-from itertools import chain
-from uuid import UUID
-
-import flask
-import networkx
-import networkx as nx
 import json
-from ipaddr import IPAddress
-from flask import Flask, jsonify, Response, request
 
-from DIAL.Address import ProcessAddress, InstanceAddress, ProgramAddress
-from DIAL.Color import Color
-from DIAL.Context import Context
+import networkx as nx
+from flask import Flask
+from ipaddr import IPAddress
+
 from DIAL.Message import Message
-from DIAL.Process import Program, Process
 from DIAL.Simulator import Simulator
 
 
-# API
-
-# GET GENERAL INFORMATION ###########################################
-# GET topology                          -> Topology
-# GET process/{address}/programs        -> list[ProgramAddress]
-# GET process/{address}/instances       -> list[InstanceAddress]
-
-# MANIPULATE STATE ##################################################
-# GET instance/{address}/context        -> Context
-# PUT instance/{address}/context        -> Context
-# GET message/{uuid}                    -> Message
-# PUT message/{uuid}                    -> Message
-# DEL message/{uuid}                    -> bool
-
-# CONTROL SIMULATION ################################################
-# GET simulator                         -> consumed=list[UUID], pending=list[UUID]
-# PUT simulator/next                    -> Error | None
-# PUT simulator/prev                    -> Error | None
-# PUT simulator/reorder                 -> new_pending=list[UUID]
-# PUT simulator/reset                   -> None
-# PUT simulator/append_message          -> Message
-
-
-class SimulatorWebserver:
+class API:
     simulator: Simulator
     host: IPAddress
     port: int
     api: Flask
 
-    def __init__(self, host: IPAddress, port: int, topology: nx.Graph, programs: dict[str, Program]):
-        self.simulator = Simulator(topology=topology, programs=programs)
+    def __init__(self, simulator: Simulator, host: IPAddress = "127.0.0.1", port: int = 10101):
+        self.simulator = simulator
         self.host = host
         self.port = port
-        self.api = Flask(__name__, static_url_path='/', static_folder='../interface')
-
+        self.api = Flask(__name__, static_url_path='/', static_folder='../interface2')
 
         self.api.route('/topology', methods=['GET'])(self.get_topology)
-        self.api.route('/programs', methods=['GET'])(self.get_programs)
         self.api.route('/messages', methods=['GET'])(self.get_messages)
-        self.api.route('/message_details/<message_id>', methods=['GET'])(self.get_message_details)
-        self.api.route('/process_details/<process>', methods=['GET'])(self.get_process_details)
-        self.api.route('/program_details/<program>', methods=['GET'])(self.get_program_details)
-        self.api.route('/program_details/', methods=['GET'])(self.get_program_details)
-        self.api.route('/instance_details/<process>/<program>/<instance>', methods=['GET'])(
-            self.get_instance_details)
-
-        self.api.route('/message_details/<message_id>', methods=['PUT'])(self.put_message_details)
-        self.api.route('/reorder', methods=['PUT'])(self.put_reorder)
+        self.api.route('/reset', methods=['GET'])(self.get_reset)
 
         self.api.route('/next', methods=['GET'])(self.get_next)
         self.api.route('/prev', methods=['GET'])(self.get_prev)
-        self.api.route('/jump_to_end', methods=['GET'])(self.get_jump_to_end)
-        self.api.route('/jump_to_start', methods=['GET'])(self.get_jump_to_start)
-        self.api.route('/navigator/', methods=['GET'])(self.get_navigator_root)
-        self.api.route('/navigator/process/<process>', methods=['GET'])(self.get_navigator_process)
-        self.api.route('/navigator/instance/<process>/<program>/<instance>', methods=['GET'])(self.get_navigator_instance)
-        self.api.route('/navigator/context/<process>/<program>/<instance>', methods=['GET'])(self.get_navigator_context)
+        # self.api.route('/jump_to_end', methods=['GET'])(self.get_jump_to_end)
+        # self.api.route('/jump_to_start', methods=['GET'])(self.get_jump_to_start)
 
     def run(self):
         self.api.run(host=self.host, port=self.port, ssl_context=('../certs/cert.pem', '../certs/key.pem'))
 
-    def _str_to_address(self, address_string: str | None) -> ProgramAddress | InstanceAddress:
-        arr: list[str] = address_string.split("/")
-        if len(arr) < 2:
-            return None
-        process = arr[0]
-        program = arr[1]
-        address = ProgramAddress(process=process, program=program)
-        if len(arr) > 2:
-            instance = arr[2]
-            address = address.extend(instance=UUID(instance))
-        return address
-
-    def get_topology(self) -> Response:
-        processes: dict[str, str] = {}
-        for nx_node in self.simulator.topology.nodes:
-            address: ProcessAddress = self.simulator.topology.nodes[nx_node]["address"]
-            neighbors = nx.all_neighbors(self.simulator.topology, node=nx_node)
-            neighbor_addresses: list[ProcessAddress] = [self.simulator.topology.nodes[neighbor]["address"] for neighbor
-                                                        in neighbors]
-            process: dict[str, any] = {
-                "address": address.__repr__(),
-                "neighbors": [n.__repr__() for n in neighbor_addresses],
-            }
-            processes[address.__repr__()] = process
-
-        edges: list[dict[str, str]] = []
-        for nx_edge in self.simulator.topology.edges:
-            edge: dict[str, str] = {
-                "A": self.simulator.topology.nodes[nx_edge[0]]["address"].__repr__(),
-                "B": self.simulator.topology.nodes[nx_edge[1]]["address"].__repr__()
-            }
-            edges.append(edge)
-
+    def get_topology(self):
         topology: dict[str, any] = {
-            "processes": processes,
-            "edges": edges
+            "nodes": self.simulator.topology.nodes,
+            "edges": self.simulator.topology.edges
         }
         response = self.api.response_class(
             response=json.dumps(topology),
@@ -125,446 +45,85 @@ class SimulatorWebserver:
         response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
-    def get_programs(self) -> Response:
-        programs: dict[str, list[str]] = {}
-
-        for program_name in self.simulator.programs.keys():
-            instance_list: list[InstanceAddress] = self.simulator.get_instances(program_name=program_name)
-            programs[program_name] = [addr.__repr__() for addr in instance_list]
-
+    def get_reset(self):
+        while self.simulator.time > 0:
+            self.simulator.step_backward()
+        self.simulator.messages = [self.simulator.messages[0]]
         response = self.api.response_class(
-            response=json.dumps(programs),
+            response=json.dumps("OK"),
             status=200,
-            mimetype='application/json'
+            mimetype='application/json',
         )
         response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
-    def get_messages(self) -> Response:
-        messages: list[any] = []
-        for msg_uuid in self.simulator.consumed_messages:
-            message = self.simulator.messages[msg_uuid]
-            m: dict[str, any] = {
-                "uuid": msg_uuid.__str__(),
-                "source": message.source_address.__repr__(),
-                "target": message.target_address.__repr__(),
-                "return": message.return_address.__repr__(),
-                "color": message.color.__repr__(),
-                "consumed": True,
-            }
-            messages.append(m)
-        for msg_uuid in self.simulator.pending_messages:
-            message = self.simulator.messages[msg_uuid]
-            m: dict[str, any] = {
-                "uuid": msg_uuid.__str__(),
-                "source": message.source_address.__repr__(),
-                "target": message.target_address.__repr__(),
-                "return": message.return_address.__repr__(),
-                "color": message.color.__repr__(),
-                "consumed": False,
-            }
-            messages.append(m)
-        response_data: dict[str, any] = {
-            "position": len(self.simulator.consumed_messages),
-            "messages": messages
+    def get_messages(self):
+        response_data = {
+            "time": self.simulator.time,
+            "messages": [msg.summary() for msg in self.simulator.messages]
         }
         response = self.api.response_class(
             response=json.dumps(response_data),
             status=200,
-            mimetype='application/json'
+            mimetype='application/json',
         )
         response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
-    def get_message_details(self, message_id: str) -> Response:
-        message: Message = self.simulator.get_message(message_uuid=UUID(message_id))
-
-        response_data: dict[str, any] = {
-            "uuid": message_id.__str__(),
-            "source": message.source_address.__repr__(),
-            "target": message.target_address.__repr__(),
-            "return": message.return_address.__repr__(),
-            "color": message.color.__repr__(),
-            "data": message.data
-        }
-        response = self.api.response_class(
-            response=json.dumps(response_data),
-            status=200,
-            mimetype='application/json'
-        )
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        return response
-
-    def get_process_details(self,process: str) -> Response:
-        process_address = ProcessAddress(process=process)
-
-        process = self.simulator.processes[process_address][-1]
-
-        incoming_messages: list[str] = []
-        outgoing_messages: list[str] = []
-        for uuid in self.simulator.pending_messages:
-            if self.simulator.messages[uuid].target_address.__repr__().startswith(process_address.__repr__()):
-                incoming_messages.append(uuid.__str__())
-            if self.simulator.messages[uuid].source_address.__repr__().startswith(process_address.__repr__()):
-                outgoing_messages.append(uuid.__str__())
-
-        response_data: dict[str, any] = {
-            "instances": [address.__repr__() for address in process._instance_context.keys()],
-            "neighbors": [address.__repr__() for address in process._neighbors],
-            "incoming_messages": incoming_messages,
-            "outgoing_messages": outgoing_messages,
-        }
-        response = self.api.response_class(
-            response=json.dumps(response_data),
-            status=200,
-            mimetype='application/json'
-        )
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        return response
-
-    def get_program_details(self, program: str | None = None) -> Response:
-        instances_adresses: list[InstanceAddress] = self.simulator.get_instances(program_name=program)
-        response_data: dict[str, any] = {}
-        for ia in instances_adresses:
-            instance_id = ia.program + "#" + ia.instance.__str__()
-            if instance_id not in response_data.keys():
-                response_data[instance_id] = {
-                    "instances": [],
-                    "initial_message": self.simulator.get_initial_message_of_instance(ia.instance).__str__(),
-                    "pending_messages": [],
-                    "consumed_messages": []
-                }
-            response_data[instance_id]["instances"].append(ia.__repr__())
-
-        for message in self.simulator.messages.values():
-            if message.source_address.__class__.__name__ == "InstanceAddress":
-                instance_id = message.source_address.program + "#" + message.source_address.instance.__str__()
-                if instance_id in response_data.keys():
-                    if message.uuid in self.simulator.pending_messages:
-
-                        response_data[instance_id]["pending_messages"].append(message.uuid.__str__())
-                    else:
-                        response_data[instance_id]["consumed_messages"].append(message.uuid.__str__())
-                    continue
-            if message.target_address.__class__.__name__ == "InstanceAddress":
-                instance_id = message.target_address.program + "#" + message.target_address.instance.__str__()
-                if instance_id in response_data.keys():
-                    if message.uuid in self.simulator.pending_messages:
-                        response_data[instance_id]["pending_messages"].append(message.uuid.__str__())
-                    else:
-                        response_data[instance_id]["consumed_messages"].append(message.uuid.__str__())
-                    continue
-
-        response = self.api.response_class(
-            response=json.dumps(response_data),
-            status=200,
-            mimetype='application/json'
-        )
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        return response
-
-    def get_instance_details(self, process: str, program: str, instance: str):
-        instance_address: InstanceAddress = InstanceAddress(
-            process=process,
-            program=program,
-            instance=uuid.UUID(instance)
-        )
-        process: Process = self.simulator.processes[instance_address.process_address()][-1]
-        context: Context = process._instance_context[instance_address]
-        response_data: dict[str, any] = {
-            "context": {
-                "address": context.address.__repr__(),
-                "status": context.status.name,
-                "color": context.color.__repr__(),
-                "return_address": context.return_address.__repr__(),
-                "neighbors": [addr.__repr__() for addr in context.neighbors],
-                "state": context.state
-            },
-            "pending_messages": [],
-            "consumed_messages": []
-        }
-
-        for message in self.simulator.messages.values():
-            if instance_address.__eq__(message.source_address):
-                if message.uuid in self.simulator.pending_messages:
-                    response_data["pending_messages"].append(message.uuid.__str__())
-                else:
-                    response_data["consumed_messages"].append(message.uuid.__str__())
-                continue
-            if instance_address.__eq__(message.source_address):
-                if message.uuid in self.simulator.pending_messages:
-                    response_data["pending_messages"].append(message.uuid.__str__())
-                else:
-                    response_data["consumed_messages"].append(message.uuid.__str__())
-                continue
-
-        response = self.api.response_class(
-            response=json.dumps(response_data),
-            status=200,
-            mimetype='application/json'
-        )
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        return response
-
-    def put_message_details(self, message_id: str) -> Response:
-        def hex_to_rgb(hexa):
-            return tuple(int(hexa[i:i + 2], 16) for i in (0, 2, 4))
-
-        msg_id = uuid.UUID(message_id)
-        if msg_id not in self.simulator.pending_messages:
-            return self.api.response_class(status=403)
-        content = request.get_json()
-        msg_source = self._str_to_address(content['source'])
-        msg_target = self._str_to_address(content['target'])
-        msg_return = self._str_to_address(content['return'])
-        color_tuple = hex_to_rgb(content['color'].replace("#", ""))
-        msg_color = Color(r=color_tuple[0], g=color_tuple[1], b=color_tuple[2])
-        msg_data = content['data']
-        message = Message(source=msg_source, target=msg_target, return_address=msg_return, color=msg_color)
-        message.uuid = msg_id
-        message.data = msg_data
-        self.simulator.messages[msg_id] = message
-
-        response = self.api.response_class(status=200)
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        return response
-
-    def get_next(self) -> Response:
-
-        if len(self.simulator.pending_messages) < 1:
-            response = self.api.response_class(status=204)
-            response.set_data("No pending messages to consume")
+    def get_next(self):
+        if self.simulator.time == len(self.simulator.messages):
+            response = self.api.response_class(
+                response=json.dumps("No more messages to process."),
+                status=400,
+                mimetype='application/json',
+            )
             response.headers['Access-Control-Allow-Origin'] = '*'
             return response
-        consumed_message_uuid = self.simulator.pending_messages[0]
-        self.simulator.next()
-        new_message_ids = self.simulator.message_tree[consumed_message_uuid]
 
-        new_messages: list[any] = []
-        for msg_uuid in new_message_ids:
-            message = self.simulator.messages[msg_uuid]
-            m: dict[str, any] = {
-                "uuid": msg_uuid.__str__(),
-                "source": message.source_address.__repr__(),
-                "target": message.target_address.__repr__(),
-                "return": message.return_address.__repr__(),
-                "color": message.color.__repr__(),
-            }
-            new_messages.append(m)
+        processed_message = self.simulator.messages[self.simulator.time]
+        self.simulator.step_forward()
+        new_messages: list[Message] = []
+        for message in self.simulator.messages:
+            if message._id in processed_message._child_messages:
+                new_messages.append(message.summary())
 
-        consumed_message: dict[str, any] = {
-            "uuid": consumed_message_uuid.__str__(),
-            "source": self.simulator.messages[consumed_message_uuid].source_address.__repr__(),
-            "target": self.simulator.messages[consumed_message_uuid].target_address.__repr__(),
-            "return": self.simulator.messages[consumed_message_uuid].return_address.__repr__(),
-            "color": self.simulator.messages[consumed_message_uuid].color.__repr__(),
+        response_data: dict[str, any] = {
+            "processed_message": processed_message.summary(),
+            "new_messages": new_messages,
+            "time": self.simulator.time - 1
         }
-
-        response_data = {
-            "consumed_message": consumed_message,
-            "produced_messages": new_messages,
-        }
-
         response = self.api.response_class(
             response=json.dumps(response_data),
             status=200,
-            mimetype='application/json'
+            mimetype='application/json',
         )
-        response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
-    def get_prev(self) -> Response:
-
-        if len(self.simulator.consumed_messages) < 1:
-            response = self.api.response_class(status=204)
-            response.set_data("No previous messages to revert")
+    def get_prev(self):
+        if self.simulator.time == 0:
+            response = self.api.response_class(
+                response=json.dumps("No more messages to revert."),
+                status=400,
+                mimetype='application/json',
+            )
             response.headers['Access-Control-Allow-Origin'] = '*'
             return response
-        err, touched_messages = self.simulator.prev()
 
-        removed_messages: list[any] = []
-        for message in touched_messages["removed_messages"]:
-            m: dict[str, any] = {
-                "uuid": message.uuid.__str__(),
-                "source": message.source_address.__repr__(),
-                "target": message.target_address.__repr__(),
-                "return": message.return_address.__repr__(),
-                "color": message.color.__repr__(),
-            }
-            removed_messages.append(m)
+        reverted_message = self.simulator.messages[self.simulator.time - 1]
+        removed_messages: list[Message] = []
+        for message in self.simulator.messages:
+            if message._id in reverted_message._child_messages:
+                removed_messages.append(message.summary())
+        self.simulator.step_backward()
 
-        reverted_message: Message = touched_messages["reverted_message"]
-        reverted_message_dict: dict[str, any] = {
-            "uuid": reverted_message.uuid.__str__(),
-            "source": reverted_message.source_address.__repr__(),
-            "target": reverted_message.target_address.__repr__(),
-            "return": reverted_message.return_address.__repr__(),
-            "color": reverted_message.color.__repr__(),
-        }
-
-        response_data = {
-            "reverted_message": reverted_message_dict,
-            "removed_messages": removed_messages
-        }
-
-        response = self.api.response_class(
-            response=json.dumps(response_data),
-            status=200,
-            mimetype='application/json'
-        )
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        return response
-
-    def get_jump_to_end(self):
-        while True:
-            err = self.simulator.next()
-            if err is not None:
-                response = self.api.response_class(
-                    status=200,
-                    mimetype='application/json'
-                )
-                response.headers['Access-Control-Allow-Origin'] = '*'
-                return response
-
-    def get_jump_to_start(self):
-        while True:
-            err, _ = self.simulator.prev()
-            if err is not None:
-                response = self.api.response_class(
-                    status=200,
-                    mimetype='application/json'
-                )
-                response.headers['Access-Control-Allow-Origin'] = '*'
-                return response
-
-    def put_reorder(self):
-        data = request.get_json()
-        pending_uuids = [UUID(item) for item in data]
-
-        err = self.simulator.reorder(new_pending=pending_uuids)
-
-        response_code = 200
-        if err is not None:
-            response_code = 300
-
-        response = self.api.response_class(
-            status=response_code,
-            mimetype='application/json'
-        )
-        response.headers['Content-Type'] = 'application/json'
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        return response
-
-    def get_navigator_root(self):
-        instances2DArray = [item[-1]._instance_context.keys() for item in self.simulator.processes.values()]
-        instances = list(chain.from_iterable(instances2DArray))
-        programs2DArray = [item[-1]._program_table.keys() for item in self.simulator.processes.values()]
-        programAddressesList = list(chain.from_iterable(programs2DArray))
-        programNameList = [item.program for item in programAddressesList]
-        uniqueProgramNames = list(set(programNameList))
-        response_data = {
-            "processes": [str(item) for item in self.simulator.processes.keys()],
-            "instances": [str(item) for item in instances],
-            "consumed_messages": [self.simulator.messages[msg].summary() for msg in self.simulator.consumed_messages],
-            "pending_messages": [self.simulator.messages[msg].summary() for msg in self.simulator.pending_messages],
-            "programs": uniqueProgramNames
-        }
-        response = self.api.response_class(
-            response=json.dumps(response_data),
-            status=200,
-            mimetype='application/json'
-        )
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        return response
-
-    def get_navigator_process(self, process):
-        process_address = ProcessAddress(process=process)
-
-        process = self.simulator.processes[process_address][-1]
-
-        incoming_messages: list[uuid] = []
-        outgoing_messages: list[uuid] = []
-        for uuid in self.simulator.pending_messages + self.simulator.consumed_messages:
-            if self.simulator.messages[uuid].target_address.__repr__().startswith(process_address.__repr__()):
-                incoming_messages.append(uuid)
-            if self.simulator.messages[uuid].source_address.__repr__().startswith(process_address.__repr__()):
-                outgoing_messages.append(uuid)
-
-        response_data = {
-            "neighbors": [str(item) for item in process._neighbors],
-            "programs": [str(item.program) for item in list(process._program_table.keys())],
-            "instances": [str(item) for item in list(process._instance_context.keys())],
-            "incoming_messages": [self.simulator.messages[msg].summary() for msg in incoming_messages],
-            "outgoing_messages": [self.simulator.messages[msg].summary() for msg in outgoing_messages],
-        }
-        response = self.api.response_class(
-            response=json.dumps(response_data),
-            status=200,
-            mimetype='application/json'
-        )
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        return response
-
-    def get_navigator_instance(self, process, program, instance):
-        instance_address: InstanceAddress = InstanceAddress(
-            process=process,
-            program=program,
-            instance=uuid.UUID(instance)
-        )
-        # original_message_id = self.simulator.get_initial_message_of_instance(instance_address.instance)
-        # print(original_message_id.__str__())
-        # original_message = self.simulator.messages[original_message_id]
         response_data: dict[str, any] = {
-            "context": [str(instance_address)],
-            "program": [instance_address.program],
-            # "initial_message": [original_message.summary()],
-            "pending_messages": [],
-            "consumed_messages": [],
-            "silblings": [str(addr) for addr in self.simulator.get_silbling_instances(instance_address.instance)]
+            "reverted_message": reverted_message.summary(),
+            "removed_messages": removed_messages,
+            "time": self.simulator.time
         }
-
-        for message in self.simulator.messages.values():
-            if instance_address.__eq__(message.source_address):
-                if message.uuid in self.simulator.pending_messages:
-                    response_data["pending_messages"].append(message.summary())
-                else:
-                    response_data["consumed_messages"].append(message.summary())
-                continue
-            if instance_address.__eq__(message.source_address):
-                if message.uuid in self.simulator.pending_messages:
-                    response_data["pending_messages"].append(message.summary())
-                else:
-                    response_data["consumed_messages"].append(message.summary())
-                continue
-
         response = self.api.response_class(
             response=json.dumps(response_data),
             status=200,
-            mimetype='application/json'
+            mimetype='application/json',
         )
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        return response
-
-    def get_navigator_context(self, process: str, program: str, instance: str):
-        instance_address: InstanceAddress = InstanceAddress(
-            process=process,
-            program=program,
-            instance=uuid.UUID(instance)
-        )
-        process: Process = self.simulator.processes[instance_address.process_address()][-1]
-        context: Context = process._instance_context[instance_address]
-        response_data: dict[str, any] = {
-                "address": context.address.__repr__(),
-                "status": context.status.name,
-                "color": context.color.__repr__(),
-                "return_address": context.return_address.__repr__(),
-                "neighbors": [addr.__repr__() for addr in context.neighbors],
-                "state": context.state
-            }
-        response = self.api.response_class(
-            response=json.dumps(response_data),
-            status=200,
-            mimetype='application/json'
-        )
-        response.headers['Access-Control-Allow-Origin'] = '*'
         return response

@@ -1,18 +1,17 @@
-from API import API
-from Message import Message
-from State import State
-from Topology import Topology, EdgeConfig, EdgeDirection, DefaultScheduler
-from Color import Color, Colors
+from DIAL.API import API
+from DIAL.Message import Message
+from DIAL.State import State
+from DIAL.Topology import Topology, EdgeConfig, EdgeDirection, DefaultScheduler
+from DIAL.Color import Color, Colors
 from copy import deepcopy
-from Address import Address
-from Simulator import Simulator, send, send_to_self
-import random
-
+from DIAL.Address import Address
+from DIAL.Simulator import Simulator, send, send_to_self
+import numpy.random
 
 def voting_ring(state: State, message: Message, time: int):
     # Initialization
     if state.color == Colors.WHITE:
-        state.data["value"] = random.randint(0, 1000)
+        state.data["value"] = numpy.random.randint(0, 1000)
         state.data["leader"] = state.address.node
         state.color = Colors.RED
         neighbors_without_predecessor = state.neighbors.copy()
@@ -64,6 +63,7 @@ def echo(state: State, message: Message, time: int):
 
 def print_after_delay(state: State, message: Message, time: int):
     print(f'Hi. The current time is {time} ({time - message.data["t"]} after {message.data["t"]}) and you are on {state.address}')
+    # print(f'{state.random_number_generator.integers(0, 100)}')
 
 
 def example_hook(state: State, messages: list[Message], time: int):
@@ -118,9 +118,20 @@ a = {
 }
 s = Simulator(topology=t, algorithms=a, initial_messages=[initial_message], condition_hooks=[example_hook], seed=0)
 
+
+# s.step_forward(verbose=True)
+# s.step_forward(verbose=True)
+# s.step_backward(verbose=True)
+# s.step_backward(verbose=True)
+# s.step_forward(verbose=True)
+# s.step_forward(verbose=True)
+#
+#
 while True:
     if not s.step_forward(verbose=True):
         break
+    s.step_backward(verbose=True)
+    s.step_forward(verbose=True)
 
 # api = API(simulator=s)
 # api.run()
