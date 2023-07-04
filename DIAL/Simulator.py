@@ -89,16 +89,6 @@ class Simulator:
     def insert_self_message_to_queue(self, message: Message):
         insert_time = self.time + message._self_message_delay
 
-        # A node can not receive multiple messages at the same time.
-        # If a node already receives a message at a given time the message must be delayed.
-        while True:
-            if insert_time not in self.messages.keys():
-                self.messages[insert_time] = []
-                break
-            if any(m.target_address.node_name == message.target_address.node_name for m in self.messages[insert_time]):
-                insert_time += 1
-            else:
-                break
         message._arrival_time = insert_time
         message._arrival_theta = len(self.messages[insert_time])
         self.messages[insert_time].append(message)

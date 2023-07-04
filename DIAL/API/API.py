@@ -24,14 +24,17 @@ class API:
 
         self.api.route('/messages', methods=['GET'])(self.get_messages)
         self.api.route('/message/<message_id>', methods=['GET'])(self.get_message)
-        self.api.route('/message/<message_id>', methods=['DELETE'])(self.get_message)
-        self.api.route('/message', methods=['PUT'])(self.get_message)
+        self.api.route('/message/<message_id>', methods=['DELETE'])(self.del_message)
+        self.api.route('/message/<message_id>', methods=['PUT'])(self.put_message)
+
+        self.api.route('/states', methods=['GET'])(self.get_states)
+        self.api.route('/states/<algorithm>/<instance>', methods=['GET'])(self.get_state)
+        self.api.route('/states/<algorithm>/<instance>', methods=['PUT'])(self.put_state)
+
+        self.api.route('/reschedule/<message_id>/<time>/<theta>', methods=['GET'])(self.get_reschedule)
 
         self.api.route('/step-forward/<steps>', methods=['GET'])(self.get_step_forward)
         self.api.route('/step-backward/<steps>', methods=['GET'])(self.get_prev)
-
-        # self.api.route('/jump_to_end', methods=['GET'])(self.get_jump_to_end)
-        # self.api.route('/jump_to_start', methods=['GET'])(self.get_jump_to_start)
 
     def run(self):
         self.api.run(host=self.host, port=self.port, ssl_context=('../certs/cert.pem', '../certs/key.pem'))
@@ -39,7 +42,7 @@ class API:
     def get_topology(self):
         topology: dict[str, any] = {
             "nodes": self.simulator.topology.nodes,
-            "edges": [ [edge[0], edge[1]] for edge in self.simulator.topology.edges]
+            "edges": [[edge[0], edge[1]] for edge in self.simulator.topology.edges]
         }
         response = self.api.response_class(
             response=json.dumps(topology),
@@ -48,7 +51,6 @@ class API:
         )
         response.headers['Access-Control-Allow-Origin'] = '*'
         return response
-
 
     def get_messages(self):
         messages: dict[int, list[Message]] = {}
@@ -75,6 +77,7 @@ class API:
                 for msg in self.simulator.messages[t]:
                     if str(msg._id) == message_id:
                         return msg
+
         message = find_message(message_id)
         if message is None:
             response = self.api.response_class(
@@ -104,8 +107,6 @@ class API:
         self.simulator.step_forward()
 
         message = find_message(message_id)
-
-
 
     def get_next(self):
         if self.simulator.time == len(self.simulator.messages):

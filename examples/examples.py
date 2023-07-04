@@ -1,9 +1,7 @@
-from DIAL.API import API
 from DIAL.Message import Message
 from DIAL.State import State
 from DIAL.Topology import Topology, EdgeConfig, EdgeDirection, DefaultScheduler
-from DIAL.Color import Color, Colors
-from copy import deepcopy
+from DIAL.Color import Colors
 from DIAL.Address import Address
 from DIAL.Simulator import Simulator, send, send_to_self
 import numpy.random
@@ -149,23 +147,4 @@ s.step_forward(verbose=True)
 while True:
     if not s.step_forward(verbose=True):
         break
-
-
-api = API(simulator=s)
-p = Process(target=api.run)
-p.start()
-
-# time.sleep(5)
-
-# Get topology
-test_topology = requests.get("https://127.0.0.1:10101/topology", verify=False)
-print(test_topology.json())
-
-# Get messages
-test_messages = requests.get("https://127.0.0.1:10101/messages", verify=False)
-print(test_messages.json())
-
-# Get message
-test_initial_message = requests.get(f'https://127.0.0.1:10101/message/{test_messages.json()["messages"]["0"][0]["id"]}', verify=False)
-print(test_initial_message.json())
 

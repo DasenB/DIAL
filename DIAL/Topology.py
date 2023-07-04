@@ -90,13 +90,6 @@ def local_fifo_scheduler(
             if selected_message.source_address.node_name == message.source_address.node_name and selected_message.target_address.node_name == message.target_address.node_name:
                 min_valid_time = time_index + 1
     insert_time = random_number_generator.integers(min_valid_time, min_valid_time + 10)
-    while True:
-        if insert_time not in message_queue.keys():
-            break
-        if any(m.target_address.node_name == message.target_address.node_name for m in message_queue[insert_time]):
-            insert_time += 1
-        else:
-            break
     return insert_time
 
 def global_fifo_scheduler(
@@ -120,13 +113,6 @@ def random_scheduler(
     insert_time = random_number_generator.integers(low=time + 1, high=time + 11)
     # A node can not receive multiple messages at the same time.
     # If a node already receives a message at a given time the message must be delayed.
-    while True:
-        if insert_time not in message_queue.keys():
-            break
-        if any(m.target_address.node_name == message.target_address.node_name for m in message_queue[insert_time]):
-            insert_time += 1
-        else:
-            break
     return insert_time
 
 
