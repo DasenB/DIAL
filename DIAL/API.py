@@ -21,11 +21,15 @@ class API:
         self.api = Flask(__name__, static_url_path='/', static_folder='../interface2')
 
         self.api.route('/topology', methods=['GET'])(self.get_topology)
-        self.api.route('/messages', methods=['GET'])(self.get_messages)
-        self.api.route('/reset', methods=['GET'])(self.get_reset)
 
-        self.api.route('/next', methods=['GET'])(self.get_next)
-        self.api.route('/prev', methods=['GET'])(self.get_prev)
+        self.api.route('/messages', methods=['GET'])(self.get_messages)
+        self.api.route('/message/<message_id>', methods=['GET'])(self.get_message)
+        self.api.route('/message/<message_id>', methods=['DELETE'])(self.get_message)
+        self.api.route('/message', methods=['PUT'])(self.get_message)
+
+        self.api.route('/step-forward/<steps>', methods=['GET'])(self.get_step_forward)
+        self.api.route('/step-backward/<steps>', methods=['GET'])(self.get_prev)
+
         # self.api.route('/jump_to_end', methods=['GET'])(self.get_jump_to_end)
         # self.api.route('/jump_to_start', methods=['GET'])(self.get_jump_to_start)
 
@@ -35,7 +39,7 @@ class API:
     def get_topology(self):
         topology: dict[str, any] = {
             "nodes": self.simulator.topology.nodes,
-            "edges": self.simulator.topology.edges
+            "edges": [ [edge[0], edge[1]] for edge in self.simulator.topology.edges]
         }
         response = self.api.response_class(
             response=json.dumps(topology),
@@ -45,22 +49,17 @@ class API:
         response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
-    def get_reset(self):
-        while self.simulator.time > 0:
-            self.simulator.step_backward()
-        self.simulator.messages = [self.simulator.messages[0]]
-        response = self.api.response_class(
-            response=json.dumps("OK"),
-            status=200,
-            mimetype='application/json',
-        )
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        return response
 
     def get_messages(self):
+        messages: dict[int, list[Message]] = {}
+        for t in sorted(list(self.simulator.messages.keys())):
+            # if t < self.simulator.time:
+            #     continue
+            messages[int(t)] = [msg.summary() for msg in self.simulator.messages[t]]
         response_data = {
-            "time": self.simulator.time,
-            "messages": [msg.summary() for msg in self.simulator.messages]
+            "time": int(self.simulator.time),
+            "theta": int(self.simulator.theta),
+            "messages": messages
         }
         response = self.api.response_class(
             response=json.dumps(response_data),
@@ -69,6 +68,44 @@ class API:
         )
         response.headers['Access-Control-Allow-Origin'] = '*'
         return response
+
+    def get_message(self, message_id: str):
+        def find_message(msg_id):
+            for t in self.simulator.messages.keys():
+                for msg in self.simulator.messages[t]:
+                    if str(msg._id) == message_id:
+                        return msg
+        message = find_message(message_id)
+        if message is None:
+            response = self.api.response_class(
+                response=json.dumps("No message with such ID exists."),
+                status=404,
+                mimetype='application/json',
+            )
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            return response
+        else:
+            response = self.api.response_class(
+                response=json.dumps(message.to_json()),
+                status=200,
+                mimetype='application/json',
+            )
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            return response
+
+    def get_step_forward(self, steps):
+        def find_message(msg_id):
+            for t in self.simulator.messages.keys():
+                for msg in self.simulator.messages[t]:
+                    if str(msg._id) == message_id:
+                        return msg
+
+        processed_message = self.simulator.messages[self.simulator.time][self.simulator.theta]
+        self.simulator.step_forward()
+
+        message = find_message(message_id)
+
+
 
     def get_next(self):
         if self.simulator.time == len(self.simulator.messages):

@@ -149,6 +149,8 @@ class Simulator:
         current_message._child_messages = [msg._id for msg in new_messages]
         for msg in new_messages:
             msg._parent_message = current_message._id
+            msg._creation_time = self.time
+            msg._creation_theta = self.theta
             if msg._is_self_message:
                 self.insert_self_message_to_queue(msg)
             else:

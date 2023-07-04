@@ -1,5 +1,5 @@
 # DIAL
-Framework for Distributed Algorithms in Python
+DIAL is a framework for implementing and simulating distributed algorithms in Python.
 
 ## Requirements
 - [x] Possibility to use predefined topologies as well as custom topologies

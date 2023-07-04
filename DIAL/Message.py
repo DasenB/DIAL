@@ -1,3 +1,4 @@
+import json
 import uuid
 from copy import deepcopy
 from uuid import UUID
@@ -21,6 +22,8 @@ class Message:
     _self_message_delay: int
     _arrival_time: int
     _arrival_theta: int
+    _creation_time: int
+    _creation_theta: int
 
     def __init__(self, target_address: Address, source_address: Address, title: str = None, color: Color = None, data: dict[str, any] = None):
         self._id = uuid.uuid4()
@@ -47,6 +50,8 @@ class Message:
         self._self_message_delay = 0
         self._arrival_time = -1
         self._arrival_theta = -1
+        self._creation_time = -1
+        self._creation_theta = -1
         self.target_address = target_address
         self.source_address = source_address
 
@@ -67,7 +72,20 @@ class Message:
             "color": str(self.color),
             "title": self.title,
             "id": str(self._id),
-            "children": [str(child) for child in self._child_messages]
+            "parent": str(self._parent_message),
+            "children": [str(child) for child in self._child_messages],
+            "arrival_time": int(self._arrival_time),
+            "arrival_theta": int(self._arrival_theta),
+            "creation_time": int(self._creation_time),
+            "creation_theta": int(self._creation_theta),
+            "is_lost": str(self._is_lost),
+            "self_message": str(self._is_self_message),
+            "self_message_delay": int(self._self_message_delay)
         }
         return summary
+
+    def to_json(self):
+        json_representation = self.summary()
+        json_representation["data"] = json.dumps(self.data)
+        return json_representation
 

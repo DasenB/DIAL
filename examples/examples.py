@@ -127,11 +127,45 @@ s = Simulator(topology=t, algorithms=a, initial_messages=[initial_message], cond
 # s.step_forward(verbose=True)
 #
 #
-while True:
-    if not s.step_forward(verbose=True):
-        break
-    s.step_backward(verbose=True)
-    s.step_forward(verbose=True)
+
 
 # api = API(simulator=s)
 # api.run()
+
+
+s.step_forward(verbose=True)
+s.step_forward(verbose=True)
+s.step_forward(verbose=True)
+s.step_forward(verbose=True)
+#
+#
+#
+# while True:
+#     if not s.step_forward(verbose=True):
+#         break
+#     s.step_backward(verbose=True)
+#     s.step_forward(verbose=True)
+
+while True:
+    if not s.step_forward(verbose=True):
+        break
+
+
+api = API(simulator=s)
+p = Process(target=api.run)
+p.start()
+
+# time.sleep(5)
+
+# Get topology
+test_topology = requests.get("https://127.0.0.1:10101/topology", verify=False)
+print(test_topology.json())
+
+# Get messages
+test_messages = requests.get("https://127.0.0.1:10101/messages", verify=False)
+print(test_messages.json())
+
+# Get message
+test_initial_message = requests.get(f'https://127.0.0.1:10101/message/{test_messages.json()["messages"]["0"][0]["id"]}', verify=False)
+print(test_initial_message.json())
+
