@@ -1,5 +1,4 @@
 
-
 class Address:
     node_name: str
     algorithm: str
@@ -35,3 +34,13 @@ class Address:
 
     def __hash__(self):
         return hash(str(self))
+
+    @classmethod
+    def from_string(cls, string: str):
+        if not isinstance(string, str):
+            return None
+        address_array = string.split("/")
+        if len(address_array) != 3:
+            return None
+        address = Address(node_name=address_array[0], algorithm=address_array[1], instance=address_array[2])
+        return address

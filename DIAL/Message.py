@@ -3,7 +3,7 @@ import uuid
 from copy import deepcopy
 from uuid import UUID
 
-from DIAL.Color import Color
+from DIAL.Color import Color, Colors
 from DIAL.Address import Address
 
 
@@ -66,10 +66,13 @@ class Message:
         return new_message
 
     def summary(self):
+        color = self.color
+        if isinstance(color, Colors):
+            color = color.value
         summary: dict[str, str] = {
             "source": str(self.source_address),
             "target": str(self.target_address),
-            "color": str(self.color),
+            "color": str(color.__repr__()),
             "title": self.title,
             "id": str(self._id),
             "parent": str(self._parent_message),

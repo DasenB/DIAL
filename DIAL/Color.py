@@ -12,9 +12,9 @@ class Color:
         self.blue = b
 
     def __repr__(self) -> str:
-        r_str = "%2X" % self.red
-        g_str = "%2X" % self.green
-        b_str = "%2X" % self.blue
+        r_str = "%02X" % self.red
+        g_str = "%02X" % self.green
+        b_str = "%02X" % self.blue
         return "#" + r_str + g_str + b_str
 
     def __eq__(self, other) -> bool:
@@ -28,6 +28,16 @@ class Color:
             return False
         return True
 
+    @classmethod
+    def from_string(cls, string: str):
+        if not isinstance(string, str) :
+            return None
+        if len(string) != 7:
+            return None
+        string = string.lstrip("#")
+        color_rgb = tuple(int(string[i:i + 2], 16) for i in (0, 2, 4))
+        color = Color(r=color_rgb[0], g=color_rgb[1], b=color_rgb[2])
+        return color
 
 class Colors(Enum):
     RED = Color(255, 0, 0)

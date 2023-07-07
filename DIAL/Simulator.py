@@ -61,11 +61,12 @@ class Simulator:
         self.messages = {
             0: initial_messages
         }
+        for n in range(len(initial_messages)):
+            self.messages[0][n]._arrival_time = 0
+            self.messages[0][n]._arrival_theta = n
         self.states = {}
 
     def insert_message_to_queue(self, message: Message):
-        if message.source_address.node_name == message.target_address.node_name:
-            print("No edge is necessary")
 
         # Determine whether message is lost
         edge_config: EdgeConfig | None = self.topology.get_edge_config(message.source_address.node_name,
@@ -86,10 +87,18 @@ class Simulator:
         self.messages[insert_time].append(message)
         print(f'{message._arrival_time} {message._arrival_theta}')
 
+    def get_message(self, message_id: str):
+        for t in self.messages.keys():
+            for msg in self.messages[t]:
+                if str(msg._id) == str(message_id):
+                    return msg
+        return None
+
     def insert_self_message_to_queue(self, message: Message):
         insert_time = self.time + message._self_message_delay
-
         message._arrival_time = insert_time
+        if insert_time not in self.messages.keys():
+            self.messages[insert_time] = []
         message._arrival_theta = len(self.messages[insert_time])
         self.messages[insert_time].append(message)
         print(f'{message._arrival_time} {message._arrival_theta}')
@@ -109,7 +118,6 @@ class Simulator:
             empty_state: State = State(address=target_address, neighbors=neighbors, seed=new_seed)
             self.states[target_address] = [empty_state]
         current_state = self.states[target_address][-1]
-        current_state.current_time = self.time
         algorithm = self.algorithms[target_address.algorithm]
 
         # Modify algorithm to always include relevant objects for better usability
