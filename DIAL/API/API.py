@@ -30,19 +30,18 @@ class API:
         self.api.route('/message/<message_id>', methods=['GET'])(self.get_message)
         self.api.route('/message/<message_id>', methods=['DELETE'])(self.del_message)
         self.api.route('/message/<message_id>', methods=['PUT'])(self.put_message)
+        self.api.route('/reschedule/<message_id>/<time_str>/<theta_str>', methods=['GET'])(self.get_reschedule)
 
         self.api.route('/states', methods=['GET'])(self.get_states)
         self.api.route('/state/<node>/<algorithm>/<instance>', methods=['GET'])(self.get_state)
         self.api.route('/states/<node>/<algorithm>/<instance>', methods=['PUT'])(self.put_state)
 
-        self.api.route('/reschedule/<message_id>/<time_str>/<theta_str>', methods=['GET'])(self.get_reschedule)
-
-        # self.api.route('/step-forward/<steps_str>', methods=['GET'])(self.get_step_forward)
+        self.api.route('/step-forward/<steps_str>', methods=['GET'])(self.get_step_forward)
         # self.api.route('/step-backward/<steps_str>', methods=['GET'])(self.get_prev)
 
     def response(self, status: int, response: any):
         response = self.api.response_class(
-            response=json.dumps(response, indent=4),
+            response=json.dumps(response, indent=4, default=str),
             status=status,
             mimetype='application/json',
         )
@@ -98,7 +97,7 @@ class API:
                 msg = self.simulator.messages[time][n]
                 if msg._arrival_theta > theta:
                     msg._arrival_theta -= 1
-        # Remove the message the simulator
+        # Remove the message from the simulator
         self.simulator.messages[time].remove(message)
         if len(self.simulator.messages[time]) == 0:
             del self.simulator.messages[time]
@@ -139,12 +138,67 @@ class API:
         if "color" in changes.keys():
             message.color = changes["color"]
         if "title" in changes.keys():
-            message.color = changes["title"]
+            message.title = changes["title"]
         if "target_address" in changes.keys():
-            message.color = changes["target_address"]
+            message.target_address = changes["target_address"]
         if "source_address" in changes.keys():
-            message.color = changes["source_address"]
+            message.source_address = changes["source_address"]
         return self.response(status=200, response=message.to_json())
+
+    def get_reschedule(self, message_id: str, time_str: str, theta_str: str):
+        message: Message = self.simulator.get_message(message_id)
+        if message is None:
+            return self.response(status=404, response=f'No message with ID "{message_id}"')
+        original_time: int = message._arrival_time
+        original_theta: int = message._arrival_theta
+        time: int = None
+        theta: int = None
+        try:
+            time = int(time_str)
+        except ValueError:
+            return self.response(status=300, response="Failed to parse time")
+        try:
+            theta = int(theta_str)
+        except ValueError:
+            return self.response(status=300, response="Failed to parse theta")
+        # Only messages that have not been received can be changed
+        if original_time < self.simulator.time or (original_time == self.simulator.time and original_theta < self.simulator.theta):
+            return self.response(status=300, response="Can not reschedule messages that already have been received.")
+        # Can not move a message into the past
+        if time < self.simulator.time or (time == self.simulator.time and theta < self.simulator.theta):
+            print(f'time={time}/{theta}')
+            return self.response(status=300, response="Can not reschedule a message into the past")
+        # A message can not be rescheduled to a time before it was created
+        parent_arrival_time: int = 0
+        parent_arrival_theta: int = 0
+        if message._parent_message is not None:
+            parent = self.simulator.get_message(message._parent_message)
+            if parent is not None:
+                parent_arrival_time = parent._arrival_time
+                parent_arrival_theta = parent._arrival_theta
+        if time < parent_arrival_time or (time == parent_arrival_time and theta <= parent_arrival_theta):
+            return self.response(status=300,
+                                 response="Can not reschedule messages to a time before its parent message has been received.")
+        # A message can not be inserted with a theta greater than the length of the list at the given time
+        if time not in self.simulator.messages.keys() and theta != 0:
+            return self.response(status=300, response=f'Theta is ot of range for time={time}')
+        if time in self.simulator.messages.keys() and theta > len(self.simulator.messages[time]):
+            return self.response(status=300, response=f'Theta is ot of range for time={time}')
+        # Remove the message from its old place
+        for index in range(original_theta + 1, len(self.simulator.messages[original_time])):
+            self.simulator.messages[original_time][index]._arrival_theta -= 1
+        self.simulator.messages[original_time].remove(message)
+        if len(self.simulator.messages[original_time]) == 0:
+            del self.simulator.messages[original_time]
+        # Insert the message into its new place
+        if time not in self.simulator.messages.keys():
+            self.simulator.messages[time] = []
+        self.simulator.messages[time].insert(theta, message)
+        message._arrival_time = time
+        message._arrival_theta = theta
+        for index in range(theta + 1, len(self.simulator.messages[time])):
+            self.simulator.messages[time][index]._arrival_theta += 1
+        return self.response(status=200, response=f'OK')
 
     def get_states(self):
         state_colors: dict[str, str] = {}
@@ -200,6 +254,27 @@ class API:
             state.color = changes["address"]
         return self.response(status=200, response=state.to_json())
 
-    def get_reschedule(self, message_id: str, time_str: str, theta_str: str):
-        return self.response(status=500, response="Not implemented")
+    def get_step_forward(self, steps_str: str):
+        steps: int = None
+        try:
+            steps = int(steps_str)
+        except ValueError:
+            return self.response(status=300, response="Failed to parse steps")
 
+        result: dict[str, any] = {
+            "time": int(self.simulator.time),
+            "theta": int(self.simulator.theta),
+            "steps": int(0),
+            "actions": [],
+        }
+
+        for i in range(0, steps):
+            action = self.simulator.step_forward(verbose=False)
+            if action is None:
+                return self.response(status=200, response=result)
+            else:
+                result["time"] = int(self.simulator.time)
+                result["theta"] = int(self.simulator.theta)
+                result["steps"] = int(result["steps"] + 1)
+                result["actions"].append(action)
+        return self.response(status=200, response=result)

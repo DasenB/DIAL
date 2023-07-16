@@ -31,8 +31,8 @@ def send_to_self(message: Message, min_time_delay: int):
 
 
 class Simulator:
-    time: int
-    theta: int
+    time: int | None
+    theta: int | None
 
     messages: dict[int, list[Message]]
     states: dict[Address, list[State]]
@@ -44,7 +44,8 @@ class Simulator:
     random_number_generator_states: list[any]
     random_generator: numpy.random.Generator
 
-    def __init__(self, topology: Topology, algorithms: dict[str, Algorithm], initial_messages: list[Message], seed=0,
+    def __init__(self, topology: Topology, algorithms: dict[str, Algorithm], initial_messages: dict[int, list[Message]],
+                 seed=0,
                  condition_hooks: list[ConditionHook] = []):
         # Setup RNG
         self.random_generator = numpy.random.default_rng(seed)
@@ -56,15 +57,46 @@ class Simulator:
         self.condition_hooks = condition_hooks
 
         # Initialize state of the simulation
-        self.time = 0
-        self.theta = 0
-        self.messages = {
-            0: initial_messages
-        }
-        for n in range(len(initial_messages)):
-            self.messages[0][n]._arrival_time = 0
-            self.messages[0][n]._arrival_theta = n
+        if len(initial_messages.keys()) == 0:
+            print("Error: No initial messages supplied!")
+            exit(1)
+        self.messages = initial_messages
+        self.time = None
+        self.theta = None
+
+        for t in self.messages.keys():
+            n = 0
+            for msg in self.messages[t]:
+                msg._arrival_theta = n
+                msg._arrival_time = t
+                n += 1
         self.states = {}
+
+    def find_first(self) -> Tuple[int, int] | None:
+        if len(self.messages.keys()) == 0:
+            return None
+        t = min(self.messages.keys())
+        if len(self.messages[t]) == 0:
+            return None
+        return t, 0
+
+    def find_next(self) -> Tuple[int, int] | None:
+        if self.time is None and self.theta is None:
+            return self.find_first()
+        if self.theta + 1 < len(self.messages[self.time]):
+            return self.time, self.theta + 1
+        for t in sorted(self.messages.keys()):
+            if t > self.time and len(self.messages[t]) > 0:
+                return t, 0
+        return None
+
+    def find_previous(self) -> Tuple[int, int] | None:
+        if self.theta > 0:
+            return self.time, self.theta - 1
+        for t in sorted(self.messages.keys(), reverse=True):
+            if t < self.time and len(self.messages[t]) > 0:
+                return t, len(self.messages[t]) - 1
+        return None
 
     def insert_message_to_queue(self, message: Message):
 
@@ -85,7 +117,6 @@ class Simulator:
         message._arrival_time = insert_time
         message._arrival_theta = len(self.messages[insert_time])
         self.messages[insert_time].append(message)
-        print(f'{message._arrival_time} {message._arrival_theta}')
 
     def get_message(self, message_id: str):
         for t in self.messages.keys():
@@ -101,13 +132,14 @@ class Simulator:
             self.messages[insert_time] = []
         message._arrival_theta = len(self.messages[insert_time])
         self.messages[insert_time].append(message)
-        print(f'{message._arrival_time} {message._arrival_theta}')
 
-    def step_forward(self, verbose=False) -> bool:
-        if self.time not in self.messages.keys():
-            return False
-        if self.theta == len(self.messages.keys()):
-            return False
+    def step_forward(self, verbose=False) -> dict[str, any] | None:
+        # Advance time
+        new_position = self.find_next()
+        if new_position is None:
+            return None
+        self.time = new_position[0]
+        self.theta = new_position[1]
 
         # Find inputs for the next processing step
         current_message = self.messages[self.time][self.theta]
@@ -127,6 +159,8 @@ class Simulator:
             "Colors": Colors,
             "Color": Color,
             "Message": Message,
+            "Address": Address,
+            "State": State,
             "send": send,
             "send_to_self": send_to_self
         }
@@ -139,7 +173,7 @@ class Simulator:
         algorithm(new_state, current_message, self.time)
         for hook in self.condition_hooks:
             hook(new_state, _send_messages_, self.time)
-        new_messages = _send_messages_
+        new_messages: list[Message] = _send_messages_
         _send_messages_ = []
 
         # Update state
@@ -156,49 +190,60 @@ class Simulator:
         self.random_number_generator_states.append(self.random_generator.__getstate__())
 
         if verbose:
-            print(
-                f't={self.time}/{self.theta}: {target_address} received Message from {current_message.source_address}')
-            print(f'\t\tColor:\t{current_state.color} -> {new_state.color}')
-            print(f'\t\tMessages:\t {[msg.target_address for msg in new_messages]}')
-            print('\n')
+            new_row = "\n                    "
+            new_messages_str = "[" + new_row + new_row.join([( str(msg._arrival_time) + " -> " + msg.target_address.__repr__()) for msg in new_messages]) + "\n               ]"
+            if len(new_messages) == 0:
+                new_messages_str = "[]"
 
-        # Advance time
-        if len(self.messages[self.time]) == self.theta + 1:
-            new_time = self.time + 1
-            for t in sorted(self.messages.keys()):
-                if t > self.time:
-                    new_time = t
-                    break
-            self.time = new_time
-            self.theta = 0
-        else:
-            self.theta += 1
+            print(f''
+                  f'Direction:      >> Forward >>\n'
+                  f'New Time:       {self.time}/{self.theta}\n'
+                  f'Receiver:       {target_address}\n'
+                  f'Message:        {{\n'
+                  f'                    id:           {current_message.summary()["id"]}\n'
+                  f'                    color:        {current_message.summary()["color"]}\n'
+                  f'                    title:        {current_message.summary()["title"]}\n'
+                  f'                    parent:       {current_message.summary()["parent"]}\n'
+                  f'                    children:     {len(current_message.summary()["children"])}\n'
+                  f'                    creation:     {current_message.summary()["creation_time"]}/{current_message.summary()["creation_theta"]}\n'
+                  f'                    arrival:      {current_message.summary()["arrival_time"]}/{current_message.summary()["arrival_theta"]}\n'
+                  f'                    is_lost:      {current_message.summary()["is_lost"]}\n'
+                  f'                    self_message: {current_message.summary()["self_message"]}\n'
+                  f'                }}\n'
+                  f'State:          {{\n'
+                  f'                    color:        {current_state.color} -> {new_state.color},\n'
+                  f'                    neighbors:    {current_state.neighbors} -> {new_state.neighbors},\n'
+                  f'                }}\n'
+                  f'New Messages:   {new_messages_str}\n'
+                  f'Queue Times:    {sorted(self.messages.keys())}\n'
+                  f'===================================================================================\n'
+                  )
 
-        return True
+        # Build summary of the last action
+        action: dict[str, any] = {
+            "time": self.time,
+            "theta": self.theta,
+            "consumed_message": current_message.summary(),
+            "produced_messages": [msg.summary() for msg in new_messages]
+        }
+        return action
 
-    def step_backward(self, verbose=False):
-        if self.time == min(self.messages.keys()) and self.theta == 0:
-            return False
+    def step_backward(self, verbose=False) -> dict[str, any] | None:
 
-        # Decrease time
-        if self.theta == 0:
-            new_time = self.time - 1
-            for t in sorted(self.messages.keys(), reverse=True):
-                if t < self.time:
-                    new_time = t
-                    break
-            self.time = new_time
-            self.theta = len(self.messages[self.time]) - 1
-        else:
-            self.theta -= 1
+        if self.time is None and self.theta is None:
+            return None
 
         # Undo action
-        current_message = self.messages[self.time][self.theta]
+        current_message: Message = self.messages[self.time][self.theta]
+        removed_messages: list[Message] = []
         for t in list(self.messages.keys()):
-            if t < self.time:
-                continue
-            self.messages[t] = list(
-                filter(lambda msg: msg._id not in current_message._child_messages, self.messages[t]))
+            keep_messages: list[Message] = []
+            for msg in self.messages[t]:
+                if msg._id in current_message._child_messages:
+                    removed_messages.append(msg)
+                else:
+                    keep_messages.append(msg)
+            self.messages[t] = keep_messages
             if len(self.messages[t]) == 0:
                 del self.messages[t]
 
@@ -208,9 +253,49 @@ class Simulator:
         self.random_number_generator_states.pop()
         self.random_generator.__setstate__(self.random_number_generator_states[-1])
 
-        if verbose:
-            print(
-                f't={self.time}/{self.theta}: {current_message.target_address} UN-received Message from {current_message.source_address}')
-            print("")
 
-        return True
+        # Decrease time
+        new_position = self.find_previous()
+        if new_position is None:
+            self.time = None
+            self.theta = None
+        else:
+            self.time = new_position[0]
+            self.theta = new_position[1]
+
+        if verbose:
+            new_row = "\n                    "
+            removed_messages_str = "[" + new_row + new_row.join(
+                [(str(msg._arrival_time) + " -> " + msg.target_address.__repr__()) for msg in
+                 removed_messages]) + "\n               ]"
+            if len(removed_messages) == 0:
+                removed_messages_str = "[]"
+            print(f''
+                  f'Direction:      << Backward <<\n'
+                  f'New Time:       {self.time}/{self.theta}\n'
+                  f'Receiver:       {current_message.target_address}\n'
+                  f'Message:        {{\n'
+                  f'                    id:           {current_message.summary()["id"]}\n'
+                  f'                    color:        {current_message.summary()["color"]}\n'
+                  f'                    title:        {current_message.summary()["title"]}\n'
+                  f'                    parent:       {current_message.summary()["parent"]}\n'
+                  f'                    children:     {len(current_message.summary()["children"])}\n'
+                  f'                    creation:     {current_message.summary()["creation_time"]}/{current_message.summary()["creation_theta"]}\n'
+                  f'                    arrival:      {current_message.summary()["arrival_time"]}/{current_message.summary()["arrival_theta"]}\n'
+                  f'                    is_lost:      {current_message.summary()["is_lost"]}\n'
+                  f'                    self_message: {current_message.summary()["self_message"]}\n'
+                  f'                }}\n'
+                  f'Removed:        {removed_messages_str}\n'
+                  f'Queue Times:    {sorted(self.messages.keys())}\n'
+                  f'===================================================================================\n'
+                  )
+
+        # Build summary of the last action
+        action: dict[str, any] = {
+            "time": self.time,
+            "theta": self.theta,
+            "undone_message": current_message.summary(),
+            "deleted_messages": [msg.summary() for msg in removed_messages]
+        }
+
+        return action
