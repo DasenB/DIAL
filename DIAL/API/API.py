@@ -22,7 +22,7 @@ class API:
         self.simulator = simulator
         self.host = host
         self.port = port
-        self.api = Flask(__name__, static_url_path='/', static_folder='../interface2')
+        self.api = Flask(__name__, static_url_path='/', static_folder='../../interface3')
 
         self.api.route('/topology', methods=['GET'])(self.get_topology)
 
@@ -30,6 +30,7 @@ class API:
         self.api.route('/message/<message_id>', methods=['GET'])(self.get_message)
         self.api.route('/message/<message_id>', methods=['DELETE'])(self.del_message)
         self.api.route('/message/<message_id>', methods=['PUT'])(self.put_message)
+
         self.api.route('/reschedule/<message_id>/<time_str>/<theta_str>', methods=['GET'])(self.get_reschedule)
 
         self.api.route('/states', methods=['GET'])(self.get_states)
@@ -37,7 +38,7 @@ class API:
         self.api.route('/states/<node>/<algorithm>/<instance>', methods=['PUT'])(self.put_state)
 
         self.api.route('/step-forward/<steps_str>', methods=['GET'])(self.get_step_forward)
-        # self.api.route('/step-backward/<steps_str>', methods=['GET'])(self.get_prev)
+        self.api.route('/step-backward/<steps_str>', methods=['GET'])(self.get_step_backward)
 
     def response(self, status: int, response: any):
         response = self.api.response_class(
@@ -63,8 +64,8 @@ class API:
         for t in sorted(list(self.simulator.messages.keys())):
             messages[int(t)] = [msg.summary() for msg in self.simulator.messages[t]]
         response_data = {
-            "time": int(self.simulator.time),
-            "theta": int(self.simulator.theta),
+            "time": self.simulator.time,
+            "theta": self.simulator.theta,
             "messages": messages
         }
         return self.response(status=200, response=response_data)
@@ -228,7 +229,7 @@ class API:
                 return self.response(status=300, response=f'Failed to parse attribute message.color')
             changes["color"] = color
         # CAVE: Only the address which is seen by the node itself is changed.
-        # The address within the simulator under which a node is reachable by other nodes does NOT change!
+        # The address within the simulator under which a node is reachable by other nodes does NOT change!¼¼
         if "address" in new_values.keys():
             address = Address.from_string(new_values["address"])
             if address not in self.simulator.states.keys():
@@ -262,6 +263,31 @@ class API:
             return self.response(status=300, response="Failed to parse steps")
 
         result: dict[str, any] = {
+            "time": self.simulator.time,
+            "theta": self.simulator.theta,
+            "steps": int(0),
+            "actions": [],
+        }
+
+        for i in range(0, steps):
+            action = self.simulator.step_forward(verbose=False)
+            if action is None:
+                return self.response(status=200, response=result)
+            else:
+                result["time"] = int(self.simulator.time)
+                result["theta"] = int(self.simulator.theta)
+                result["steps"] = int(result["steps"] + 1)
+                result["actions"].append(action)
+        return self.response(status=200, response=result)
+
+    def get_step_backward(self, steps_str: str):
+        steps: int = None
+        try:
+            steps = int(steps_str)
+        except ValueError:
+            return self.response(status=300, response="Failed to parse steps")
+
+        result: dict[str, any] = {
             "time": int(self.simulator.time),
             "theta": int(self.simulator.theta),
             "steps": int(0),
@@ -269,7 +295,7 @@ class API:
         }
 
         for i in range(0, steps):
-            action = self.simulator.step_forward(verbose=False)
+            action = self.simulator.step_backward(verbose=False)
             if action is None:
                 return self.response(status=200, response=result)
             else:

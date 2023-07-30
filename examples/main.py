@@ -1,5 +1,4 @@
 import json
-import time
 from multiprocessing import Process
 
 import requests
@@ -70,13 +69,13 @@ a = {
     "print_after_delay": print_after_delay
 }
 s = Simulator(topology=t, algorithms=a, initial_messages={0: [initial_message]}, condition_hooks=[example_hook], seed=0)
-s.step_forward(verbose=False)
-s.step_forward(verbose=False)
-s.step_forward(verbose=False)
-s.step_backward(verbose=False)
-s.step_forward(verbose=False)
-s.step_forward(verbose=False)
-
+# s.step_forward(verbose=False)
+# s.step_forward(verbose=False)
+# s.step_forward(verbose=False)
+# s.step_backward(verbose=False)
+# s.step_forward(verbose=False)
+# s.step_forward(verbose=False)
+#
 
 api = API(simulator=s)
 p = Process(target=api.run)
@@ -85,50 +84,48 @@ p.start()
 
 def prettyPrint(x):
     print(json.dumps(x, indent=4))
-
-
-# Get topology
-test_topology = requests.get("https://127.0.0.1:10101/topology", verify=False)
-prettyPrint(test_topology.json())
-
-# Get messages
-test_messages = requests.get("https://127.0.0.1:10101/messages", verify=False)
-prettyPrint(test_messages.json())
-
-# Get message
-test_initial_message = requests.get(f'https://127.0.0.1:10101/message/{test_messages.json()["messages"]["0"][0]["id"]}',
-                                    verify=False)
-prettyPrint(test_initial_message.json())
-
-# # Delete message
-# delete_response = requests.delete(f'https://127.0.0.1:10101/message/{test_messages.json()["messages"]["5"][0]["id"]}',
-#                                   verify=False)
-# prettyPrint(delete_response.json())
-
-# Get messages
-test_messages = requests.get("https://127.0.0.1:10101/messages", verify=False)
-prettyPrint(test_messages.json())
-
-
-# PUT message
-full_message = test_messages.json()["messages"]["0"][0]
-put_message: dict[str, any] = {}
-put_message["color"] = full_message["color"]
-put_message["title"] = "ASD asdf"
-
-_messages = requests.put(f'https://127.0.0.1:10101/message/{test_messages.json()["messages"]["0"][0]["id"]}', verify=False, json=put_message)
-prettyPrint(_messages.json())
-
-# Get messages
-test_states = requests.get(f'https://127.0.0.1:10101/states', verify=False)
-prettyPrint(test_states.json())
-
-tet_state = requests.get(f'https://127.0.0.1:10101/state/A/print_after_delay/flooding-example', verify=False)
-prettyPrint(tet_state.json())
-
-
-# TODO advance time as first step of an action. This way the time of the previous action stays. This prevents reschedules from breaking the simulation
-# TODO also preventing reschedules for the current time would be an easy option (but not really the right way)
+#
+#
+# # Get topology
+# test_topology = requests.get("https://127.0.0.1:10101/topology", verify=False)
+# prettyPrint(test_topology.json())
+#
+# # Get messages
+# test_messages = requests.get("https://127.0.0.1:10101/messages", verify=False)
+# prettyPrint(test_messages.json())
+#
+# # Get message
+# test_initial_message = requests.get(f'https://127.0.0.1:10101/message/{test_messages.json()["messages"]["0"][0]["id"]}',
+#                                     verify=False)
+# prettyPrint(test_initial_message.json())
+#
+# # # Delete message
+# # delete_response = requests.delete(f'https://127.0.0.1:10101/message/{test_messages.json()["messages"]["5"][0]["id"]}',
+# #                                   verify=False)
+# # prettyPrint(delete_response.json())
+#
+# # Get messages
+# test_messages = requests.get("https://127.0.0.1:10101/messages", verify=False)
+# prettyPrint(test_messages.json())
+#
+#
+# # PUT message
+# full_message = test_messages.json()["messages"]["0"][0]
+# put_message: dict[str, any] = {}
+# put_message["color"] = full_message["color"]
+# put_message["title"] = "ASD asdf"
+#
+# _messages = requests.put(f'https://127.0.0.1:10101/message/{test_messages.json()["messages"]["0"][0]["id"]}', verify=False, json=put_message)
+# prettyPrint(_messages.json())
+#
+# # Get messages
+# test_states = requests.get(f'https://127.0.0.1:10101/states', verify=False)
+# prettyPrint(test_states.json())
+#
+# tet_state = requests.get(f'https://127.0.0.1:10101/state/A/print_after_delay/flooding-example', verify=False)
+# prettyPrint(tet_state.json())
+#
+#
 # result = requests.get(f'https://127.0.0.1:10101/reschedule/{test_messages.json()["messages"]["12"][0]["id"]}/20/0', verify=False)
 # prettyPrint(result.json())
 # result = requests.get(f'https://127.0.0.1:10101/reschedule/{test_messages.json()["messages"]["16"][0]["id"]}/20/0', verify=False)
@@ -143,9 +140,9 @@ prettyPrint(tet_state.json())
 # prettyPrint(result.json())
 # result = requests.get("https://127.0.0.1:10101/messages", verify=False)
 # prettyPrint(result.json())
-
-result = requests.get(f'https://127.0.0.1:10101/step-forward/3', verify=False)
-prettyPrint(result.json())
-
-result = requests.get("https://127.0.0.1:10101/messages", verify=False)
-prettyPrint(result.json())
+#
+# result = requests.get(f'https://127.0.0.1:10101/step-forward/3', verify=False)
+# prettyPrint(result.json())
+#
+# result = requests.get("https://127.0.0.1:10101/messages", verify=False)
+# prettyPrint(result.json())
