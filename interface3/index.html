@@ -5,19 +5,53 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <title>DIAL</title>
 
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-        <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-        <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
-        <script src="assets/libraries/victor.js"></script>
+        <!-- Font Awesome Icons-->
+<!--        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />-->
+
+        <!-- Sortable: Sortierbare Listen   -->
+        <script src="scripts/sortable.js"></script>
+
+        <!-- VisJS: Graph Visualisierung -->
+<!--        <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>-->
+
+        <!-- VictorJS: Vektoren -->
+<!--        <script src="assets/libraries/victor.js"></script>-->
+
+        <!-- Codemirror: Code Editor -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/keymap/sublime.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/dracula.min.css">
+
+        <!-- Shoelace: Web Component Templates -->
+<!--        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.6.0/cdn/themes/light.css" />-->
+<!--        <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.6.0/cdn/shoelace-autoloader.js"></script>-->
+
+
+
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.6.0/cdn/themes/light.css" />
+        <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.6.0/cdn/shoelace.js" ></script>
+
+        <!-- Lit Custom Web Components-->
+<!--        <script src="https://cdn.jsdelivr.net/gh/lit/dist@2/all/lit-all.min.js"></script>-->
 
         <link href="styles/main.css" rel="stylesheet" type="text/css">
-        <script type="text/javascript" src="scripts/message-bus.js"></script>
-        <script type="text/javascript" src="scripts/main.js"></script>
+
+        <script type="module" src="scripts/menu.js"></script>
+        <script type="module" src="scripts/message.js"></script>
+        <script type="module" src="scripts/card-group.js"></script>
+        <script type="module" src="scripts/timeline.js"></script>
+        <script type="module" src="scripts/editor.js"></script>
+        <script type="module" src="scripts/simulator.js"></script>
+        <style>
+            dial-simulator {
+                height: 100%;
+                width: 100%;
+            }
+        </style>
     </head>
     <body>
-        <dial-main></dial-main>
+        <dial-simulator></dial-simulator>
     </body>
 </html>

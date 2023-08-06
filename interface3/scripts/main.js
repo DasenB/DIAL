@@ -6,11 +6,11 @@ main_template.innerHTML = `
             height: 100%;
             width: 100%;
             position: absolute;
-            background-color: darkmagenta;
+            background-color: pink;
         }
     </style>
     <div id="container">
-        
+        <d-drawer></d-drawer>
     </div>
 `;
 

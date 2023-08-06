@@ -3,6 +3,7 @@
     --menu-width: 400px;
     --blue: #445fb8;
     --text-color: #121a23;
+    --white: #f1efe6;
 }
 
 html, body {
@@ -12,4 +13,11 @@ html, body {
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+    background-color: var(--white);
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    overflow: scroll;
+    font-family: var(--sl-font-sans);
+    font-size: var(--sl-font-size-medium);
 }
