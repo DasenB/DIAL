@@ -2,25 +2,26 @@ import {LitElement, html, css, nothing} from 'https://cdn.jsdelivr.net/gh/lit/di
 class DialCardGroup extends LitElement {
 
     static properties = {
-        title: {
-            attribute: "title",
+        headline: {
+            attribute: "headline",
             reflect: true,
-            type: Number
+            type: String
         }
     };
 
     constructor() {
         super();
-        this.title = undefined;
+        this.headline = undefined;
     }
 
     static styles = css`
       sl-card {
         margin-left: 5px;
         margin-right: 5px;
-        margin-top: 10px;
-        margin-bottom: 10px;
+        margin-top: 20px;
+        margin-bottom: 20px;
         --padding: 15px;
+        display: block;
       }
 
       div[slot="header"] {
@@ -35,9 +36,9 @@ class DialCardGroup extends LitElement {
     render() {
         let header = html`
             <div slot="header">
-                <sl-tag variant="primary">${"" + this.title}</sl-tag>
+                <sl-tag variant="primary">${"" + this.headline}</sl-tag>
             </div>`;
-        if (this.title === undefined) {
+        if (this.headline === undefined) {
             header = nothing;
         }
 

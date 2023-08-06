@@ -65,26 +65,28 @@ class DialTimeline extends LitElement {
         margin-top: 10px;
         margin-bottom: 20px;
       }
+      
 
     `;
 
     render() {
         return html`
-            <dial-card-group time=5>
+            <dial-card-group headline="t=5">
                 <dial-message><div class="handle"></div></dial-message>
                 <dial-message><div class="handle"></div></dial-message>
                 <dial-message><div class="handle"></div></dial-message>
             </dial-card-group>
-            <dial-card-group time=8>
+            <dial-card-group headline="t=7">
+                <dial-message><div class="handle"></div></dial-message>
+            </dial-card-group>
+            <dial-card-group headline="t=8">
                 <dial-message><div class="handle"></div></dial-message>
                 <dial-message><div class="handle"></div></dial-message>
             </dial-card-group>
-            <dial-card-group time=9>
+            <dial-card-group headline="t=9">
                 <dial-message><div class="handle"></div></dial-message>
                 <dial-message><div class="handle"></div></dial-message>
             </dial-card-group>
-            <dial-message><div class="handle"></div></dial-message>
-            <dial-message><div class="handle"></div></dial-message>
 
         `;
     }
