@@ -1,13 +1,18 @@
-import {LitElement, html, css, unsafeCSS} from 'https://cdn.jsdelivr.net/gh/lit/dist@2/core/lit-core.min.js';
+import {LitElement, html, css, nothing} from 'https://cdn.jsdelivr.net/gh/lit/dist@2/core/lit-core.min.js';
 
 class DialMessage extends LitElement {
 
     static properties = {
-
+        received: {
+            attribute: "received",
+            reflect: true,
+            type: Boolean
+        }
     };
 
     constructor() {
         super();
+        this.received = false;
     }
 
     openTimeDialog() {
@@ -33,10 +38,6 @@ class DialMessage extends LitElement {
 
       sl-icon-button[label="Delete"]::part(base):hover {
         color: var(--sl-color-danger-500);
-      }
-      
-      sl-icon-button[label="Move"]::part(base) {
-        cursor: move !important;
       }
       
       .color-circle {
@@ -81,9 +82,39 @@ class DialMessage extends LitElement {
 
     render() {
         var randomColor = Math.floor(Math.random()*16777215).toString(16);
+        var receivedStyle = css`
+          #message-card::part(base) {
+            background-color: var(--sl-color-neutral-200);
+          }
+          #message-card {
+            --border-color: var(--sl-color-neutral-300);
+          }
+
+          sl-icon-button:hover {
+            cursor: not-allowed !important;
+          }
+        `
+
+        let cardButtons = html`
+            <sl-tooltip placement="bottom" content="Change Δ">
+                ${ !this.received ? html`<slot></slot>` : nothing}
+                <sl-icon-button ?disabled=${this.received} name="list" label="Move" ></sl-icon-button>
+            </sl-tooltip>
+            <sl-tooltip placement="bottom" content="Change Time">
+                <sl-icon-button ?disabled=${this.received} name="clock" label="Time" @click="${this.openTimeDialog}"></sl-icon-button>
+            </sl-tooltip>
+            <sl-tooltip placement="bottom" content="Edit Message">
+                <sl-icon-button ?disabled=${this.received} name="pencil" label="Edit"></sl-icon-button>
+            </sl-tooltip>
+            <sl-tooltip placement="bottom" content="Delete Message">
+                <sl-icon-button ?disabled=${this.received} name="trash3" label="Delete"></sl-icon-button>
+            </sl-tooltip>
+        `;
 
         return html`
             <style>
+                ${this.received ? receivedStyle : nothing}
+                
                 .color-circle {
                     background-color: #${randomColor};
                 }
@@ -96,12 +127,9 @@ class DialMessage extends LitElement {
             <sl-card id="message-card">
                 <div slot="header">
                     <div class="color-circle"></div>
-                    <sl-tag>Δ = 10</sl-tag>
+                    <sl-tag variant="primary">Δ = 10</sl-tag>
                     <div>
-                        <sl-tooltip placement="bottom" content="Change Δ"><slot></slot><sl-icon-button name="list" label="Move"></sl-icon-button></sl-tooltip>
-                        <sl-tooltip placement="bottom" content="Change Time"><sl-icon-button name="clock" label="Time" @click="${this.openTimeDialog}"></sl-icon-button></sl-tooltip>
-                        <sl-tooltip placement="bottom" content="Edit Message"><sl-icon-button name="pencil" label="Edit"></sl-icon-button></sl-tooltip>
-                        <sl-tooltip placement="bottom" content="Delete Message"><sl-icon-button name="trash3" label="Delete"></sl-icon-button></sl-tooltip>
+                        ${! this.received ? cardButtons : cardButtons }
                     </div>
                 </div>
                 <table>

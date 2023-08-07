@@ -44,24 +44,6 @@ class DialSimulator extends LitElement {
         background-color: var(--sl-color-neutral-200);
       }
       
-      sl-tab::part(base) {
-        //color: var(--sl-color-neutral-0);
-        font-size: var(--sl-font-size-medium);
-        font-weight: var(--sl-font-weight-semibold);
-      }
-      sl-tab-panel::part(base) {
-        padding: 0;
-      }
-      sl-tab-group {
-        --indicator-color: var(--sl-color-blue-900);
-        //--track-color: var(--sl-color-blue-900);
-        --track-width: 5px;
-      }
-      sl-tab-group::part(base) {
-        background-color: var(--sl-color-neutral-0);
-        
-      }
-      
       #horizontal-split { --max: 700px; }
       #vertical-split { --max: calc(80% - 10px); }
       #graph-container {
@@ -76,9 +58,9 @@ class DialSimulator extends LitElement {
         background-color: var(--sl-color-blue-900);
         position: relative;
       }
-      
-      dial-timeline {
-        height: calc(100% - 60.5px);
+
+      dial-detail-view {
+        height: 100%;
       }
     `;
 
@@ -98,12 +80,7 @@ class DialSimulator extends LitElement {
                     </sl-split-panel>
                 </div>
                 <div slot="end" id="timeline-container">
-                    <sl-tab-group>
-                        <sl-tab slot="nav" panel="general">Messages</sl-tab>
-                        <sl-tab slot="nav" panel="custom">Node States</sl-tab>
-                        <sl-tab-panel name="general"><dial-timeline></dial-timeline></sl-tab-panel>
-                        <sl-tab-panel name="custom">TODO</sl-tab-panel>
-                    </sl-tab-group>
+                    <dial-detail-view></dial-detail-view>
                 </div>
             </sl-split-panel>
         `;
