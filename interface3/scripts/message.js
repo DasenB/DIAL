@@ -96,6 +96,9 @@ class DialMessage extends LitElement {
         `
 
         let cardButtons = html`
+            <sl-tooltip placement="bottom" content="Highlight Message">
+                <sl-icon-button ?disabled=${this.received} name="binoculars" label="Highlight"></sl-icon-button>
+            </sl-tooltip>
             <sl-tooltip placement="bottom" content="Change Δ">
                 ${ !this.received ? html`<slot></slot>` : nothing}
                 <sl-icon-button ?disabled=${this.received} name="list" label="Move" ></sl-icon-button>
@@ -133,7 +136,7 @@ class DialMessage extends LitElement {
                     </div>
                 </div>
                 <table>
-                    <tr><th>Title</th><td>A sample message</td></tr>
+                    <tr><th>Title</th><td>A sample message A sample message A sample message</td></tr>
                     <tr><th>Source</th><td>A/flooding/instance1</td></tr>
                     <tr><th>Target</th><td>B/flooding/instance1</td></tr>
                 </table>

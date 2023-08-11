@@ -3,29 +3,27 @@ import {LitElement, html, css, unsafeCSS} from 'https://cdn.jsdelivr.net/gh/lit/
 class DialMenu extends LitElement {
 
     static properties = {
-        // direction: {
-        //     attribute: "direction",
-        //     reflect: true,
-        //     type: String
-        // },
-        // size: {
-        //     attribute: "size",
-        //     reflect: true,
-        //     type: Number
-        // },
-        // minSize: {
-        //     attribute: "min-size",
-        //     reflect: true,
-        //     type: Number
-        // }
+        timeIndicator: {
+            attribute: false,
+            type: String
+        },
     };
 
 
 
     constructor() {
         super();
+        this.timeIndicator = undefined;
     }
 
+    setTimeIndicator(time, theta) {
+        if (theta !== undefined && Number.isInteger(time)) {
+            this.timeIndicator = `${time}/${theta}`
+        } else {
+            console.log(time);
+            this.timeIndicator = `${time.toFixed(2)}`;
+        }
+    }
 
     static styles = css`
       :host {
@@ -139,14 +137,14 @@ class DialMenu extends LitElement {
                 <sl-divider vertical></sl-divider>
                 <div id="time-indicator">
                     <div id="time-indicator_units">t/Δ</div>
-                    <div id="time-indicator_value">50100/0</div>
+                    <div id="time-indicator_value">${this.timeIndicator}</div>
                 </div>
                 <sl-divider vertical></sl-divider>
                 <sl-input label="Speed" id="speed-input" type="number" value="1" min="0.1" max="9.9" step="0.1">
                     <sl-icon name="speedometer" slot="prefix"></sl-icon>
                 </sl-input>
                 <sl-divider vertical></sl-divider>
-                <sl-select placement="top" label="Instance" id="color-input" placeholder="Node Color" value="option-1">
+                <sl-select placement="top" label="Instance" id="color-input" placeholder="Node Color" clearable>
                     <sl-icon name="paint-bucket" slot="prefix"></sl-icon>
                     <sl-option value="option-1">flooding/instance1</sl-option>
                     <sl-option value="option-2">flooding/instance2</sl-option>

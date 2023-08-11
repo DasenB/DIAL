@@ -67,8 +67,8 @@ class DialDetailView extends LitElement {
       }
       
       .chosen {
-        border-color: var(--sl-color-sky-300);
-        background-color: var(--sl-color-sky-300);
+        border-color: var(--sl-color-sky-500);
+        background-color: var(--sl-color-sky-500);
       }
       
       .ghost {
@@ -98,21 +98,27 @@ class DialDetailView extends LitElement {
                     <dial-message received><div class="handle"></div></dial-message>
                 </div>
                 <div class="future-messages">
-                <dial-message><div class="handle"></div></dial-message>
-                <dial-message><div class="handle"></div></dial-message>
-                <dial-message><div class="handle"></div></dial-message>
-            </div>
+                    <dial-message><div class="handle"></div></dial-message>
+                    <dial-message><div class="handle"></div></dial-message>
+                    <dial-message><div class="handle"></div></dial-message>
+                </div>
             </dial-card-group>
             <dial-card-group headline="t=7">
-                <dial-message><div class="handle"></div></dial-message>
+                <div class="future-messages">
+                    <dial-message><div class="handle"></div></dial-message>
+                </div>
             </dial-card-group>
             <dial-card-group headline="t=8">
-                <dial-message><div class="handle"></div></dial-message>
-                <dial-message><div class="handle"></div></dial-message>
+                <div class="future-messages">
+                    <dial-message><div class="handle"></div></dial-message>
+                    <dial-message><div class="handle"></div></dial-message>
+                </div>
             </dial-card-group>
             <dial-card-group headline="t=9">
-                <dial-message><div class="handle"></div></dial-message>
-                <dial-message><div class="handle"></div></dial-message>
+                <div class="future-messages">
+                    <dial-message><div class="handle"></div></dial-message>
+                    <dial-message><div class="handle"></div></dial-message>
+                </div>
             </dial-card-group>
         `
 

@@ -39,6 +39,9 @@ class API:
 
         self.api.route('/step-forward/<steps_str>', methods=['GET'])(self.get_step_forward)
         self.api.route('/step-backward/<steps_str>', methods=['GET'])(self.get_step_backward)
+        self.api.route('/time-forward/<time_str>', methods=['GET'])(self.get_time_forward)
+        self.api.route('/time-backward/<time_str>', methods=['GET'])(self.get_time_backward)
+
 
     def response(self, status: int, response: any):
         response = self.api.response_class(
@@ -303,4 +306,72 @@ class API:
                 result["theta"] = int(self.simulator.theta)
                 result["steps"] = int(result["steps"] + 1)
                 result["actions"].append(action)
+        return self.response(status=200, response=result)
+
+    def get_time_forward(self, time_str: str):
+        time: int = None
+        try:
+            time = int(time_str)
+        except ValueError:
+            return self.response(status=300, response="Failed to parse steps")
+
+        result: dict[str, any] = {
+            "time": self.simulator.time,
+            "theta": self.simulator.theta,
+            "steps": int(0),
+            "actions": [],
+        }
+
+        if self.simulator.time is None:
+            action = self.simulator.step_forward(verbose=False)
+            if action is None:
+                return self.response(status=200, response=result)
+            else:
+                result["time"] = int(self.simulator.time)
+                result["theta"] = int(self.simulator.theta)
+                result["steps"] = int(result["steps"] + 1)
+                result["actions"].append(action)
+
+        minimum_target_time = self.simulator.time + time
+
+        while self.simulator.time < minimum_target_time:
+            action = self.simulator.step_forward(verbose=False)
+            if action is None:
+                return self.response(status=200, response=result)
+            else:
+                result["time"] = int(self.simulator.time)
+                result["theta"] = int(self.simulator.theta)
+                result["steps"] = int(result["steps"] + 1)
+                result["actions"].append(action)
+        return self.response(status=200, response=result)
+
+    def get_time_backward(self, time_str: str):
+        time: int = None
+        try:
+            time = int(time_str)
+        except ValueError:
+            return self.response(status=300, response="Failed to parse steps")
+
+        result: dict[str, any] = {
+            "time": int(self.simulator.time),
+            "theta": int(self.simulator.theta),
+            "steps": int(0),
+            "actions": [],
+        }
+
+        maximum_target_time = self.simulator.time - time
+
+        while self.simulator.time > maximum_target_time:
+            action = self.simulator.step_backward(verbose=False)
+            if action is None:
+                return self.response(status=200, response=result)
+            else:
+                result["time"] = int(self.simulator.time)
+                result["theta"] = int(self.simulator.theta)
+                result["steps"] = int(result["steps"] + 1)
+                result["actions"].append(action)
+
+                if self.simulator.time is None:
+                    return self.response(status=200, response=result)
+
         return self.response(status=200, response=result)

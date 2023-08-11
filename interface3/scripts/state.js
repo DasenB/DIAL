@@ -14,7 +14,7 @@ class DialState extends LitElement {
 
     static styles = css`
       :host {
-        width: 100%;  
+        
       }
 
       #state-card {
@@ -56,6 +56,13 @@ class DialState extends LitElement {
       tr + tr > td {
         border-top-width: 10px;
       }
+
+      sl-tag {
+        margin-top: 5px;
+        margin-bottom: 0px;
+        margin-left: 0px;
+        margin-right: 0px;
+      }
       
     `;
 
@@ -74,17 +81,21 @@ class DialState extends LitElement {
                     <div class="color-circle"></div>
                     <sl-tag variant="primary">A/flooding/example_instance</sl-tag>
                     <div>
-                        <sl-tooltip placement="bottom" content="Edit state"><sl-icon-button name="pencil" label="Edit"></sl-icon-button></sl-tooltip>
+                        <sl-tooltip placement="bottom" content="Highlight Node">
+                            <sl-icon-button name="binoculars" label="Highlight"></sl-icon-button>
+                        </sl-tooltip>
+                        <sl-tooltip placement="bottom" content="Edit state">
+                            <sl-icon-button name="pencil" label="Edit"></sl-icon-button>
+                        </sl-tooltip>
                     </div>
                 </div>
                 <table>
                     <tr><th>Address</th><td>A/flooding/example_instance</td></tr>
                     <tr><th>Neighbors</th><td>
-                        <ul>
-                            <li>Node A</li>
-                            <li>Node B</li>
-                            <li>Node C</li>
-                        </ul>
+                        <sl-tag>Node A</sl-tag>
+                        <sl-tag>Node Start</sl-tag>
+                        <sl-tag>Node Example</sl-tag>
+                        <sl-tag>Node A Really Long Node Name</sl-tag>
                     </td></tr>
                 </table>
             </sl-card>

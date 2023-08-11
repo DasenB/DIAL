@@ -48,10 +48,10 @@ class Message:
         self._is_lost = False
         self._is_self_message = False
         self._self_message_delay = 0
-        self._arrival_time = -1
-        self._arrival_theta = -1
-        self._creation_time = -1
-        self._creation_theta = -1
+        self._arrival_time = 1
+        self._arrival_theta = 0
+        self._creation_time = 0
+        self._creation_theta = 0
         self.target_address = target_address
         self.source_address = source_address
 

@@ -68,7 +68,7 @@ a = {
     "flooding": flooding,
     "print_after_delay": print_after_delay
 }
-s = Simulator(topology=t, algorithms=a, initial_messages={0: [initial_message]}, condition_hooks=[example_hook], seed=0)
+s = Simulator(topology=t, algorithms=a, initial_messages={1: [initial_message], }, condition_hooks=[example_hook], seed=0)
 # s.step_forward(verbose=False)
 # s.step_forward(verbose=False)
 # s.step_forward(verbose=False)
