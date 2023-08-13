@@ -1,7 +1,7 @@
 import {LitElement, html, css, unsafeCSS} from 'https://cdn.jsdelivr.net/gh/lit/dist@2/core/lit-core.min.js';
 
 export class DialGraphMessage {
-    constructor(messageId, source, target, emitTime, receiveTime, theta, color) {
+    constructor(messageId, source, target, emitTime, receiveTime, theta, color, isLost, isSelfMessage) {
         this.messageId = messageId;
         this.source = source;
         this.target = target;
@@ -10,6 +10,8 @@ export class DialGraphMessage {
         this.theta = theta;
         this.color = color;
         this.selected = false;
+        this.isLost = isLost;
+        this.isSelfMessage = isSelfMessage;
     }
 }
 
@@ -192,12 +194,13 @@ class DialGraph extends LitElement {
     `;
 
     getMessageCircle(message) {
-        if (message.emitTime > this.time) {
+        if (message.emitTime >= this.time) {
             return undefined;
         }
-        if (message.receiveTime < this.time) {
+        if (message.receiveTime <= this.time) {
             return undefined;
         }
+        // TODO: If Message is selected also draw it the moment it is being received
         const progress = (this.time - message.emitTime) / (message.receiveTime - message.emitTime);
         const pos_start = new Victor.fromObject(this.network.getPosition(message.source));
         const pos_end = new Victor.fromObject(this.network.getPosition(message.target));
@@ -239,16 +242,34 @@ class DialGraph extends LitElement {
                 context.lineWidth = this.config.visjsOptions.nodes.borderWidth;
             }
 
+            context.globalAlpha = 0.8;
+
             // Draw the message
             context.beginPath();
             context.arc(circle.x, circle.y, circle.radius, 0, 2 * Math.PI);
             context.fillStyle = msg.color;
+            if(msg.isSelfMessage) {
+                context.fillStyle = "#ff00ff";
+            }
+
             context.fill();
             context.stroke();
+
+            if(!msg.isLost) {
+                context.moveTo(circle.x + Math.cos(0.25 * Math.PI) * circle.radius, circle.y + Math.sin(0.25 * Math.PI) * circle.radius);
+                context.lineTo(circle.x + Math.cos(1.25 * Math.PI) * circle.radius, circle.y + Math.sin(1.25 * Math.PI) * circle.radius);
+                context.stroke();
+                context.moveTo(circle.x + Math.cos(0.75 * Math.PI) * circle.radius, circle.y + Math.sin(0.75 * Math.PI) * circle.radius);
+                context.lineTo(circle.x + Math.cos(1.75 * Math.PI) * circle.radius, circle.y + Math.sin(1.75 * Math.PI) * circle.radius);
+                context.stroke();
+            }
+
+
 
             context.strokeStyle = originalStrokeStyle;
             context.fillStyle = originalFillStyle;
             context.lineWidth = originalLineWidth;
+            context.globalAlpha = 1.0;
 
         });
         this.messages.reverse();

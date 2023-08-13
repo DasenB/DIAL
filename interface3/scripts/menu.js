@@ -10,19 +10,62 @@ class DialMenu extends LitElement {
     };
 
 
-
     constructor() {
         super();
         this.timeIndicator = undefined;
     }
 
+    firstUpdated() {
+        this.$speedSelector = this.renderRoot.querySelector("#speed-input");
+    }
+
     setTimeIndicator(time, theta) {
-        if (theta !== undefined && Number.isInteger(time)) {
+        if (theta != undefined && Number.isInteger(time)) {
             this.timeIndicator = `${time}/${theta}`
         } else {
-            console.log(time);
             this.timeIndicator = `${time.toFixed(2)}`;
         }
+    }
+
+    emitEvent(name, data) {
+        console.log(name);
+        const event = new CustomEvent(`dial-menu:${name}`, {
+            detail: data,
+            bubbles: true,
+            composed: true,
+            cancelable: true,
+        });
+        this.dispatchEvent(event);
+    }
+
+    handleReset() {
+        this.emitEvent("reset");
+    }
+
+    handleFastBackward() {
+        this.emitEvent("fast-backward");
+    }
+
+    handleStepBackward() {
+        this.emitEvent("step-backward");
+    }
+
+    handlePlayPause() {
+        this.emitEvent("play-pause");
+    }
+
+    handleStepForward() {
+        this.emitEvent("step-forward");
+    }
+
+    handleFastForward() {
+        this.emitEvent("fast-forward");
+    }
+
+    handleSpeedChange() {
+        this.emitEvent("change-speed", {
+            speed: this.$speedSelector.value
+        });
     }
 
     static styles = css`
@@ -115,22 +158,22 @@ class DialMenu extends LitElement {
                     <div id="control-label">Controls</div>
                     <sl-button-group label="Control Buttons" id="control-buttons">
                         <sl-tooltip content="Reset" >
-                            <sl-button><sl-icon name="arrow-counterclockwise" label="Reset"></sl-icon></sl-button>
+                            <sl-button @click=${this.handleReset}><sl-icon name="arrow-counterclockwise" label="Reset"></sl-icon></sl-button>
                         </sl-tooltip>
                         <sl-tooltip content="Fast Backward">
-                            <sl-button><sl-icon name="skip-backward" label="Fast Backward"></sl-icon></sl-button>
+                            <sl-button @click=${this.handleFastBackward}><sl-icon name="skip-backward" label="Fast Backward"></sl-icon></sl-button>
                         </sl-tooltip>
                         <sl-tooltip content="Step Backward">
-                            <sl-button><sl-icon name="skip-start" label="Step Backward"></sl-icon></sl-button>
+                            <sl-button @click=${this.handleStepBackward}><sl-icon name="skip-start" label="Step Backward"></sl-icon></sl-button>
                         </sl-tooltip>
                         <sl-tooltip content="Play/Pause">
-                            <sl-button><sl-icon name="play" label="Play/Pause"></sl-icon></sl-button>
+                            <sl-button @click=${this.handlePlayPause}><sl-icon name="play" label="Play/Pause"></sl-icon></sl-button>
                         </sl-tooltip>
                         <sl-tooltip content="Step Forward">
-                            <sl-button><sl-icon name="skip-end" label="Step Forward"></sl-icon></sl-button>
+                            <sl-button @click=${this.handleStepForward}><sl-icon name="skip-end" label="Step Forward"></sl-icon></sl-button>
                         </sl-tooltip>
                         <sl-tooltip content="fast-forward">
-                            <sl-button><sl-icon name="skip-forward" label="Step Forward"></sl-icon></sl-button>
+                            <sl-button @click=${this.handleFastForward}><sl-icon name="skip-forward" label="Step Forward"></sl-icon></sl-button>
                         </sl-tooltip>
                     </sl-button-group>
                 </div>
@@ -140,7 +183,7 @@ class DialMenu extends LitElement {
                     <div id="time-indicator_value">${this.timeIndicator}</div>
                 </div>
                 <sl-divider vertical></sl-divider>
-                <sl-input label="Speed" id="speed-input" type="number" value="1" min="0.1" max="9.9" step="0.1">
+                <sl-input @sl-change=${this.handleSpeedChange} label="Speed" id="speed-input" type="number" value="1" min="0.1" max="9.9" step="0.1">
                     <sl-icon name="speedometer" slot="prefix"></sl-icon>
                 </sl-input>
                 <sl-divider vertical></sl-divider>

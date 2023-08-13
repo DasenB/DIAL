@@ -107,7 +107,7 @@ class Simulator:
             print(
                 f'No edge exists between {message.source_address.node} and {message.target_address.node}. Can not send message.')
             exit(1)
-        message._is_lost = self.random_generator.random() < edge_config.reliability
+        message._is_lost = self.random_generator.random() > edge_config.reliability
 
         # Determine position in the queue
         scheduler = edge_config.scheduler
@@ -140,7 +140,7 @@ class Simulator:
             return None
         self.time = new_position[0]
         self.theta = new_position[1]
-
+        # TODO: Skip lost messages
         # Find inputs for the next processing step
         current_message = self.messages[self.time][self.theta]
         target_address = current_message.target_address

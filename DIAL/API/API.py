@@ -1,3 +1,4 @@
+import copy
 import json
 from enum import Enum
 
@@ -17,14 +18,19 @@ class API:
     host: IPAddress
     port: int
     api: Flask
+    initial_simulator: Simulator
 
     def __init__(self, simulator: Simulator, host: IPAddress = "127.0.0.1", port: int = 10101):
+        self.initial_simulator = copy.deepcopy(simulator)
+
         self.simulator = simulator
         self.host = host
         self.port = port
         self.api = Flask(__name__, static_url_path='/', static_folder='../../interface3')
 
         self.api.route('/topology', methods=['GET'])(self.get_topology)
+
+        self.api.route('/reset', methods=['GET'])(self.get_reset)
 
         self.api.route('/messages', methods=['GET'])(self.get_messages)
         self.api.route('/message/<message_id>', methods=['GET'])(self.get_message)
@@ -61,6 +67,10 @@ class API:
             "edges": [[edge[0], edge[1]] for edge in self.simulator.topology.edges]
         }
         return self.response(status=200, response=topology)
+
+    def get_reset(self):
+        self.simulator = copy.deepcopy(self.initial_simulator)
+        return self.response(status=200, response="OK")
 
     def get_messages(self):
         messages: dict[int, list[Message]] = {}

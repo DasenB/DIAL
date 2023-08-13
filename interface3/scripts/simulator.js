@@ -23,6 +23,7 @@ class DialSimulator extends LitElement {
         this.speed = 0.5;
         this.messages = {};
         this.isRunning = false;
+        this.isFetchingData = false;
         this.topology = {
             nodes: [],
             edges: [],
@@ -33,14 +34,60 @@ class DialSimulator extends LitElement {
     firstUpdated() {
         this.$graph = this.renderRoot.querySelector("dial-graph");
         this.$menu = this.renderRoot.querySelector("dial-menu");
+        this.setupEventHandlers();
+
+        // Cave: This is a race condition that need to be fixed (but attempt below did not work as expected)
         this.loadTopology();
         this.loadTime();
         this.loadMessages();
 
-        setTimeout(() => {
-            console.log("Staert");
-            this.run(true);
-        }, 3000);
+        // // TODO: Repair problem that leads to the initial time always being 0/0 even if backend time is already way further
+        // this.loadTopology()
+        //     .then(() => {
+        //         return this.loadTime;
+        //     }).then(() => {
+        //         return this.loadMessages();
+        //     }).then( () => {
+        //         this.updateMessages();
+        //         this.updateTime();
+        //     }
+        // );
+    }
+
+    setupEventHandlers() {
+        document.addEventListener("dial-menu:reset", (e) => {
+            this.api.get("reset").then(response => {
+                this.isFetchingData = false;
+                this.isRunning = false;
+                this.loadTopology();
+                this.loadTime();
+                this.loadMessages();
+            });
+        });
+
+        document.addEventListener("dial-menu:play-pause", (e) => {
+            if(this.isRunning) {
+                this.isRunning = false;
+                this.time.animationTime.lastFrame = undefined;
+            } else {
+                this.run(true);
+            }
+        });
+
+        document.addEventListener("dial-menu:change-speed", (e) => {
+            this.speed = e.detail.speed;
+        });
+
+        document.addEventListener("dial-menu:step-forward", (e) => {
+            this.api.get(`step-forward/1`).then(response => {
+                this.isFetchingData = false;
+                this.isRunning = false;
+                this.loadTime();
+                this.loadMessages();
+                this.updateMessages();
+                this.updateTime();
+            });
+        });
     }
 
 
@@ -58,26 +105,33 @@ class DialSimulator extends LitElement {
         this.time.animationTime.lastFrame = current_frame_time;
         const newFrontendTime = this.time.frontendTime.time + (time_since_last_frame * this.speed);
         this.time.frontendTime.time = newFrontendTime;
+        this.time.frontendTime.theta = undefined;
 
         // Find Messages that need to be processed
-        if (this.time.backendTime === null) {
+        if (this.time.backendTime === null && this.time.frontendTime.time >= Math.min(...Object.keys(this.messages))) {
             this.stepForward(1);
-        } else if (this.time.frontendTime >= this.time.backendTime) {
+            this.isFetchingData = true;
+        } else if (this.time.frontendTime.time >= this.time.backendTime.time) {
             this.timeForward(1);
+            this.isFetchingData = true;
+            this.time.frontendTime.time = this.time.backendTime.time;
+            this.time.frontendTime.theta = this.time.backendTime.theta;
         }
 
         this.updateTime();
 
         // Run animation if necessary
-        if (this.isRunning) {
+        if (this.isRunning && !this.isFetchingData) {
             requestAnimationFrame(() => {
-                this.run();
+                if(this.isRunning) {
+                    this.run();
+                }
             });
         }
     }
 
     loadTopology() {
-        this.api.get("topology").then(response => {
+        return this.api.get("topology").then(response => {
             const nodes = response.nodes.map(node => ({
                 id: node,
                 label: node
@@ -94,14 +148,14 @@ class DialSimulator extends LitElement {
     }
 
     loadMessages() {
-        this.api.get("messages").then(response => {
+        return this.api.get("messages").then(response => {
             this.messages = response.messages;
             this.updateMessages();
         });
     }
 
     loadTime() {
-        this.api.get("messages").then(response => {
+        return this.api.get("messages").then(response => {
             this.time.backendTime.time = response.time;
             this.time.frontendTime.theta = response.theta;
             if (response.time != null) {
@@ -120,7 +174,17 @@ class DialSimulator extends LitElement {
         const graphMessages = [];
         Object.keys(this.messages).forEach(t => {
             this.messages[t].forEach(msg => {
-                const graphMessage = new DialGraphMessage(msg.id, msg.source.split("/")[0], msg.target.split("/")[0], msg.creation_time, msg.arrival_time, msg.arrival_theta, msg.color);
+                const graphMessage = new DialGraphMessage(
+                    msg.id,
+                    msg.source.split("/")[0],
+                    msg.target.split("/")[0],
+                    msg.creation_time,
+                    msg.arrival_time,
+                    msg.arrival_theta,
+                    msg.color,
+                    msg.is_lost == "True",
+                    msg.self_message == "True"
+                );
                 graphMessages.push(graphMessage);
             });
         });
@@ -144,10 +208,15 @@ class DialSimulator extends LitElement {
             if (response.actions.length > 0) {
                 this.api.get("messages").then(messages => {
                     this.messages = messages.messages;
+                    this.isFetchingData = false;
                     this.updateMessages();
+                    if(this.isRunning) {
+                        this.run();
+                    }
                 });
             } else {
                 this.isRunning = false;
+                this.isFetchingData = false;
                 this.time.frontendTime.time = Number(response.time);
                 this.time.frontendTime.theta = Number(response.theta);
                 this.updateTime();
@@ -157,11 +226,15 @@ class DialSimulator extends LitElement {
 
     stepForward(steps) {
         this.api.get(`step-forward/${steps}`).then(response => {
-            this.time.backendTime.time = response.time;
-            this.time.backendTime.theta = response.theta;
+            this.time.backendTime.time = Number(response.time);
+            this.time.backendTime.theta = Number(response.theta);
             this.api.get("messages").then(messages => {
                 this.messages = messages.messages;
+                this.isFetchingData = false;
                 this.updateMessages();
+                if(this.isRunning) {
+                    this.run();
+                }
             });
         });
     }
@@ -171,6 +244,7 @@ class DialSimulator extends LitElement {
             // console.log(states);
         });
     }
+
 
     static styles = css`
       :host {
