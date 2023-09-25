@@ -51,6 +51,14 @@ class DialGraph extends LitElement {
     }
 
 
+    forceRender() {
+        if (this.network !== undefined) {
+            this.network.redraw();
+        } else {
+            console.error("Can not force render graph: this.network === undefined");
+        }
+    }
+
 
     setMessages(messages) {
         this.messages = messages;
@@ -66,8 +74,9 @@ class DialGraph extends LitElement {
         }
     }
 
-    setTime(time) {
+    setTime(time, theta) {
         this.time = time;
+        this.theta = theta;
         if (this.network !== undefined) {
             this.network.redraw();
         }
@@ -81,6 +90,7 @@ class DialGraph extends LitElement {
         };
         this.messages = [];
         this.time = 0;
+        this.theta = undefined;
     }
 
     dummySetup() {
@@ -178,6 +188,9 @@ class DialGraph extends LitElement {
            const centerPos = new Victor(circle.x, circle.y);
            const distance = centerPos.distance(clickPos);
            msg.selected = distance <= circle.radius;
+           if(msg.selected) {
+               this.network.unselectAll();
+           }
         });
     }
 
@@ -197,7 +210,7 @@ class DialGraph extends LitElement {
         if (message.emitTime >= this.time) {
             return undefined;
         }
-        if (message.receiveTime <= this.time) {
+        if ((message.receiveTime < this.time)) {
             return undefined;
         }
         // TODO: If Message is selected also draw it the moment it is being received
@@ -205,7 +218,11 @@ class DialGraph extends LitElement {
         const pos_start = new Victor.fromObject(this.network.getPosition(message.source));
         const pos_end = new Victor.fromObject(this.network.getPosition(message.target));
         const vec_edge = pos_end.clone().subtract(pos_start);
-        const vec_progress = vec_edge.clone().multiplyScalar(progress);
+        let   positional_progress = progress;
+        if (message.isLost) {
+            positional_progress *= 0.5;
+        }
+        const vec_progress = vec_edge.clone().multiplyScalar(positional_progress);
         const position = pos_start.clone().add(vec_progress);
 
         let radius = this.config.messageSize;
@@ -213,6 +230,9 @@ class DialGraph extends LitElement {
             radius = this.config.messageSize * (progress) * 10;
         } else if (progress > 0.9) {
             radius = this.config.messageSize * (1 - progress) * 10;
+        }
+        if(message.selected) {
+            radius = this.config.messageSize;
         }
         radius += 5;
         return {
@@ -255,7 +275,7 @@ class DialGraph extends LitElement {
             context.fill();
             context.stroke();
 
-            if(!msg.isLost) {
+            if(msg.isLost) {
                 context.moveTo(circle.x + Math.cos(0.25 * Math.PI) * circle.radius, circle.y + Math.sin(0.25 * Math.PI) * circle.radius);
                 context.lineTo(circle.x + Math.cos(1.25 * Math.PI) * circle.radius, circle.y + Math.sin(1.25 * Math.PI) * circle.radius);
                 context.stroke();

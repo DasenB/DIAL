@@ -17,6 +17,13 @@ class DialMenu extends LitElement {
 
     firstUpdated() {
         this.$speedSelector = this.renderRoot.querySelector("#speed-input");
+        this.$playPauseIcon = this.renderRoot.querySelector("sl-tooltip[content='Play/Pause'] sl-button sl-icon");
+
+        this.$fastBackwardButton = this.renderRoot.querySelector("sl-tooltip[content='Fast Backward'] sl-button");
+        this.$stepBackwardButton = this.renderRoot.querySelector("sl-tooltip[content='Step Backward'] sl-button");
+        this.$playPauseButton = this.renderRoot.querySelector("sl-tooltip[content='Play/Pause'] sl-button");
+        this.$stepForwardButton = this.renderRoot.querySelector("sl-tooltip[content='Step Forward'] sl-button");
+        this.$fastForwardButton = this.renderRoot.querySelector("sl-tooltip[content='Fast Forward'] sl-button");
     }
 
     setTimeIndicator(time, theta) {
@@ -25,6 +32,25 @@ class DialMenu extends LitElement {
         } else {
             this.timeIndicator = `${time.toFixed(2)}`;
         }
+    }
+
+    setPlayState(state) {
+        if (state) {
+            this.$playPauseIcon.name = "pause";
+        } else {
+            this.$playPauseIcon.name = "play";
+        }
+    }
+
+    setCanMoveForward(state) {
+        this.$playPauseButton.disabled = !state;
+        this.$stepForwardButton.disabled = !state;
+        this.$fastForwardButton.disabled = !state;
+    }
+
+    setCanMoveBackward(state) {
+        this.$stepBackwardButton.disabled = !state;
+        this.$fastBackwardButton.disabled = !state;
     }
 
     emitEvent(name, data) {
@@ -172,7 +198,7 @@ class DialMenu extends LitElement {
                         <sl-tooltip content="Step Forward">
                             <sl-button @click=${this.handleStepForward}><sl-icon name="skip-end" label="Step Forward"></sl-icon></sl-button>
                         </sl-tooltip>
-                        <sl-tooltip content="fast-forward">
+                        <sl-tooltip content="Fast Forward">
                             <sl-button @click=${this.handleFastForward}><sl-icon name="skip-forward" label="Step Forward"></sl-icon></sl-button>
                         </sl-tooltip>
                     </sl-button-group>

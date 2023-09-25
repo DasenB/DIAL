@@ -64,11 +64,17 @@ initial_message = Message(
     source_address=initial_address,
     title="Initial Message"
 )
+lost_message = Message(
+    target_address=Address(node_name="F", algorithm="flooding", instance="flooding-example"),
+    source_address=Address(node_name="E", algorithm="flooding", instance="flooding-example"),
+    title="Example for a lost message"
+)
+lost_message._is_lost = True
 a = {
     "flooding": flooding,
     "print_after_delay": print_after_delay
 }
-s = Simulator(topology=t, algorithms=a, initial_messages={1: [initial_message], }, condition_hooks=[example_hook], seed=0)
+s = Simulator(topology=t, algorithms=a, initial_messages={1: [initial_message], 8: [lost_message] }, condition_hooks=[example_hook], seed=0)
 # s.step_forward(verbose=False)
 # s.step_forward(verbose=False)
 # s.step_forward(verbose=False)

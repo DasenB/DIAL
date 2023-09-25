@@ -34,31 +34,27 @@ class DialSimulator extends LitElement {
     firstUpdated() {
         this.$graph = this.renderRoot.querySelector("dial-graph");
         this.$menu = this.renderRoot.querySelector("dial-menu");
+        this.$dialog = this.renderRoot.querySelector("dial-dialog");
         this.setupEventHandlers();
 
-        // Cave: This is a race condition that need to be fixed (but attempt below did not work as expected)
-        this.loadTopology();
-        this.loadTime();
-        this.loadMessages();
-
-        // // TODO: Repair problem that leads to the initial time always being 0/0 even if backend time is already way further
-        // this.loadTopology()
-        //     .then(() => {
-        //         return this.loadTime;
-        //     }).then(() => {
-        //         return this.loadMessages();
-        //     }).then( () => {
-        //         this.updateMessages();
-        //         this.updateTime();
-        //     }
-        // );
+        this.loadTopology()
+            .then(() => {
+                return this.loadTime();
+            })
+            .then(() => {
+                return this.loadMessages();
+            }).then( () => {
+                this.updateMessages();
+                this.updateTime();
+            }
+        );
     }
 
     setupEventHandlers() {
         document.addEventListener("dial-menu:reset", (e) => {
             this.api.get("reset").then(response => {
                 this.isFetchingData = false;
-                this.isRunning = false;
+                this.stop();
                 this.loadTopology();
                 this.loadTime();
                 this.loadMessages();
@@ -67,7 +63,7 @@ class DialSimulator extends LitElement {
 
         document.addEventListener("dial-menu:play-pause", (e) => {
             if(this.isRunning) {
-                this.isRunning = false;
+                this.stop();
                 this.time.animationTime.lastFrame = undefined;
             } else {
                 this.run(true);
@@ -78,21 +74,45 @@ class DialSimulator extends LitElement {
             this.speed = e.detail.speed;
         });
 
+        document.addEventListener("dial-api:no-connection-to-backend", (e) => {
+            let dialogData = {
+                title: "API Error",
+                text: "Can not connect to the HTTP-API provided by the python simulator. Is the backend running?",
+                actions: [
+                    this.$dialog.defaultActions.reload
+                ]
+            }
+            this.$dialog.pushDialogToQueue(dialogData);
+            this.$dialog.showDialog();
+        });
+
         document.addEventListener("dial-menu:step-forward", (e) => {
             this.api.get(`step-forward/1`).then(response => {
                 this.isFetchingData = false;
-                this.isRunning = false;
-                this.loadTime();
-                this.loadMessages();
-                this.updateMessages();
-                this.updateTime();
+                this.stop();
+                Promise.all([
+                    this.loadTime(),
+                    this.loadMessages()
+                ]).then(res => {
+                    Object.keys(this.messages).forEach(t => {
+                        this.messages[t].forEach((msg, index) => {
+                            msg.selected = (parseInt(response.time) === parseInt(t)) && (parseInt(response.theta) === parseInt(index));
+                        });
+                    });
+                    this.updateMessages();
+                });
             });
         });
     }
 
+    stop() {
+        this.$menu.setPlayState(false);
+        this.isRunning = false;
+    }
 
     run(start) {
         if(start) {
+            this.$menu.setPlayState(true);
             this.isRunning = true;
         }
 
@@ -174,7 +194,7 @@ class DialSimulator extends LitElement {
         const graphMessages = [];
         Object.keys(this.messages).forEach(t => {
             this.messages[t].forEach(msg => {
-                const graphMessage = new DialGraphMessage(
+                let graphMessage = new DialGraphMessage(
                     msg.id,
                     msg.source.split("/")[0],
                     msg.target.split("/")[0],
@@ -182,12 +202,16 @@ class DialSimulator extends LitElement {
                     msg.arrival_time,
                     msg.arrival_theta,
                     msg.color,
-                    msg.is_lost == "True",
-                    msg.self_message == "True"
+                    msg.is_lost === "True",
+                    msg.self_message === "True"
                 );
+                if (msg.selected !== undefined) {
+                    graphMessage.selected = msg.selected;
+                }
                 graphMessages.push(graphMessage);
             });
         });
+        console.log("=================");
         this.$graph.setMessages(graphMessages);
     }
 
@@ -215,7 +239,7 @@ class DialSimulator extends LitElement {
                     }
                 });
             } else {
-                this.isRunning = false;
+                this.stop();
                 this.isFetchingData = false;
                 this.time.frontendTime.time = Number(response.time);
                 this.time.frontendTime.theta = Number(response.theta);
@@ -307,6 +331,7 @@ class DialSimulator extends LitElement {
                     <dial-detail-view></dial-detail-view>
                 </div>
             </sl-split-panel>
+            <dial-dialog></dial-dialog>
         `;
     }
 }

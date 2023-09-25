@@ -5,6 +5,16 @@ export class API {
         this.port = port;
     }
 
+    emitEvent(name, data) {
+        const event = new CustomEvent(`dial-api:${name}`, {
+            detail: data,
+            bubbles: true,
+            composed: true,
+            cancelable: true,
+        });
+        document.querySelector("dial-simulator").dispatchEvent(event);
+    }
+
     get(path) {
         const url = `https://${this.host}:${this.port}/${path}`;
         return new Promise((resolve, reject) => {
@@ -13,6 +23,7 @@ export class API {
                    response.ok ? resolve(body) : reject(body)
                })
            }).catch((error) => {
+               this.emitEvent("no-connection-to-backend", error);
                reject(error);
            });
         });
@@ -32,6 +43,7 @@ export class API {
                     response.ok ? resolve(body) : reject(body)
                 })
             }).catch((error) => {
+                this.emitEvent("no-connection-to-backend", error);
                 reject(error);
             });
         });

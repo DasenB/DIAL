@@ -170,7 +170,8 @@ class Simulator:
         global _send_messages_
         _send_messages_ = []
         new_state = deepcopy(current_state)
-        algorithm(new_state, current_message, self.time)
+        if not current_message._is_lost:
+            algorithm(new_state, current_message, self.time)
         for hook in self.condition_hooks:
             hook(new_state, _send_messages_, self.time)
         new_messages: list[Message] = _send_messages_
