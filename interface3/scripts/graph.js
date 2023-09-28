@@ -28,7 +28,7 @@ class DialGraph extends LitElement {
                     }
                 };
             }
-        })
+        });
         if (this.network === undefined) {
             this.initVisGraph();
         } else {
@@ -93,34 +93,6 @@ class DialGraph extends LitElement {
         this.theta = undefined;
     }
 
-    dummySetup() {
-        const topology = {
-            nodes: new vis.DataSet([
-                {id: "A", label: 'A'},
-                {id: "B", label: 'B'},
-                {id: "C", label: 'C'},
-                {id: "D", label: 'D'},
-                {id: "E", label: 'E'}
-            ]),
-            edges: new vis.DataSet([
-                {from: "A", to: "B"},
-                {from: "C", to: "D"},
-                {from: "A", to: "E"},
-                {from: "A", to: "D"}
-            ])
-        };
-        const messages = [
-            new DialGraphMessage(1, "A", "B", -1, 2, 1, "#ff00ff"),
-            new DialGraphMessage(1, "A", "B", -1.3, 2, 3, "#0000ff"),
-            new DialGraphMessage(2, "C", "D", 2, 3, 0, "#00ffff"),
-            new DialGraphMessage(3, "A", "B", 1, 2, 0, "#ffff00"),
-            new DialGraphMessage(4, "C", "D", 0, 2, 2, "#00ffff"),
-        ];
-
-        this.setTopology(topology);
-        this.setMessages(messages);
-    }
-
     firstUpdated() {
         this.$graphContainer = this.renderRoot.getElementById("graph-container");
         this.config = {
@@ -163,8 +135,6 @@ class DialGraph extends LitElement {
                 "randomSeed": 0
             }
         };
-        this.dummySetup();
-
     }
 
     initVisGraph() {
@@ -268,9 +238,9 @@ class DialGraph extends LitElement {
             context.beginPath();
             context.arc(circle.x, circle.y, circle.radius, 0, 2 * Math.PI);
             context.fillStyle = msg.color;
-            if(msg.isSelfMessage) {
-                context.fillStyle = "#ff00ff";
-            }
+            // if(msg.isSelfMessage) {
+            //     context.fillStyle = "#ff00ff";
+            // }
 
             context.fill();
             context.stroke();

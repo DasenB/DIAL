@@ -140,7 +140,6 @@ class Simulator:
             return None
         self.time = new_position[0]
         self.theta = new_position[1]
-        # TODO: Skip lost messages
         # Find inputs for the next processing step
         current_message = self.messages[self.time][self.theta]
         target_address = current_message.target_address
@@ -169,11 +168,12 @@ class Simulator:
         # Execute the algorithm function and retrieve its results
         global _send_messages_
         _send_messages_ = []
-        new_state = deepcopy(current_state)
+        new_state = current_state
         if not current_message._is_lost:
+            new_state = deepcopy(current_state)
             algorithm(new_state, current_message, self.time)
-        for hook in self.condition_hooks:
-            hook(new_state, _send_messages_, self.time)
+            for hook in self.condition_hooks:
+                hook(new_state, _send_messages_, self.time)
         new_messages: list[Message] = _send_messages_
         _send_messages_ = []
 

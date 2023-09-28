@@ -22,6 +22,8 @@ class DialCardGroup extends LitElement {
         margin-bottom: 20px;
         --padding: 15px;
         display: block;
+        min-width: 400px;
+
       }
 
       div[slot="header"] {

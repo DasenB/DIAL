@@ -3,9 +3,25 @@ import {LitElement, html, css, nothing} from 'https://cdn.jsdelivr.net/gh/lit/di
 class DialMessage extends LitElement {
 
     static properties = {
+        messageId: {
+            type: String
+        },
+        title: {
+            type: String
+        },
+        sourceAddress: {
+            type: String
+        },
+        targetAddress: {
+            type: String
+        },
+        theta: {
+            type: Number
+        },
+        color: {
+            type: String
+        },
         received: {
-            attribute: "received",
-            reflect: true,
             type: Boolean
         }
     };
@@ -13,10 +29,17 @@ class DialMessage extends LitElement {
     constructor() {
         super();
         this.received = false;
+        this.title = "Example Title";
+        this.sourceAddress = "SomeNode/Algorithm/Instance";
+        this.targetAddress = "OtherNode/Algorithm/Instance";
+        this.theta = 0;
+        this.color = "#ff0000";
+        this.messageId = undefined;
     }
 
-    openTimeDialog() {
+    openTimeDialog(messageId) {
         this.renderRoot.getElementById("time-dialog").show();
+        console.log(messageId);
     }
 
 
@@ -81,7 +104,7 @@ class DialMessage extends LitElement {
     `;
 
     render() {
-        var randomColor = Math.floor(Math.random()*16777215).toString(16);
+        // var randomColor = "#" + Math.floor(Math.random()*16777215).toString(16);
         var receivedStyle = css`
           #message-card::part(base) {
             background-color: var(--sl-color-neutral-200);
@@ -119,26 +142,26 @@ class DialMessage extends LitElement {
                 ${this.received ? receivedStyle : nothing}
                 
                 .color-circle {
-                    background-color: #${randomColor};
+                    background-color: ${this.color};
                 }
             </style>
             <sl-dialog id="time-dialog" label="Change Time" class="dialog-focus">
                 <sl-input autofocus label="Time" placeholder=""></sl-input>
-                <sl-button slot="footer" variant="primary">Close</sl-button>
+                <sl-button slot="footer" variant="primary">Set Time</sl-button>
             </sl-dialog>
             
             <sl-card id="message-card">
                 <div slot="header">
                     <div class="color-circle"></div>
-                    <sl-tag variant="primary">Δ = 10</sl-tag>
+                    <sl-tag variant="primary">Δ = ${this.theta}</sl-tag>
                     <div>
                         ${! this.received ? cardButtons : cardButtons }
                     </div>
                 </div>
                 <table>
-                    <tr><th>Title</th><td>A sample message A sample message A sample message</td></tr>
-                    <tr><th>Source</th><td>A/flooding/instance1</td></tr>
-                    <tr><th>Target</th><td>B/flooding/instance1</td></tr>
+                    <tr><th>Title</th><td>${this.title}</td></tr>
+                    <tr><th>Source</th><td>${this.sourceAddress}</td></tr>
+                    <tr><th>Target</th><td>${this.targetAddress}</td></tr>
                 </table>
             </sl-card>
         `;

@@ -3,19 +3,48 @@ import {LitElement, html, css, unsafeCSS} from 'https://cdn.jsdelivr.net/gh/lit/
 class DialDetailView extends LitElement {
 
     static properties = {
-        // minSize: {
-        //     attribute: "min-size",
-        //     reflect: true,
-        //     type: Number
-        // }
+        messages: {
+            state: true,
+            hashChanged: () => {return true;}
+        },
+        time: {
+            state: true,
+            hashChanged: (newTime, oldTime) => {
+              return Math.floor(newTime) !== oldTime;
+            },
+        },
+        theta: {
+            state: true,
+        }
     };
 
     constructor() {
         super();
         this.sortables = [];
+        this.messages = {};
+        this.time = 0;
+        this.theta = 0;
+        // this.states = {};
     }
 
-    firstUpdated() {
+    // firstUpdated() {
+    // }
+
+    willUpdate() {
+        // Remove old sortable-objects
+        this.sortables.forEach(sortable => {
+            sortable.destroy();
+        });
+        this.sortables = [];
+        // CAVE: Should fix the problem but highlights another deeper problem
+        // var futureMessages = this.renderRoot.querySelectorAll("dial-card-group .future-messages dial-message");
+        // futureMessages.forEach(msg => {
+        //    msg.remove();
+        // });
+    }
+
+    updated() {
+        // Create new sortable objects
         var cardGroups = this.renderRoot.querySelectorAll("dial-card-group .future-messages");
         cardGroups.forEach(cardGroup => {
             var sortable = Sortable.create(cardGroup, {
@@ -27,6 +56,21 @@ class DialDetailView extends LitElement {
         });
     }
 
+    setMessages(messages) {
+        this.messages = messages;
+    }
+
+    setProgress(time, theta) {
+        this.time = Math.floor(time);
+        if((time % 1) !== 0) {
+            theta = Infinity;
+        }
+        if(theta === undefined) {
+            theta = 0;
+        }
+        this.theta = theta;
+    }
+
 
     static styles = css`
       :host {
@@ -36,6 +80,7 @@ class DialDetailView extends LitElement {
         overflow: scroll;
         width: 100%;       
         height: 100%;
+        min-width: 400px;
       }
 
       sl-tab::part(base) {
@@ -57,6 +102,7 @@ class DialDetailView extends LitElement {
         padding-left: 10px;
         padding-right: 10px;
         height: calc(100% - 60.5px);
+        width: 100%;
         top: 60.5px;
         position: absolute;
         overflow: scroll;
@@ -89,38 +135,54 @@ class DialDetailView extends LitElement {
     `;
 
     render() {
+        let messageView = [];
+        let sortedTimeKeys = Object.keys(this.messages).sort(
+            (a, b) => {
+                return  Number(a) - Number(b);
+            });
 
-        const messageView = html`
-            <dial-card-group headline="t=5">
+        sortedTimeKeys.forEach(time => {
+            let pastMessages = [];
+            let futureMessages = [];
+            this.messages[time].forEach(msg => {
+                let wasCreated = msg.creation_time < this.time || (msg.creation_time === this.time && msg.creation_theta < this.theta);
+                if (!wasCreated) {
+                    return;
+                }
+                let wasReceived = msg.arrival_time < this.time || (msg.arrival_time === this.time && msg.arrival_theta <= this.theta);
+                let messageView = html`
+                    <dial-message 
+                            messageId="${msg.id}"
+                            title="${msg.title}" 
+                            color="${msg.color}" 
+                            sourceAddress="${msg.source}"
+                            targetAddress="${msg.target}"
+                            theta="${msg.arrival_theta}"
+                            ?received=${wasReceived}
+                    ><div class="handle"></div></dial-message>
+                `;
+                if (wasReceived) {
+                    pastMessages.push(messageView);
+                } else {
+                    futureMessages.push(messageView);
+                }
+            });
+
+            if(pastMessages.length + futureMessages.length === 0) {
+                return;
+            }
+            let cardGroup = html`
+            <dial-card-group headline="t = ${time}">
                 <div class="past-messages">
-                    <dial-message received><div class="handle"></div></dial-message>
-                    <dial-message received><div class="handle"></div></dial-message>
-                    <dial-message received><div class="handle"></div></dial-message>
+                    ${pastMessages}
                 </div>
                 <div class="future-messages">
-                    <dial-message><div class="handle"></div></dial-message>
-                    <dial-message><div class="handle"></div></dial-message>
-                    <dial-message><div class="handle"></div></dial-message>
+                    ${futureMessages}
                 </div>
             </dial-card-group>
-            <dial-card-group headline="t=7">
-                <div class="future-messages">
-                    <dial-message><div class="handle"></div></dial-message>
-                </div>
-            </dial-card-group>
-            <dial-card-group headline="t=8">
-                <div class="future-messages">
-                    <dial-message><div class="handle"></div></dial-message>
-                    <dial-message><div class="handle"></div></dial-message>
-                </div>
-            </dial-card-group>
-            <dial-card-group headline="t=9">
-                <div class="future-messages">
-                    <dial-message><div class="handle"></div></dial-message>
-                    <dial-message><div class="handle"></div></dial-message>
-                </div>
-            </dial-card-group>
-        `
+            `;
+            messageView.push(cardGroup);
+        });
 
         const stateView = html`
             <dial-card-group headline="flooding/example1">
@@ -144,8 +206,6 @@ class DialDetailView extends LitElement {
                     ${stateView}
                 </sl-tab-panel>
             </sl-tab-group>
-            
-
         `;
     }
 }

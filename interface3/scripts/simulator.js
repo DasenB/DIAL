@@ -29,35 +29,48 @@ class DialSimulator extends LitElement {
             edges: [],
         };
         this.states = {};
+        this.instanceUsedForStateColor = undefined;
+    }
+
+    updateView(selectCurrentMessage) {
+        this.isFetchingData = false;
+        this.stop();
+        Promise.all([
+            this.loadTime(),
+            this.loadMessages(),
+            this.loadStates()
+        ]).then(response => {
+            Object.keys(this.messages).forEach(t => {
+                this.messages[t].forEach((msg, index) => {
+                    msg.selected =
+                        (parseInt(this.time.frontendTime.time) === parseInt(t)) &&
+                        (parseInt(this.time.frontendTime.theta) === parseInt(index));
+                });
+            });
+            this.updateMessages();
+            this.updateTime();
+            this.updateStates();
+        });
     }
 
     firstUpdated() {
         this.$graph = this.renderRoot.querySelector("dial-graph");
         this.$menu = this.renderRoot.querySelector("dial-menu");
         this.$dialog = this.renderRoot.querySelector("dial-dialog");
+        this.$detailView = this.renderRoot.querySelector("dial-detail-view");
         this.setupEventHandlers();
 
-        this.loadTopology()
-            .then(() => {
-                return this.loadTime();
-            })
-            .then(() => {
-                return this.loadMessages();
-            }).then( () => {
-                this.updateMessages();
-                this.updateTime();
-            }
-        );
+        this.loadTopology().then(() => {
+            this.updateView();
+        });
     }
 
     setupEventHandlers() {
         document.addEventListener("dial-menu:reset", (e) => {
             this.api.get("reset").then(response => {
-                this.isFetchingData = false;
-                this.stop();
-                this.loadTopology();
-                this.loadTime();
-                this.loadMessages();
+                this.loadTopology().then(() => {
+                    this.updateView();
+                });
             });
         });
 
@@ -74,6 +87,23 @@ class DialSimulator extends LitElement {
             this.speed = e.detail.speed;
         });
 
+        document.addEventListener("dial-menu:change-instance", (e) => {
+            this.instanceUsedForStateColor = e.detail.instance;
+            this.updateStates();
+        });
+
+        document.addEventListener("dial-menu:fast-forward", (e) => {
+            this.api.get(`time-forward/100`).then(response => {
+                this.updateView();
+            });
+        });
+
+        document.addEventListener("dial-menu:fast-backward", (e) => {
+            this.api.get(`time-backward/100`).then(response => {
+                this.updateView();
+            });
+        });
+
         document.addEventListener("dial-api:no-connection-to-backend", (e) => {
             let dialogData = {
                 title: "API Error",
@@ -88,19 +118,13 @@ class DialSimulator extends LitElement {
 
         document.addEventListener("dial-menu:step-forward", (e) => {
             this.api.get(`step-forward/1`).then(response => {
-                this.isFetchingData = false;
-                this.stop();
-                Promise.all([
-                    this.loadTime(),
-                    this.loadMessages()
-                ]).then(res => {
-                    Object.keys(this.messages).forEach(t => {
-                        this.messages[t].forEach((msg, index) => {
-                            msg.selected = (parseInt(response.time) === parseInt(t)) && (parseInt(response.theta) === parseInt(index));
-                        });
-                    });
-                    this.updateMessages();
-                });
+                this.updateView();
+            });
+        });
+
+        document.addEventListener("dial-menu:step-backward", (e) => {
+            this.api.get(`step-backward/1`).then(response => {
+                this.updateView();
             });
         });
     }
@@ -160,10 +184,11 @@ class DialSimulator extends LitElement {
                 from: edge[0],
                 to: edge[1]
             }));
-            this.$graph.setTopology({
+            this.topology = {
                 nodes: new vis.DataSet(nodes),
                 edges: new vis.DataSet(edges),
-            });
+            }
+            this.$graph.setTopology(this.topology);
         });
     }
 
@@ -190,6 +215,38 @@ class DialSimulator extends LitElement {
         });
     }
 
+    loadStates() {
+        return this.api.get("states").then(states => {
+            this.states = states;
+        });
+    }
+
+    updateStates() {
+        let instanceAddressSet = new Set();
+        Object.keys(this.states).forEach(address => {
+           let splitAddress = address.split("/");
+           let instance = splitAddress[1] + "/" + splitAddress[2];
+           instanceAddressSet.add(instance);
+        });
+        let instanceAddressArray = Array.from(instanceAddressSet);
+        this.$menu.setInstanceAddresses(instanceAddressArray);
+
+        if(this.instanceUsedForStateColor === undefined) {
+            return;
+        }
+        Object.keys(this.states).forEach(address => {
+            let splitAddress = address.split("/");
+            let instance = splitAddress[1] + "/" + splitAddress[2];
+            if( instance !== this.instanceUsedForStateColor) {
+                return;
+            }
+            let node = splitAddress[0];
+            let color = this.states[address];
+            this.$graph.setNodeColor(node, color);
+        });
+    }
+
+
     updateMessages() {
         const graphMessages = [];
         Object.keys(this.messages).forEach(t => {
@@ -211,24 +268,25 @@ class DialSimulator extends LitElement {
                 graphMessages.push(graphMessage);
             });
         });
-        console.log("=================");
+        this.$detailView.setMessages(this.messages);
         this.$graph.setMessages(graphMessages);
     }
 
     updateTime() {
-        this.$graph.setTime(this.time.frontendTime.time);
         this.time.frontendTime.time = Number(this.time.frontendTime.time); // TODO After fixing the problem at its root
+        this.$graph.setTime(this.time.frontendTime.time);
         this.$menu.setTimeIndicator(this.time.frontendTime.time, this.time.frontendTime.theta);
-    }
+        this.$detailView.setProgress(this.time.frontendTime.time, this.time.frontendTime.theta);
 
-    updateState() {
-        console.log("UpdateState");
     }
 
     timeForward(time) {
         this.api.get(`time-forward/${time}`).then(response => {
             this.time.backendTime.time = Number(response.time);
             this.time.backendTime.theta = Number(response.theta);
+            this.loadStates().then(() => {
+               this.updateStates();
+            });
             if (response.actions.length > 0) {
                 this.api.get("messages").then(messages => {
                     this.messages = messages.messages;
@@ -263,11 +321,6 @@ class DialSimulator extends LitElement {
         });
     }
 
-    loadStates() {
-        this.api.get("states").then(states => {
-            // console.log(states);
-        });
-    }
 
 
     static styles = css`

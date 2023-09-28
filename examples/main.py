@@ -64,12 +64,15 @@ initial_message = Message(
     source_address=initial_address,
     title="Initial Message"
 )
+initial_message.color = Colors.RED
+initial_message._creation_time = -1
 lost_message = Message(
     target_address=Address(node_name="F", algorithm="flooding", instance="flooding-example"),
     source_address=Address(node_name="E", algorithm="flooding", instance="flooding-example"),
     title="Example for a lost message"
 )
 lost_message._is_lost = True
+lost_message.color = Colors.BLUE
 a = {
     "flooding": flooding,
     "print_after_delay": print_after_delay

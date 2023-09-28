@@ -7,16 +7,21 @@ class DialMenu extends LitElement {
             attribute: false,
             type: String
         },
+        instancesAddresses: {
+            state: true
+        }
     };
 
 
     constructor() {
         super();
         this.timeIndicator = undefined;
+        this.instancesAddresses = [];
     }
 
     firstUpdated() {
         this.$speedSelector = this.renderRoot.querySelector("#speed-input");
+        this.$instanceSelector = this.renderRoot.querySelector("#instance-input");
         this.$playPauseIcon = this.renderRoot.querySelector("sl-tooltip[content='Play/Pause'] sl-button sl-icon");
 
         this.$fastBackwardButton = this.renderRoot.querySelector("sl-tooltip[content='Fast Backward'] sl-button");
@@ -39,6 +44,14 @@ class DialMenu extends LitElement {
             this.$playPauseIcon.name = "pause";
         } else {
             this.$playPauseIcon.name = "play";
+        }
+    }
+
+    setInstanceAddresses(instanceAddresses) {
+        this.instancesAddresses = instanceAddresses;
+        if(this.$instanceSelector.value === "") {
+            this.$instanceSelector.value = this.instancesAddresses[0];
+            this.handleInstanceChange();
         }
     }
 
@@ -94,6 +107,11 @@ class DialMenu extends LitElement {
         });
     }
 
+    handleInstanceChange() {
+        this.emitEvent("change-instance", {
+            instance: this.$instanceSelector.value
+        });
+    }
     static styles = css`
       :host {
         box-sizing: border-box;
@@ -123,7 +141,7 @@ class DialMenu extends LitElement {
         width: 140px;
       }
       
-      #color-input {
+      #instance-input {
         width: calc(100% - 140px - 99px - 120px - 300px - 10px);
         min-width: 150px;
         overflow: visible !important;
@@ -179,6 +197,12 @@ class DialMenu extends LitElement {
     `;
 
     render() {
+        let instanceOptions = [];
+        this.instancesAddresses.forEach(address => {
+           let instanceOption = html`<sl-option value="${address}">${address}</sl-option>`;
+            instanceOptions.push(instanceOption);
+        });
+
         return html`
                 <div id="control-section">
                     <div id="control-label">Controls</div>
@@ -213,11 +237,9 @@ class DialMenu extends LitElement {
                     <sl-icon name="speedometer" slot="prefix"></sl-icon>
                 </sl-input>
                 <sl-divider vertical></sl-divider>
-                <sl-select placement="top" label="Instance" id="color-input" placeholder="Node Color" clearable>
+                <sl-select @sl-change=${this.handleInstanceChange} placement="top" id="instance-input" label="Node Color" id="color-input" placeholder="Select Instance" clearable>
                     <sl-icon name="paint-bucket" slot="prefix"></sl-icon>
-                    <sl-option value="option-1">flooding/instance1</sl-option>
-                    <sl-option value="option-2">flooding/instance2</sl-option>
-                    <sl-option value="option-3">echo/instance1</sl-option>
+                    ${instanceOptions}
                 </sl-select>
         `;
     }

@@ -301,8 +301,8 @@ class API:
             return self.response(status=300, response="Failed to parse steps")
 
         result: dict[str, any] = {
-            "time": int(self.simulator.time),
-            "theta": int(self.simulator.theta),
+            "time": str(self.simulator.time),
+            "theta": str(self.simulator.theta),
             "steps": int(0),
             "actions": [],
         }
@@ -312,8 +312,8 @@ class API:
             if action is None:
                 return self.response(status=200, response=result)
             else:
-                result["time"] = int(self.simulator.time)
-                result["theta"] = int(self.simulator.theta)
+                result["time"] = str(self.simulator.time)
+                result["theta"] = str(self.simulator.theta)
                 result["steps"] = int(result["steps"] + 1)
                 result["actions"].append(action)
         return self.response(status=200, response=result)
@@ -362,9 +362,13 @@ class API:
         except ValueError:
             return self.response(status=300, response="Failed to parse steps")
 
+        if self.simulator.time is None:
+            return self.response(status=300, response="Can not move further back in time.")
+
+
         result: dict[str, any] = {
-            "time": int(self.simulator.time),
-            "theta": int(self.simulator.theta),
+            "time": str(self.simulator.time),
+            "theta": str(self.simulator.theta),
             "steps": int(0),
             "actions": [],
         }
@@ -376,8 +380,8 @@ class API:
             if action is None:
                 return self.response(status=200, response=result)
             else:
-                result["time"] = int(self.simulator.time)
-                result["theta"] = int(self.simulator.theta)
+                result["time"] = str(self.simulator.time)
+                result["theta"] = str(self.simulator.theta)
                 result["steps"] = int(result["steps"] + 1)
                 result["actions"].append(action)
 
