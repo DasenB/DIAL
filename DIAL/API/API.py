@@ -221,7 +221,12 @@ class API:
             if isinstance(color, Colors):
                 color = color.value
             state_colors[address.__repr__()] = str(color.__repr__())
-        return self.response(status=200, response=state_colors)
+        result: dict[str, any] = {
+            "time": self.simulator.time,
+            "theta": self.simulator.theta,
+            "colors": state_colors,
+        }
+        return self.response(status=200, response=result)
 
     def get_state(self, node: str, algorithm: str, instance: str):
         address = Address(node_name=node, algorithm=algorithm, instance=instance)

@@ -15,6 +15,11 @@ class DialDialog extends LitElement {
                 this.showDialog();
             }
         });
+        this.$dialog.addEventListener('sl-request-close', event => {
+            if (event.detail.source === 'overlay') {
+                event.preventDefault();
+            }
+        });
 
         this.defaultActions = {
             close: {
@@ -46,12 +51,12 @@ class DialDialog extends LitElement {
         }
         let dialogObject = this.dialogData.shift();
         this.$dialog.label = dialogObject.title;
-        this.$dialog.innerText = dialogObject.text;
+        this.$dialog.innerHTML = dialogObject.text;
 
         dialogObject.actions.forEach(action => {
             let button = document.createElement("sl-button");
             button.slot = "footer";
-            button.innerText = action.title;
+            button.innerHTML = action.title;
             button.onclick = action.handler;
             this.$dialog.appendChild(button);
         });
@@ -67,6 +72,10 @@ class DialDialog extends LitElement {
         display: block;
         position: absolute;
         overflow: hidden;
+      }
+      
+      sl-dialog::part(close-button) {
+        display: none;
       }
     `;
 

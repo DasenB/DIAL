@@ -28,7 +28,7 @@ class DialSimulator extends LitElement {
             nodes: [],
             edges: [],
         };
-        this.states = {};
+        this.states = [];
         this.instanceUsedForStateColor = undefined;
     }
 
@@ -107,7 +107,7 @@ class DialSimulator extends LitElement {
         document.addEventListener("dial-api:no-connection-to-backend", (e) => {
             let dialogData = {
                 title: "API Error",
-                text: "Can not connect to the HTTP-API provided by the python simulator. Is the backend running?",
+                text: "Can not connect to the HTTP-API provided by the python simulator.<br><br> Make sure the backend is accessible under the following address: <a href='https://localhost:10101'>https://localhost:10101</a>",
                 actions: [
                     this.$dialog.defaultActions.reload
                 ]
@@ -217,13 +217,38 @@ class DialSimulator extends LitElement {
 
     loadStates() {
         return this.api.get("states").then(states => {
-            this.states = states;
+            if(states.time !== undefined) {
+                states.time = Number(states.time);
+            }
+            if(states.theta !== undefined) {
+                states.theta = Number(states.theta);
+            }
+            this.states.push(states);
+            this.states.sort((a, b) => {
+                if (a.time === undefined && b.time === undefined) {
+                    return 0;
+                }
+                if (a.time === undefined && b.time !== undefined) {
+                    return -1;
+                }
+                if (a.time !== undefined && b.time === undefined) {
+                    return 1;
+                }
+                if (a.time === b.time) {
+                    return a.theta - b.theta;
+                }
+                return a.time - b.time;
+            });
+            console.log(this.states);
         });
     }
 
     updateStates() {
+        // Select current state
+        let state = this.states[0];
+
         let instanceAddressSet = new Set();
-        Object.keys(this.states).forEach(address => {
+        Object.keys(state.colors).forEach(address => {
            let splitAddress = address.split("/");
            let instance = splitAddress[1] + "/" + splitAddress[2];
            instanceAddressSet.add(instance);
@@ -234,14 +259,14 @@ class DialSimulator extends LitElement {
         if(this.instanceUsedForStateColor === undefined) {
             return;
         }
-        Object.keys(this.states).forEach(address => {
+        Object.keys(state.colors).forEach(address => {
             let splitAddress = address.split("/");
             let instance = splitAddress[1] + "/" + splitAddress[2];
             if( instance !== this.instanceUsedForStateColor) {
                 return;
             }
             let node = splitAddress[0];
-            let color = this.states[address];
+            let color = state.colors[address];
             this.$graph.setNodeColor(node, color);
         });
     }
