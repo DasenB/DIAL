@@ -1,5 +1,6 @@
 import {css, html, LitElement} from 'https://cdn.jsdelivr.net/gh/lit/dist@2/core/lit-core.min.js';
 import {API} from "../scripts/api.js";
+import {CompareTime} from "../scripts/time.js";
 import {DialGraphMessage} from "../scripts/graph.js";
 
 class DialSimulator extends LitElement {
@@ -28,7 +29,7 @@ class DialSimulator extends LitElement {
             nodes: [],
             edges: [],
         };
-        this.states = [];
+        this.states = {};
         this.instanceUsedForStateColor = undefined;
     }
 
@@ -38,7 +39,7 @@ class DialSimulator extends LitElement {
         Promise.all([
             this.loadTime(),
             this.loadMessages(),
-            this.loadStates()
+            this.loadStates(),
         ]).then(response => {
             Object.keys(this.messages).forEach(t => {
                 this.messages[t].forEach((msg, index) => {
@@ -147,6 +148,8 @@ class DialSimulator extends LitElement {
         }
         const time_since_last_frame = (current_frame_time - this.time.animationTime.lastFrame) / 1000;
         this.time.animationTime.lastFrame = current_frame_time;
+        const oldFrontendTime = this.time.frontendTime.time;
+        const oldFrontendTheta = this.time.frontendTime.theta;
         const newFrontendTime = this.time.frontendTime.time + (time_since_last_frame * this.speed);
         this.time.frontendTime.time = newFrontendTime;
         this.time.frontendTime.theta = undefined;
@@ -161,6 +164,20 @@ class DialSimulator extends LitElement {
             this.time.frontendTime.time = this.time.backendTime.time;
             this.time.frontendTime.theta = this.time.backendTime.theta;
         }
+
+        let secondChanged = Math.floor(Number(oldFrontendTime)) !== Math.floor(Number(newFrontendTime));
+        let thetaChanged = this.time.frontendTime.theta !== oldFrontendTheta;
+        if (thetaChanged === undefined) {
+            thetaChanged = false;
+        }
+        if(secondChanged === undefined) {
+            secondChanged = false;
+        }
+
+        if(secondChanged || thetaChanged) {
+            this.loadStates();
+        }
+
 
         this.updateTime();
 
@@ -217,58 +234,48 @@ class DialSimulator extends LitElement {
 
     loadStates() {
         return this.api.get("states").then(states => {
-            if(states.time !== undefined) {
-                states.time = Number(states.time);
-            }
-            if(states.theta !== undefined) {
-                states.theta = Number(states.theta);
-            }
-            this.states.push(states);
-            this.states.sort((a, b) => {
-                if (a.time === undefined && b.time === undefined) {
-                    return 0;
-                }
-                if (a.time === undefined && b.time !== undefined) {
-                    return -1;
-                }
-                if (a.time !== undefined && b.time === undefined) {
-                    return 1;
-                }
-                if (a.time === b.time) {
-                    return a.theta - b.theta;
-                }
-                return a.time - b.time;
-            });
-            console.log(this.states);
+            this.states = states;
+            this.updateStates();
         });
     }
 
     updateStates() {
-        // Select current state
-        let state = this.states[0];
+        console.log("update state");
+        let instances = new Set();
+        let nodeColors = {};
 
-        let instanceAddressSet = new Set();
-        Object.keys(state.colors).forEach(address => {
-           let splitAddress = address.split("/");
-           let instance = splitAddress[1] + "/" + splitAddress[2];
-           instanceAddressSet.add(instance);
-        });
-        let instanceAddressArray = Array.from(instanceAddressSet);
-        this.$menu.setInstanceAddresses(instanceAddressArray);
-
-        if(this.instanceUsedForStateColor === undefined) {
-            return;
-        }
-        Object.keys(state.colors).forEach(address => {
-            let splitAddress = address.split("/");
-            let instance = splitAddress[1] + "/" + splitAddress[2];
-            if( instance !== this.instanceUsedForStateColor) {
-                return;
+        Object.keys(this.states).forEach(timeTuple => {
+            let addressString = Object.keys(this.states[timeTuple])[0];
+            let color = this.states[timeTuple][addressString];
+            let splitTimeTuple = timeTuple.split("/");
+            let splitAddress = addressString.split("/");
+            let time = {
+                time: splitTimeTuple[0],
+                theta: splitTimeTuple[1]
             }
-            let node = splitAddress[0];
-            let color = state.colors[address];
-            this.$graph.setNodeColor(node, color);
+            let address = {
+                node: splitAddress[0],
+                algorithm: splitAddress[1],
+                instance: splitAddress[2],
+            }
+            let instance = address.algorithm + "/" + address.instance;
+            instances.add(instance);
+            if(this.instanceUsedForStateColor === undefined) {
+                this.instanceUsedForStateColor = instance;
+                this.$menu.setInstanceAddresses(instance);
+            }
+            if(CompareTime(this.time.frontendTime, time) >= 0 && this.instanceUsedForStateColor === instance) {
+                nodeColors[address.node] = color;
+            }
         });
+
+        let instanceArray = Array.from(instances);
+        this.$menu.setInstanceAddresses(instanceArray);
+
+        this.topology.nodes.forEach(node => {
+            this.$graph.setNodeColor(node.id, nodeColors[node.id]);
+        });
+
     }
 
 
@@ -302,16 +309,12 @@ class DialSimulator extends LitElement {
         this.$graph.setTime(this.time.frontendTime.time);
         this.$menu.setTimeIndicator(this.time.frontendTime.time, this.time.frontendTime.theta);
         this.$detailView.setProgress(this.time.frontendTime.time, this.time.frontendTime.theta);
-
     }
 
     timeForward(time) {
         this.api.get(`time-forward/${time}`).then(response => {
             this.time.backendTime.time = Number(response.time);
             this.time.backendTime.theta = Number(response.theta);
-            this.loadStates().then(() => {
-               this.updateStates();
-            });
             if (response.actions.length > 0) {
                 this.api.get("messages").then(messages => {
                     this.messages = messages.messages;

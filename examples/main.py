@@ -24,6 +24,7 @@ def flooding(node: State, message: Message, time: int):
 
 
 def print_after_delay(node: State, message: Message, time: int):
+    node.color = Colors.BLUE.value
     print(
         f'Hi. The current time is {time} ({time - message.data["t"]} after {message.data["t"]}) '
         f'and you are on {node.address}')

@@ -42,6 +42,9 @@ class DialGraph extends LitElement {
         if (node == null) {
             return;
         }
+        if(color === undefined) {
+            color = "#ffffff";
+        }
         node.color = {
             background: color,
             highlight: {

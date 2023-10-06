@@ -19,6 +19,7 @@
 - [x] Messages are updated by the simulation
 - [ ] Lost messages are clearly marked
 - [x] Messages should not be shown before the time they are created
+- [ ] Messages should be shown from the moment on they are created
 - [ ] Messages that are highlighted in the graph view should also be highlighted in the detail view
 
 # Menu

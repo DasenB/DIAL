@@ -1,6 +1,7 @@
 import copy
 import json
 from enum import Enum
+from typing import Tuple
 
 import networkx as nx
 from flask import Flask, request
@@ -215,17 +216,29 @@ class API:
         return self.response(status=200, response=f'OK')
 
     def get_states(self):
-        state_colors: dict[str, str] = {}
-        for address in self.simulator.states.keys():
-            color = self.simulator.states[address][-1].color
-            if isinstance(color, Colors):
-                color = color.value
-            state_colors[address.__repr__()] = str(color.__repr__())
-        result: dict[str, any] = {
-            "time": self.simulator.time,
-            "theta": self.simulator.theta,
-            "colors": state_colors,
-        }
+
+        result: dict[str, any] = { }
+
+        for time_tuple in self.simulator.node_colors.keys():
+            time_str = str(time_tuple[0]) + "/" + str(time_tuple[1])
+            for address in self.simulator.node_colors[time_tuple].keys():
+                result[time_str] = {
+                    address.__repr__(): self.simulator.node_colors[time_tuple][address].__str__()
+                }
+
+
+
+        # state_colors: dict[str, str] = {}
+        # for address in self.simulator.states.keys():
+        #     color = self.simulator.states[address][-1].color
+        #     if isinstance(color, Colors):
+        #         color = color.value
+        #     state_colors[address.__repr__()] = str(color.__repr__())
+        # result: dict[str, any] = {
+        #     "time": self.simulator.time,
+        #     "theta": self.simulator.theta,
+        #     "colors": state_colors,
+        # }
         return self.response(status=200, response=result)
 
     def get_state(self, node: str, algorithm: str, instance: str):

@@ -108,10 +108,18 @@ class DialMenu extends LitElement {
     }
 
     handleInstanceChange() {
+        let value = this.$instanceSelector.value;
+        if (value === undefined) {
+            return;
+        }
+        if(!value.includes("/")) {
+            return;
+        }
         this.emitEvent("change-instance", {
             instance: this.$instanceSelector.value
         });
     }
+
     static styles = css`
       :host {
         box-sizing: border-box;

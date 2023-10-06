@@ -36,6 +36,7 @@ class Simulator:
 
     messages: dict[int, list[Message]]
     states: dict[Address, list[State]]
+    node_colors: dict[Tuple[int | None, int | None], dict[Address, Color]]
 
     topology: Topology
     algorithms: dict[str, Algorithm]
@@ -71,6 +72,7 @@ class Simulator:
                 msg._arrival_time = t
                 n += 1
         self.states = {}
+        self.node_colors = {}
 
     def find_first(self) -> Tuple[int, int] | None:
         if len(self.messages.keys()) == 0:
@@ -190,6 +192,10 @@ class Simulator:
                 self.insert_message_to_queue(msg)
         self.random_number_generator_states.append(self.random_generator.__getstate__())
 
+        # Update Node Color
+        self.node_colors[self.time, self.theta] = {}
+        self.node_colors[self.time, self.theta][target_address] = new_state.color
+
         if verbose:
             new_row = "\n                    "
             new_messages_str = "[" + new_row + new_row.join([( str(msg._arrival_time) + " -> " + msg.target_address.__repr__()) for msg in new_messages]) + "\n               ]"
@@ -247,6 +253,9 @@ class Simulator:
             self.messages[t] = keep_messages
             if len(self.messages[t]) == 0:
                 del self.messages[t]
+
+        # Remove Node Color
+        del self.node_colors[self.time, self.theta]
 
         self.states[current_message.target_address].pop()
         if len(self.states[current_message.target_address]) == 1:
