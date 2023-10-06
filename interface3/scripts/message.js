@@ -15,6 +15,9 @@ class DialMessage extends LitElement {
         targetAddress: {
             type: String
         },
+        creationTime: {
+            type: String
+        },
         theta: {
             type: Number
         },
@@ -33,6 +36,7 @@ class DialMessage extends LitElement {
         this.sourceAddress = "SomeNode/Algorithm/Instance";
         this.targetAddress = "OtherNode/Algorithm/Instance";
         this.theta = 0;
+        this.creationTime = "0/0";
         this.color = "#ff0000";
         this.messageId = undefined;
     }
@@ -162,6 +166,7 @@ class DialMessage extends LitElement {
                     <tr><th>Title</th><td>${this.title}</td></tr>
                     <tr><th>Source</th><td>${this.sourceAddress}</td></tr>
                     <tr><th>Target</th><td>${this.targetAddress}</td></tr>
+                    <tr><th>Creation Time</th><td>${this.creationTime}</td></tr>
                 </table>
             </sl-card>
         `;

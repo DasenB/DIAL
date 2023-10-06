@@ -145,7 +145,7 @@ class DialDetailView extends LitElement {
             let pastMessages = [];
             let futureMessages = [];
             this.messages[time].forEach(msg => {
-                let wasCreated = msg.creation_time < this.time || (msg.creation_time === this.time && msg.creation_theta < this.theta);
+                let wasCreated = msg.creation_time <= this.time || (msg.creation_time === this.time && msg.creation_theta <= this.theta);
                 if (!wasCreated) {
                     return;
                 }
@@ -158,6 +158,7 @@ class DialDetailView extends LitElement {
                             sourceAddress="${msg.source}"
                             targetAddress="${msg.target}"
                             theta="${msg.arrival_theta}"
+                            creationTime="${msg.creation_time + "/" + msg.creation_theta}"
                             ?received=${wasReceived}
                     ><div class="handle"></div></dial-message>
                 `;

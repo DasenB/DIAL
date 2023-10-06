@@ -175,7 +175,7 @@ class DialSimulator extends LitElement {
         }
 
         if(secondChanged || thetaChanged) {
-            this.loadStates();
+            this.updateStates();
         }
 
 
@@ -235,7 +235,7 @@ class DialSimulator extends LitElement {
     loadStates() {
         return this.api.get("states").then(states => {
             this.states = states;
-            this.updateStates();
+            // this.updateStates();
         });
     }
 
@@ -315,6 +315,7 @@ class DialSimulator extends LitElement {
         this.api.get(`time-forward/${time}`).then(response => {
             this.time.backendTime.time = Number(response.time);
             this.time.backendTime.theta = Number(response.theta);
+            this.loadStates();
             if (response.actions.length > 0) {
                 this.api.get("messages").then(messages => {
                     this.messages = messages.messages;
@@ -338,6 +339,7 @@ class DialSimulator extends LitElement {
         this.api.get(`step-forward/${steps}`).then(response => {
             this.time.backendTime.time = Number(response.time);
             this.time.backendTime.theta = Number(response.theta);
+            this.loadStates();
             this.api.get("messages").then(messages => {
                 this.messages = messages.messages;
                 this.isFetchingData = false;
