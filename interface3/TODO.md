@@ -14,6 +14,7 @@
 - [x] Failed Messages are not being displayed after 50% of their way
 - [ ] Paint Node-color based on selection in menu
 - [ ] Self messages do not stay still but complete one circle around the border of its node
+- [ ] Visually distinguish between unidirectional and bidirectional links
 
 # Detail View
 - [x] Messages are updated by the simulation

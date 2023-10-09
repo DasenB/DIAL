@@ -35,6 +35,7 @@ def example_hook(node: State, messages: list[Message], time: int):
         self_message = Message(source_address=node.address.copy(),
                                target_address=node.address.copy(algorithm="print_after_delay"))
         self_message.data["t"] = time
+        self_message.color = Colors.BLUE.value
         send_to_self(self_message, 5)
 
 
@@ -73,7 +74,7 @@ lost_message = Message(
     title="Example for a lost message"
 )
 lost_message._is_lost = True
-lost_message.color = Colors.BLUE
+lost_message.color = Colors.PINK.value
 a = {
     "flooding": flooding,
     "print_after_delay": print_after_delay
