@@ -46,6 +46,21 @@ class DialMessage extends LitElement {
         console.log(messageId);
     }
 
+    emitEvent(name, data) {
+        console.log(name);
+        const event = new CustomEvent(`message:${name}`, {
+            detail: data,
+            bubbles: true,
+            composed: true,
+            cancelable: true,
+        });
+        this.dispatchEvent(event);
+    }
+
+    editMessage() {
+        this.emitEvent("edit", this.messageId);
+    }
+
 
     static styles = css`
       :host {
@@ -134,7 +149,7 @@ class DialMessage extends LitElement {
                 <sl-icon-button ?disabled=${this.received} name="clock" label="Time" @click="${this.openTimeDialog}"></sl-icon-button>
             </sl-tooltip>
             <sl-tooltip placement="bottom" content="Edit Message">
-                <sl-icon-button ?disabled=${this.received} name="pencil" label="Edit"></sl-icon-button>
+                <sl-icon-button ?disabled=${this.received} name="pencil" @click="${this.editMessage}" label="Edit"></sl-icon-button>
             </sl-tooltip>
             <sl-tooltip placement="bottom" content="Delete Message">
                 <sl-icon-button ?disabled=${this.received} name="trash3" label="Delete"></sl-icon-button>

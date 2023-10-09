@@ -7,11 +7,14 @@ import "https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript
 class DialEditor extends LitElement {
 
     static properties = {
-        // minSize: {
-        //     attribute: "min-size",
-        //     reflect: true,
-        //     type: Number
-        // }
+        location: {
+            state: true,
+            type: String
+        },
+        text: {
+            state: true,
+            type: String
+        },
     };
 
     constructor() {
@@ -20,13 +23,23 @@ class DialEditor extends LitElement {
 
     firstUpdated() {
         this.$editorDiv = this.renderRoot.querySelector("#editor");
+        this.location = "Test";
+        this.text = "No Document";
         this.codemirror = CodeMirror(this.$editorDiv, {
-            value: "Test Test Test",
+            value: this.text,
             mode:  {name: "javascript", json: true},
             theme: "dracula",
             lineNumbers: true,
             gutter: true
         });
+    }
+
+    setContent(location, data) {
+        this.data = data;
+        this.location = location;
+
+        let contentString = JSON.stringify(this.data, null, 2);
+        this.codemirror.getDoc().setValue(contentString);
         this.codemirror.refresh();
     }
 

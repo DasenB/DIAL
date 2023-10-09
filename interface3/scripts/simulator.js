@@ -59,6 +59,7 @@ class DialSimulator extends LitElement {
         this.$menu = this.renderRoot.querySelector("dial-menu");
         this.$dialog = this.renderRoot.querySelector("dial-dialog");
         this.$detailView = this.renderRoot.querySelector("dial-detail-view");
+        this.$editor = this.renderRoot.querySelector("dial-editor");
         this.setupEventHandlers();
 
         this.loadTopology().then(() => {
@@ -126,6 +127,12 @@ class DialSimulator extends LitElement {
         document.addEventListener("dial-menu:step-backward", (e) => {
             this.api.get(`step-backward/1`).then(response => {
                 this.updateView();
+            });
+        });
+
+        document.addEventListener("message:edit", (e) => {
+            this.api.get(`message/${e.detail}`).then(response => {
+                this.$editor.setContent("message/" + e.detail, response)
             });
         });
     }
