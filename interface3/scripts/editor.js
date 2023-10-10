@@ -19,14 +19,15 @@ class DialEditor extends LitElement {
 
     constructor() {
         super();
+        this.noDocumentSelectedText = "No Document selected"
+        this.location = undefined;
+        this.text = undefined;
     }
 
     firstUpdated() {
         this.$editorDiv = this.renderRoot.querySelector("#editor");
-        this.location = "Test";
-        this.text = "No Document";
         this.codemirror = CodeMirror(this.$editorDiv, {
-            value: this.text,
+            value: this.noDocumentSelectedText,
             mode:  {name: "javascript", json: true},
             theme: "dracula",
             lineNumbers: true,
