@@ -1,4 +1,4 @@
-import {css, html, LitElement} from 'https://cdn.jsdelivr.net/gh/lit/dist@2/core/lit-core.min.js';
+import {css, html, LitElement} from '../libraries/lit-core.js';
 
 
 class DialDialog extends LitElement {

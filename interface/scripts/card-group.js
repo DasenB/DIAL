@@ -1,4 +1,4 @@
-import {LitElement, html, css, nothing} from 'https://cdn.jsdelivr.net/gh/lit/dist@2/core/lit-core.min.js';
+import {css, html, LitElement, nothing} from '../libraries/lit-core.js';
 class DialCardGroup extends LitElement {
 
     static properties = {

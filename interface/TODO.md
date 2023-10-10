@@ -5,6 +5,7 @@
 - [x] Warning if no connection to backend can be made
 - [ ] A way to add new messages
 - [x] Prevent Alert-Overlay from being closeable by clicking on the background or the cross. Only actions close it.
+- [ ] Use node modules for all imported libraries
 
 # Graph View:
 - [x] A node that is overlapped by a message should not be selected if the message on top of it is being clicked 
