@@ -2,7 +2,7 @@ import json
 import uuid
 from copy import deepcopy
 from uuid import UUID
-
+import textwrap
 from DIAL.Color import Color, Colors
 from DIAL.Address import Address
 
@@ -15,7 +15,7 @@ class Message:
     data: dict[str, any]
 
     _id: UUID
-    _parent_message: UUID
+    _parent_message: UUID | None
     _child_messages: list[UUID]
     _is_lost: bool
     _is_self_message: bool
@@ -89,6 +89,23 @@ class Message:
 
     def to_json(self):
         json_representation = self.summary()
-        json_representation["data"] = json.dumps(self.data)
+        try:
+            json_representation["data"] = json.dumps(self.data)
+        except TypeError as error:
+            warning_message = f"""
+            > Encoding Error:
+            > '{error}'
+            >
+            > If you want to send messages containing data formats that are not serializable to
+            > JSON you must encode and decode it to some JSON serializable datatype yourself.
+            > https://stackoverflow.com/questions/3768895/how-to-make-a-class-json-serializable
+            """
+            warning_message = textwrap.dedent(warning_message)
+            json_representation["data"] = (warning_message
+                                           .replace("'\n", "'!\n")
+                                           .replace("\n>", "")
+                                           .replace("\n", "")
+                                           .replace("\"", "'"))[1:]
+            print('\033[93m' + warning_message + '\033[0m')
         return json_representation
 

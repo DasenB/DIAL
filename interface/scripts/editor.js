@@ -31,14 +31,20 @@ class DialEditor extends LitElement {
             mode:  {name: "javascript", json: true},
             theme: "dracula",
             lineNumbers: true,
-            gutter: true
+            gutter: true,
+            lineWrapping: true,
+            spellcheck: false,
+            autocorrect: false,
+            autocapitalize: false
         });
     }
 
     setContent(location, data) {
         this.data = data;
         this.location = location;
+    }
 
+    updated() {
         let contentString = JSON.stringify(this.data, null, 2);
         this.codemirror.getDoc().setValue(contentString);
         this.codemirror.refresh();
