@@ -46,7 +46,12 @@ class DialEditor extends LitElement {
 
     updated() {
         let contentString = JSON.stringify(this.data, null, 2);
-        this.codemirror.getDoc().setValue(contentString);
+        try {
+            let document = this.codemirror.getDoc();
+            document.setValue(contentString);
+        } catch (err) {
+            // This error seems to have no effect. This is just to silence it.ss
+        }
         this.codemirror.refresh();
     }
 
@@ -119,7 +124,7 @@ class DialEditor extends LitElement {
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/dracula.min.css">
             <div id="menu">
                 <sl-tooltip placement="right" content="Save">
-                    <sl-button variant="default" outline><sl-icon name="check-lg" label="Save"></sl-icon></sl-button>
+                    <sl-button variant="default" outline><sl-icon name="floppy" label="Save"></sl-icon></sl-button>
                 </sl-tooltip>
                 <sl-tooltip placement="right" content="Discard">
                     <sl-button variant="default" outline><sl-icon name="x-lg" label="Discard"></sl-icon></sl-button>

@@ -249,6 +249,7 @@ class DialMenu extends LitElement {
                     <sl-icon name="paint-bucket" slot="prefix"></sl-icon>
                     ${instanceOptions}
                 </sl-select>
+                
         `;
     }
 }

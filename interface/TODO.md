@@ -28,6 +28,10 @@
 - [x] Toggle Play/Pause Icon on Button
 - [ ] Disable Backwards/Forwards Buttons at Start/End
 
+# Editor
+- [ ] Warn before dismissing unsaved changes
+- [ ] Disable changes while the animation is running
+
 # Error
 - [x] Backend TypeError: Object of type int64 is not JSON serializable
   - [2023-10-10 11:10:07,931] ERROR in app: Exception on /message/920d211d-243d-4ed4-814e-5208598dede3 [GET]
