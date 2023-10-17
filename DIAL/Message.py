@@ -1,3 +1,4 @@
+import copy
 import json
 import uuid
 from copy import deepcopy
@@ -89,23 +90,25 @@ class Message:
 
     def to_json(self):
         json_representation = self.summary()
+        json_representation["data"] = self.data
+
         try:
-            json_representation["data"] = json.dumps(self.data)
+            json.dumps(self.data)
         except TypeError as error:
             warning_message = f"""
-            > Encoding Error:
-            > '{error}'
+            > Warning: '{error}'
             >
+            > The JSON format of the message with ID='{self._id}' might not look as expected.
             > If you want to send messages containing data formats that are not serializable to
             > JSON you must encode and decode it to some JSON serializable datatype yourself.
             > https://stackoverflow.com/questions/3768895/how-to-make-a-class-json-serializable
             """
             warning_message = textwrap.dedent(warning_message)
-            json_representation["data"] = (warning_message
-                                           .replace("'\n", "'!\n")
-                                           .replace("\n>", "")
-                                           .replace("\n", "")
-                                           .replace("\"", "'"))[1:]
+            # json_representation["data"] = (warning_message
+            #                                .replace("'\n", "'!\n")
+            #                                .replace("\n>", "")
+            #                                .replace("\n", "")
+            #                                .replace("\"", "'"))[1:]
             print('\033[93m' + warning_message + '\033[0m')
         return json_representation
 

@@ -26,12 +26,16 @@ class DialMessage extends LitElement {
         },
         received: {
             type: Boolean
+        },
+        disableEditing: {
+            type: Boolean
         }
     };
 
     constructor() {
         super();
         this.received = false;
+        this.disableEditing = false;
         this.title = "Example Title";
         this.sourceAddress = "SomeNode/Algorithm/Instance";
         this.targetAddress = "OtherNode/Algorithm/Instance";
@@ -143,16 +147,16 @@ class DialMessage extends LitElement {
             </sl-tooltip>
             <sl-tooltip placement="bottom" content="Change Δ">
                 ${ !this.received ? html`<slot></slot>` : nothing}
-                <sl-icon-button ?disabled=${this.received} name="list" label="Move" ></sl-icon-button>
+                <sl-icon-button ?disabled=${this.received || this.disableEditing} name="list" label="Move" ></sl-icon-button>
             </sl-tooltip>
             <sl-tooltip placement="bottom" content="Change Time">
-                <sl-icon-button ?disabled=${this.received} name="clock" label="Time" @click="${this.openTimeDialog}"></sl-icon-button>
+                <sl-icon-button ?disabled=${this.received || this.disableEditing} name="clock" label="Time" @click="${this.openTimeDialog}"></sl-icon-button>
             </sl-tooltip>
             <sl-tooltip placement="bottom" content="Edit Message">
-                <sl-icon-button ?disabled=${this.received} name="pencil" @click="${this.editMessage}" label="Edit"></sl-icon-button>
+                <sl-icon-button ?disabled=${this.received || this.disableEditing} name="pencil" @click="${this.editMessage}" label="Edit"></sl-icon-button>
             </sl-tooltip>
             <sl-tooltip placement="bottom" content="Delete Message">
-                <sl-icon-button ?disabled=${this.received} name="trash3" label="Delete"></sl-icon-button>
+                <sl-icon-button ?disabled=${this.received || this.disableEditing} name="trash3" label="Delete"></sl-icon-button>
             </sl-tooltip>
         `;
 

@@ -15,6 +15,10 @@ class DialDetailView extends LitElement {
         },
         theta: {
             state: true,
+        },
+        editingEnabled: {
+            state: true,
+            type: Boolean
         }
     };
 
@@ -24,6 +28,7 @@ class DialDetailView extends LitElement {
         this.messages = {};
         this.time = 0;
         this.theta = 0;
+        this.editingEnabled = true;
         // this.states = {};
     }
 
@@ -58,6 +63,10 @@ class DialDetailView extends LitElement {
 
     setMessages(messages) {
         this.messages = messages;
+    }
+
+    allowModifications(bool) {
+        this.editingEnabled = bool;
     }
 
     setProgress(time, theta) {
@@ -160,8 +169,10 @@ class DialDetailView extends LitElement {
                             theta="${msg.arrival_theta}"
                             creationTime="${msg.creation_time + "/" + msg.creation_theta}"
                             ?received=${wasReceived}
+                            ?disableEditing=${!this.editingEnabled}
                     ><div class="handle"></div></dial-message>
                 `;
+                console.log(this.editingEnabled);
                 if (wasReceived) {
                     pastMessages.push(messageView);
                 } else {

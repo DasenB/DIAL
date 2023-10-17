@@ -11,7 +11,7 @@ class DialEditor extends LitElement {
             state: true,
             type: String
         },
-        text: {
+        data: {
             state: true,
             type: String
         },
@@ -19,15 +19,14 @@ class DialEditor extends LitElement {
 
     constructor() {
         super();
-        this.noDocumentSelectedText = "No Document selected"
         this.location = undefined;
-        this.text = undefined;
+        this.data = undefined;
     }
 
     firstUpdated() {
         this.$editorDiv = this.renderRoot.querySelector("#editor");
         this.codemirror = CodeMirror(this.$editorDiv, {
-            value: this.noDocumentSelectedText,
+            value: "No document selected",
             mode:  {name: "javascript", json: true},
             theme: "dracula",
             lineNumbers: true,
@@ -35,24 +34,50 @@ class DialEditor extends LitElement {
             lineWrapping: true,
             spellcheck: false,
             autocorrect: false,
-            autocapitalize: false
+            autocapitalize: false,
+            readOnly: true
         });
+        this.noDocument = this.codemirror.getDoc();
     }
 
-    setContent(location, data) {
+    setDocument(location, data) {
         this.data = data;
         this.location = location;
+        this.codemirror.setOption("readOnly", false);
+    }
+
+    closeDocument() {
+        this.location = undefined;
+        this.data = undefined;
+        this.codemirror.setOption("readOnly", true);
     }
 
     updated() {
-        let contentString = JSON.stringify(this.data, null, 2);
+        let document;
+        if (this.data === undefined) {
+            document = this.noDocument;
+        } else {
+            let string = JSON.stringify(this.data, null, 2);
+            document = CodeMirror.Doc(string, {name: "javascript", json: true});
+        }
+        this.codemirror.swapDoc(document);
+        this.codemirror.refresh();
+    }
+
+    hasUnsavedChanges() {
+        if(this.location === undefined) {
+            return false;
+        }
+        let originalString  = JSON.stringify(this.data, null, 2);
+        let documentString = undefined;
         try {
             let document = this.codemirror.getDoc();
-            document.setValue(contentString);
+            documentString = document.getValue();
         } catch (err) {
-            // This error seems to have no effect. This is just to silence it.ss
+            // This error seems to have no effect. This is just to silence it.
         }
-        this.codemirror.refresh();
+
+        return originalString !== documentString;
     }
 
 
@@ -119,15 +144,17 @@ class DialEditor extends LitElement {
     render() {
         // this.codemirror.refresh();
 
+        let disableButtons = this.data === undefined;
+
         return html`
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/dracula.min.css">
             <div id="menu">
                 <sl-tooltip placement="right" content="Save">
-                    <sl-button variant="default" outline><sl-icon name="floppy" label="Save"></sl-icon></sl-button>
+                    <sl-button variant="default" ?disabled=${disableButtons} outline><sl-icon name="floppy" label="Save"></sl-icon></sl-button>
                 </sl-tooltip>
                 <sl-tooltip placement="right" content="Discard">
-                    <sl-button variant="default" outline><sl-icon name="x-lg" label="Discard"></sl-icon></sl-button>
+                    <sl-button variant="default" ?disabled=${disableButtons} outline  @click=${this.closeDocument}><sl-icon name="x-lg" label="Discard"></sl-icon></sl-button>
                 </sl-tooltip>
             </div>
             <div id="editor"></div>

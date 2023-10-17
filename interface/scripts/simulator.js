@@ -68,6 +68,27 @@ class DialSimulator extends LitElement {
     }
 
     setupEventHandlers() {
+
+        let discardUnsavedChangesDialog = {
+            title: "Unsaved Changes",
+            text: "The editor has unsaved changes that get discarded when starting the simulation.",
+            actions: [
+                {
+                    title: "Continue Editing",
+                    handler: () => {
+                        this.$dialog.closeDialog();
+                    }
+                },
+                {
+                    title: "Discard Changes",
+                    handler: () => {
+                        this.$editor.closeDocument();
+                        this.$dialog.closeDialog();
+                    }
+                }
+            ]
+        };
+
         document.addEventListener("dial-menu:reset", (e) => {
             this.api.get("reset").then(response => {
                 this.loadTopology().then(() => {
@@ -77,6 +98,12 @@ class DialSimulator extends LitElement {
         });
 
         document.addEventListener("dial-menu:play-pause", (e) => {
+            if(this.$editor.hasUnsavedChanges()) {
+                this.$dialog.pushDialogToQueue(discardUnsavedChangesDialog);
+                this.$dialog.showDialog();
+                return;
+            }
+
             if(this.isRunning) {
                 this.stop();
                 this.time.animationTime.lastFrame = undefined;
@@ -95,12 +122,22 @@ class DialSimulator extends LitElement {
         });
 
         document.addEventListener("dial-menu:fast-forward", (e) => {
+            if(this.$editor.hasUnsavedChanges()) {
+                this.$dialog.pushDialogToQueue(discardUnsavedChangesDialog);
+                this.$dialog.showDialog();
+                return;
+            }
             this.api.get(`time-forward/100`).then(response => {
                 this.updateView();
             });
         });
 
         document.addEventListener("dial-menu:fast-backward", (e) => {
+            if(this.$editor.hasUnsavedChanges()) {
+                this.$dialog.pushDialogToQueue(discardUnsavedChangesDialog);
+                this.$dialog.showDialog();
+                return;
+            }
             this.api.get(`time-backward/100`).then(response => {
                 this.updateView();
             });
@@ -119,12 +156,22 @@ class DialSimulator extends LitElement {
         });
 
         document.addEventListener("dial-menu:step-forward", (e) => {
+            if(this.$editor.hasUnsavedChanges()) {
+                this.$dialog.pushDialogToQueue(discardUnsavedChangesDialog);
+                this.$dialog.showDialog();
+                return;
+            }
             this.api.get(`step-forward/1`).then(response => {
                 this.updateView();
             });
         });
 
         document.addEventListener("dial-menu:step-backward", (e) => {
+            if(this.$editor.hasUnsavedChanges()) {
+                this.$dialog.pushDialogToQueue(discardUnsavedChangesDialog);
+                this.$dialog.showDialog();
+                return;
+            }
             this.api.get(`step-backward/1`).then(response => {
                 this.updateView();
             });
@@ -132,7 +179,7 @@ class DialSimulator extends LitElement {
 
         document.addEventListener("message:edit", (e) => {
             this.api.get(`message/${e.detail}`).then(response => {
-                this.$editor.setContent("message/" + e.detail, response)
+                this.$editor.setDocument("message/" + e.detail, response)
             });
         });
     }
@@ -140,12 +187,14 @@ class DialSimulator extends LitElement {
     stop() {
         this.$menu.setPlayState(false);
         this.isRunning = false;
+        this.$detailView.allowModifications(true);
     }
 
     run(start) {
         if(start) {
             this.$menu.setPlayState(true);
             this.isRunning = true;
+            this.$detailView.allowModifications(false);
         }
 
         // Update Time
