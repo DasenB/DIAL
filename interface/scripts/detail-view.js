@@ -175,7 +175,7 @@ class DialDetailView extends LitElement {
                 let messageView = html`
                     <dial-message 
                             messageId="${msg.id}"
-                            title="${msg.title}" 
+                            titleStr="${msg.title}" 
                             color="${msg.color}" 
                             sourceAddress="${msg.source}"
                             targetAddress="${msg.target}"

@@ -6,7 +6,7 @@ class DialMessage extends LitElement {
         messageId: {
             type: String
         },
-        title: {
+        titleStr: {
             type: String
         },
         sourceAddress: {
@@ -40,7 +40,7 @@ class DialMessage extends LitElement {
         this.received = false;
         this.disableEditing = false;
         this.isLost = false;
-        this.title = "Example Title";
+        this.titleStr = "Example Title";
         this.sourceAddress = "SomeNode/Algorithm/Instance";
         this.targetAddress = "OtherNode/Algorithm/Instance";
         this.theta = 0;
@@ -210,9 +210,10 @@ class DialMessage extends LitElement {
                     </div>
                 </div>
                 <table>
-                    <tr><th>Title</th><td>${this.title}</td></tr>
+                    <tr><th>Title</th><td>${this.titleStr}</td></tr>
                     <tr><th>Source</th><td>${this.sourceAddress}</td></tr>
                     <tr><th>Target</th><td>${this.targetAddress}</td></tr>
+                    <tr><th>ID</th><td>${this.messageId}</td></tr>
                     <tr><th>Creation Time</th><td>${this.creationTime}</td></tr>
                 </table>
             </sl-card>
