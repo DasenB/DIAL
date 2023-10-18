@@ -245,6 +245,9 @@ class DialGraph extends LitElement {
         const line_start = node_center;
         const line_end = node_center.clone().add(new Victor(1000, -1000));
         const path_center = this.getIntersectionLineEllipse(line_start, line_end, node_ellipse);
+        // TODO: Implement proper way to find start and end position of the path.
+        // As this requires to find the intersection between a circle and an ellipse this is rather complicated.
+        // Until then multiplying by 0.75 is a simple workaround.
         const progress_angle = Math.PI * 2 * progress * 0.75;
         const path_radius = this.config.visjsOptions.edges.selfReference.size;
         const radius_vec = new Victor.fromArray([0, path_radius]);
