@@ -18,6 +18,9 @@ class DialMessage extends LitElement {
         creationTime: {
             type: String
         },
+        time: {
+            type: Number
+        },
         theta: {
             type: Number
         },
@@ -44,13 +47,20 @@ class DialMessage extends LitElement {
         this.sourceAddress = "SomeNode/Algorithm/Instance";
         this.targetAddress = "OtherNode/Algorithm/Instance";
         this.theta = 0;
+        this.time = 0;
         this.creationTime = "0/0";
         this.color = "#ff0000";
         this.messageId = undefined;
     }
 
+    firstUpdated(t) {
+        this.$dialog = this.renderRoot.getElementById("time-dialog");
+        this.$timeInput = this.renderRoot.getElementById("time-input");
+        this.$thetaInput = this.renderRoot.getElementById("theta-input");
+    }
+
     openTimeDialog(messageId) {
-        this.renderRoot.getElementById("time-dialog").show();
+        this.$dialog.show();
         console.log(messageId);
     }
 
@@ -75,6 +85,26 @@ class DialMessage extends LitElement {
 
     deleteMessage() {
         this.emitEvent("delete", this.messageId);
+    }
+
+    reschedule(event) {
+        let time = this.$timeInput.value;
+        if(time === "" || time === undefined) {
+            time = this.time;
+        }
+        let theta = this.$thetaInput.value;
+        if(theta === "" || theta === undefined) {
+            theta = this.theta;
+        }
+        let data = {
+            id: this.messageId,
+            newTime: time,
+            newTheta: theta,
+        }
+        this.$dialog.hide();
+        this.$timeInput.value = "";
+        this.$thetaInput.value = "";
+        this.emitEvent("reschedule", data);
     }
 
 
@@ -161,10 +191,6 @@ class DialMessage extends LitElement {
             <sl-tooltip placement="bottom" content="Highlight Message">
                 <sl-icon-button ?disabled=${this.received} name="binoculars" label="Highlight" @click="${this.highlightMessage}"></sl-icon-button>
             </sl-tooltip>
-            <sl-tooltip placement="bottom" content="Change Δ">
-                ${ !this.received ? html`<slot></slot>` : nothing}
-                <sl-icon-button ?disabled=${this.received || this.disableEditing} name="list" label="Move" ></sl-icon-button>
-            </sl-tooltip>
             <sl-tooltip placement="bottom" content="Change Time">
                 <sl-icon-button ?disabled=${this.received || this.disableEditing} name="clock" label="Time" @click="${this.openTimeDialog}"></sl-icon-button>
             </sl-tooltip>
@@ -195,8 +221,9 @@ class DialMessage extends LitElement {
                 }
             </style>
             <sl-dialog id="time-dialog" label="Change Time" class="dialog-focus">
-                <sl-input autofocus label="Time" placeholder=""></sl-input>
-                <sl-button slot="footer" variant="primary">Set Time</sl-button>
+                <sl-input id="time-input" autofocus label="Time" placeholder="${this.time}"></sl-input>
+                <sl-input id="theta-input" autofocus label="Theta" placeholder="${this.theta}"></sl-input>
+                <sl-button slot="footer" variant="primary" @click="${this.reschedule}">Set Time</sl-button>
             </sl-dialog>
             
             <sl-card id="message-card">

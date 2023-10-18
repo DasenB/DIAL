@@ -17,6 +17,8 @@ def flooding(node: State, message: Message, time: int):
         return
     node.color = Colors.RED.value
     for neighbor in node.neighbors:
+        if neighbor == node.address.node_name:
+            continue
         m = message.copy()
         m.source_address = node.address
         m.target_address = node.address.copy(node=neighbor)

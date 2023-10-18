@@ -46,8 +46,9 @@ class Topology:
         for other in self.nodes:
             if self.has_edge(source=node, target=other):
                 neighbors.append(other)
-        if node in neighbors:
-            neighbors.remove(node)
+        # CAVE: with this an algorithm has no way of knowing if it can send a self-message or not
+        # if node in neighbors:
+        #     neighbors.remove(node)
         return neighbors
 
     def add_node(self, node: str) -> bool:

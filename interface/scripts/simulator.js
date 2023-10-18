@@ -71,7 +71,7 @@ class DialSimulator extends LitElement {
 
         let discardUnsavedChangesDialog = {
             title: "Unsaved Changes",
-            text: "The editor has unsaved changes that get discarded when starting the simulation.",
+            text: "The editor has unsaved changes that will be lost.",
             actions: [
                 {
                     title: "Continue Editing",
@@ -161,7 +161,7 @@ class DialSimulator extends LitElement {
                 this.$dialog.showDialog();
                 return;
             }
-            if(this.time.frontendTime.theta === undefined ) {
+            if(this.time.frontendTime.theta === undefined && this.time.backendTime.time !== null) {
                 this.time.frontendTime.time = this.time.backendTime.time;
                 this.time.frontendTime.theta = this.time.backendTime.theta;
                 this.updateView();
@@ -184,6 +184,11 @@ class DialSimulator extends LitElement {
         });
 
         document.addEventListener("message:edit", (e) => {
+            if(this.$editor.hasUnsavedChanges()) {
+                this.$dialog.pushDialogToQueue(discardUnsavedChangesDialog);
+                this.$dialog.showDialog();
+                return;
+            }
             this.api.get(`message/${e.detail}`).then(response => {
                 this.$editor.setDocument("message/" + e.detail, response)
             });
@@ -196,6 +201,13 @@ class DialSimulator extends LitElement {
                 });
             });
             this.updateMessages();
+        });
+
+        document.addEventListener("message:reschedule", (e) => {
+            console.log(e.detail);
+            this.api.get(`reschedule/${e.detail.id}/${e.detail.newTime}/${e.detail.newTheta}`).then(response => {
+                this.updateView();
+            });
         });
     }
 

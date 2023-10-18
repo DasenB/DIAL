@@ -1,4 +1,4 @@
-import {css, html, LitElement} from '../libraries/lit-core.js';
+import {css, html, LitElement, nothing} from '../libraries/lit-core.js';
 // import {Sortable} from "https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js";
 class DialDetailView extends LitElement {
 
@@ -19,7 +19,7 @@ class DialDetailView extends LitElement {
         editingEnabled: {
             state: true,
             type: Boolean
-        }
+        },
     };
 
     constructor() {
@@ -29,37 +29,20 @@ class DialDetailView extends LitElement {
         this.time = 0;
         this.theta = 0;
         this.editingEnabled = true;
-        // this.states = {};
     }
 
-    // firstUpdated() {
-    // }
 
-    willUpdate() {
-        // Remove old sortable-objects
-        this.sortables.forEach(sortable => {
-            sortable.destroy();
+    emitEvent(name, data) {
+        console.log(name);
+        const event = new CustomEvent(`detail-view:${name}`, {
+            detail: data,
+            bubbles: true,
+            composed: true,
+            cancelable: true,
         });
-        this.sortables = [];
-        // CAVE: Should fix the problem but highlights another deeper problem
-        // var futureMessages = this.renderRoot.querySelectorAll("dial-card-group .future-messages dial-message");
-        // futureMessages.forEach(msg => {
-        //    msg.remove();
-        // });
+        this.dispatchEvent(event);
     }
 
-    updated() {
-        // Create new sortable objects
-        var cardGroups = this.renderRoot.querySelectorAll("dial-card-group .future-messages");
-        cardGroups.forEach(cardGroup => {
-            var sortable = Sortable.create(cardGroup, {
-                ghostClass: 'ghost',
-                chosenClass: "chosen",
-                handle: ".handle",
-            });
-            this.sortables.push(sortable);
-        });
-    }
 
     setMessages(messages) {
         this.messages = messages;
@@ -128,10 +111,6 @@ class DialDetailView extends LitElement {
         background-color: var(--sl-color-sky-500);
       }
       
-      .ghost {
-        opacity: 0;
-      }
-      
       dial-card-group dial-message, dial-card-group dial-state {
         border: solid 4px transparent;
         display: inline-block;
@@ -180,6 +159,7 @@ class DialDetailView extends LitElement {
                             sourceAddress="${msg.source}"
                             targetAddress="${msg.target}"
                             theta="${msg.arrival_theta}"
+                            time="${msg.arrival_time}"
                             creationTime="${msg.creation_time + "/" + msg.creation_theta}"
                             ?received=${wasReceived}
                             ?disableEditing=${!this.editingEnabled || processedByBackend}

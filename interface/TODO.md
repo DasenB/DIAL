@@ -1,5 +1,6 @@
 # Simulator
 - [x] Skip lost messages
+- [ ] Fix bug where rescheduling is impossible before the first step was executed. 
 
 # General
 - [x] Warning if no connection to backend can be made
@@ -13,17 +14,18 @@
   - [ ] Messages that are being received at the same time but with a different theta should also be highlighted in a nice but different way
 - [ ] Messages that have already been received should not be shown. But messages with the same theta that will be received later should be shown
 - [x] Failed Messages are not being displayed after 50% of their way
-- [ ] Paint Node-color based on selection in menu
-- [ ] Self messages do not stay still but complete one circle around the border of its node
-- [ ] Visually distinguish between unidirectional and bidirectional links
+- [x] Paint Node-color based on selection in menu
+- [x] Self messages do not stay still but complete one circle around the border of its node
+- [x] Visually distinguish between unidirectional and bidirectional links
 
 # Detail View
 - [x] Messages are updated by the simulation
 - [x] Lost messages are clearly marked
 - [x] Messages should not be shown before the time they are created
-- [ ] Messages should be shown from the moment on they are created
+- [x] Messages should be shown from the moment on they are created
 - [ ] Messages that are highlighted in the graph view should also be highlighted in the detail view
-- [ ] Fix bug when reordered messages are duplicated as time progresses
+- [x] Fix bug when reordered messages are duplicated as time progresses
+- [ ] Give Feedback when rescheduling failed because the desired time/theta is invalid.
 
 # Menu
 - [x] Toggle Play/Pause Icon on Button

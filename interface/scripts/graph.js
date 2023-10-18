@@ -254,7 +254,6 @@ class DialGraph extends LitElement {
         const rotated_radius_vec = radius_vec.clone().rotateBy(progress_angle);
         const position = path_center.clone().add(rotated_radius_vec);
         return position;
-        return this.getMessageCirclePositionOnLine(message, progress);
     }
 
     getMessageCirclePositionOnLine(message, progress) {

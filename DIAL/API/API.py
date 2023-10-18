@@ -173,11 +173,17 @@ class API:
         time: int = None
         theta: int = None
         try:
-            time = int(time_str)
+            if time_str == "_":
+                time = int(original_time)
+            else:
+                time = int(time_str)
         except ValueError:
             return self.response(status=300, response="Failed to parse time")
         try:
-            theta = int(theta_str)
+            if theta_str == "_":
+                theta = int(original_theta)
+            else:
+                theta = int(theta_str)
         except ValueError:
             return self.response(status=300, response="Failed to parse theta")
         # Only messages that have not been received can be changed
