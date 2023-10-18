@@ -185,6 +185,72 @@ class DialGraph extends LitElement {
       }
     `;
 
+    getIntersectionLineEllipse(line_start, line_end, ellipse) {
+        // line.start must be inside the ellipse and line.end must be outside
+        // Cave: This check has been tested completely.
+        if(line_start.x === line_end.x && line_start.y === line_end.y) {
+            return undefined;
+        }
+        if(line_start.x < ellipse.left || line_start.x > ellipse.right) {
+            return undefined;
+        }
+        if(line_start.y < ellipse.top || line_start.y > ellipse.bottom) {
+            return undefined;
+        }
+        if( line_end.x >= ellipse.left && line_end.x <= ellipse.right &&
+            line_end.y >= ellipse.bottom && line_end.y <= ellipse.top) {
+            return undefined;
+        }
+        let vec_line = line_end.clone().subtract(line_start);
+        let angle = vec_line.horizontalAngle();
+        let a = (ellipse.right - ellipse.left)/2;
+        let b = (ellipse.bottom - ellipse.top)/2;
+        let insideRoot =
+            (a*a)*Math.pow(Math.sin(angle),2)+
+            (b*b)*Math.pow(Math.cos(angle),2);
+        let r = (a * b) / Math.sqrt(insideRoot);
+        let scaled_line = vec_line.normalize().multiplyScalar(r);
+        let intersection = line_start.clone().add(scaled_line);
+        return intersection;
+    }
+
+    getEdge(message) {
+        const center_start = new Victor.fromObject(this.network.getPosition(message.source));
+        const center_end = new Victor.fromObject(this.network.getPosition(message.target));
+        const source_ellipse = this.network.getBoundingBox(message.source);
+        const target_ellipse = this.network.getBoundingBox(message.target);
+        let start_pos = this.getIntersectionLineEllipse(center_start, center_end, source_ellipse);
+        if(start_pos === undefined) {
+            start_pos = center_start;
+        }
+        let end_pos = this.getIntersectionLineEllipse(center_end, center_start, target_ellipse);
+        if(end_pos === undefined) {
+            end_pos = center_end;
+        }
+        return {
+            start: start_pos,
+            end: end_pos
+        }
+    }
+
+    getMessageCirclePositionOnCircle(message, progress) {
+        return this.getMessageCirclePositionOnLine(message, progress);
+    }
+
+    getMessageCirclePositionOnLine(message, progress) {
+        const edge = this.getEdge(message);
+        // this.getEdge(message);
+        const pos_start = new Victor.fromObject(edge.start);
+        const pos_end = new Victor.fromObject(edge.end);
+        const vec_edge = pos_end.clone().subtract(pos_start);
+        if (message.isLost) {
+            progress *= 0.5;
+        }
+        const vec_progress = vec_edge.clone().multiplyScalar(progress);
+        let position = pos_start.clone().add(vec_progress);
+        return position;
+    }
+
     getMessageCircle(message) {
         if (message.emitTime >= this.time) {
             return undefined;
@@ -192,17 +258,14 @@ class DialGraph extends LitElement {
         if ((message.receiveTime < this.time)) {
             return undefined;
         }
-        // TODO: If Message is selected also draw it the moment it is being received
+
         const progress = (this.time - message.emitTime) / (message.receiveTime - message.emitTime);
-        const pos_start = new Victor.fromObject(this.network.getPosition(message.source));
-        const pos_end = new Victor.fromObject(this.network.getPosition(message.target));
-        const vec_edge = pos_end.clone().subtract(pos_start);
-        let   positional_progress = progress;
-        if (message.isLost) {
-            positional_progress *= 0.5;
+        let position;
+        if(message.isSelfMessage) {
+            position = this.getMessageCirclePositionOnCircle(message, progress);
+        } else {
+            position = this.getMessageCirclePositionOnLine(message, progress);
         }
-        const vec_progress = vec_edge.clone().multiplyScalar(positional_progress);
-        const position = pos_start.clone().add(vec_progress);
 
         let radius = this.config.messageSize;
         if (progress < 0.1) {
