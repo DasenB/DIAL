@@ -69,6 +69,14 @@ class DialMessage extends LitElement {
         this.emitEvent("edit", this.messageId);
     }
 
+    highlightMessage() {
+        this.emitEvent("highlight", this.messageId);
+    }
+
+    deleteMessage() {
+        this.emitEvent("delete", this.messageId);
+    }
+
 
     static styles = css`
       :host {
@@ -151,7 +159,7 @@ class DialMessage extends LitElement {
 
         let cardButtons = html`
             <sl-tooltip placement="bottom" content="Highlight Message">
-                <sl-icon-button ?disabled=${this.received} name="binoculars" label="Highlight"></sl-icon-button>
+                <sl-icon-button ?disabled=${this.received} name="binoculars" label="Highlight" @click="${this.highlightMessage}"></sl-icon-button>
             </sl-tooltip>
             <sl-tooltip placement="bottom" content="Change Δ">
                 ${ !this.received ? html`<slot></slot>` : nothing}
@@ -164,7 +172,7 @@ class DialMessage extends LitElement {
                 <sl-icon-button ?disabled=${this.received || this.disableEditing} name="pencil" @click="${this.editMessage}" label="Edit"></sl-icon-button>
             </sl-tooltip>
             <sl-tooltip placement="bottom" content="Delete Message">
-                <sl-icon-button ?disabled=${this.received || this.disableEditing} name="trash3" label="Delete"></sl-icon-button>
+                <sl-icon-button ?disabled=${this.received || this.disableEditing} name="trash3" label="Delete" @click="${this.deleteMessage}"></sl-icon-button>
             </sl-tooltip>
         `;
 

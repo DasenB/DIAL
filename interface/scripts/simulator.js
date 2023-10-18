@@ -188,6 +188,15 @@ class DialSimulator extends LitElement {
                 this.$editor.setDocument("message/" + e.detail, response)
             });
         });
+
+        document.addEventListener("message:highlight", (e) => {
+            Object.keys(this.messages).forEach(t => {
+                this.messages[t].forEach(msg => {
+                    msg.selected = msg.id === e.detail;
+                });
+            });
+            this.updateMessages();
+        });
     }
 
     stop() {
