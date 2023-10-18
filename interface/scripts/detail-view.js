@@ -69,15 +69,17 @@ class DialDetailView extends LitElement {
         this.editingEnabled = bool;
     }
 
-    setProgress(time, theta) {
-        this.time = Math.floor(time);
-        if((time % 1) !== 0) {
-            theta = Infinity;
+    setProgress(frontendTime, frontendTheta, backendTime, backendTheta) {
+        if((frontendTime % 1) !== 0) {
+            frontendTheta = Infinity;
         }
-        if(theta === undefined) {
-            theta = 0;
+        if(frontendTheta === undefined) {
+            frontendTheta = 0;
         }
-        this.theta = theta;
+        this.time = Math.floor(frontendTime);
+        this.theta = frontendTheta;
+        this.backendTime = backendTime;
+        this.backendTheta = backendTheta;
     }
 
 
@@ -152,13 +154,24 @@ class DialDetailView extends LitElement {
 
         sortedTimeKeys.forEach(time => {
             let pastMessages = [];
+            let currentMessages = [];
             let futureMessages = [];
             this.messages[time].forEach(msg => {
-                let wasCreated = msg.creation_time <= this.time || (msg.creation_time === this.time && msg.creation_theta <= this.theta);
-                if (!wasCreated) {
+                let wasCreated =
+                    (msg.creation_time <= this.time)
+                    ||
+                    (msg.creation_time === this.time && msg.creation_theta <= this.theta);
+                if (!wasCreated && msg.parent !== 'None') {
                     return;
                 }
-                let wasReceived = msg.arrival_time < this.time || (msg.arrival_time === this.time && msg.arrival_theta <= this.theta);
+                let wasReceived =
+                    (msg.arrival_time < this.time)
+                    ||
+                    (msg.arrival_time === this.time && msg.arrival_theta <= this.theta);
+                let processedByBackend =
+                    (msg.arrival_time < this.backendTime)
+                    ||
+                    (msg.arrival_time === this.backendTime && msg.arrival_theta <= this.backendTheta);
                 let messageView = html`
                     <dial-message 
                             messageId="${msg.id}"
@@ -169,24 +182,30 @@ class DialDetailView extends LitElement {
                             theta="${msg.arrival_theta}"
                             creationTime="${msg.creation_time + "/" + msg.creation_theta}"
                             ?received=${wasReceived}
-                            ?disableEditing=${!this.editingEnabled}
+                            ?disableEditing=${!this.editingEnabled || processedByBackend}
+                            ?isLost=${msg.is_lost === "True"}
                     ><div class="handle"></div></dial-message>
                 `;
-                console.log(this.editingEnabled);
+
                 if (wasReceived) {
                     pastMessages.push(messageView);
+                } else if (processedByBackend) {
+                    currentMessages.push(messageView);
                 } else {
                     futureMessages.push(messageView);
                 }
             });
 
-            if(pastMessages.length + futureMessages.length === 0) {
+            if(pastMessages.length + futureMessages.length + currentMessages.length === 0) {
                 return;
             }
             let cardGroup = html`
             <dial-card-group headline="t = ${time}">
                 <div class="past-messages">
                     ${pastMessages}
+                </div>
+                <div class="current-messages">
+                    ${currentMessages}
                 </div>
                 <div class="future-messages">
                     ${futureMessages}

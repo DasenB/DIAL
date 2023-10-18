@@ -161,6 +161,12 @@ class DialSimulator extends LitElement {
                 this.$dialog.showDialog();
                 return;
             }
+            if(this.time.frontendTime.theta === undefined ) {
+                this.time.frontendTime.time = this.time.backendTime.time;
+                this.time.frontendTime.theta = this.time.backendTime.theta;
+                this.updateView();
+                return;
+            }
             this.api.get(`step-forward/1`).then(response => {
                 this.updateView();
             });
@@ -364,7 +370,12 @@ class DialSimulator extends LitElement {
         this.time.frontendTime.time = Number(this.time.frontendTime.time); // TODO After fixing the problem at its root
         this.$graph.setTime(this.time.frontendTime.time);
         this.$menu.setTimeIndicator(this.time.frontendTime.time, this.time.frontendTime.theta);
-        this.$detailView.setProgress(this.time.frontendTime.time, this.time.frontendTime.theta);
+        this.$detailView.setProgress(
+            this.time.frontendTime.time,
+            this.time.frontendTime.theta,
+            this.time.backendTime.time,
+            this.time.backendTime.theta
+        );
     }
 
     timeForward(time) {

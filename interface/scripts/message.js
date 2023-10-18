@@ -29,6 +29,9 @@ class DialMessage extends LitElement {
         },
         disableEditing: {
             type: Boolean
+        },
+        isLost: {
+            type: Boolean
         }
     };
 
@@ -36,6 +39,7 @@ class DialMessage extends LitElement {
         super();
         this.received = false;
         this.disableEditing = false;
+        this.isLost = false;
         this.title = "Example Title";
         this.sourceAddress = "SomeNode/Algorithm/Instance";
         this.targetAddress = "OtherNode/Algorithm/Instance";
@@ -94,6 +98,10 @@ class DialMessage extends LitElement {
         border-style: solid;
         border-radius: 15px;
         box-sizing: border-box;
+      }
+      
+      .color-circle > * {
+        display: none;
       }
       
       table {
@@ -160,9 +168,19 @@ class DialMessage extends LitElement {
             </sl-tooltip>
         `;
 
+        let isLostStyle = css`
+          .color-circle > * {
+            height: 100%;
+            width: 100%;
+            display: inline-block !important;
+            color: var(--sl-color-neutral-300);
+          }
+        `;
+
         return html`
             <style>
                 ${this.received ? receivedStyle : nothing}
+                ${this.isLost ? isLostStyle : nothing}
                 
                 .color-circle {
                     background-color: ${this.color};
@@ -175,7 +193,9 @@ class DialMessage extends LitElement {
             
             <sl-card id="message-card">
                 <div slot="header">
-                    <div class="color-circle"></div>
+                    <div class="color-circle">
+                        <sl-icon name="x-lg" class="is-los-cross"></sl-icon>
+                    </div>
                     <sl-tag variant="primary">Δ = ${this.theta}</sl-tag>
                     <div>
                         ${! this.received ? cardButtons : cardButtons }

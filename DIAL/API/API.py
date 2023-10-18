@@ -6,6 +6,7 @@ from typing import Tuple
 import networkx as nx
 from flask import Flask, request
 from ipaddr import IPAddress
+import logging
 
 from DIAL.Address import Address
 from DIAL.Color import Color, Colors
@@ -28,6 +29,8 @@ class API:
         self.host = host
         self.port = port
         self.api = Flask(__name__, static_url_path='/', static_folder='../../interface3')
+        # logging.getLogger("werkzeug").disabled = True  # disable logging of every flask http-request
+
 
         self.api.route('/topology', methods=['GET'])(self.get_topology)
 
@@ -61,6 +64,7 @@ class API:
 
     def run(self):
         self.api.run(host=self.host, port=self.port, ssl_context=('../certs/cert.pem', '../certs/key.pem'))
+
 
     def get_topology(self):
         topology: dict[str, any] = {

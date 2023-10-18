@@ -19,7 +19,7 @@
 
 # Detail View
 - [x] Messages are updated by the simulation
-- [ ] Lost messages are clearly marked
+- [x] Lost messages are clearly marked
 - [x] Messages should not be shown before the time they are created
 - [ ] Messages should be shown from the moment on they are created
 - [ ] Messages that are highlighted in the graph view should also be highlighted in the detail view
@@ -30,8 +30,8 @@
 - [ ] Disable Backwards/Forwards Buttons at Start/End
 
 # Editor
-- [ ] Warn before dismissing unsaved changes
-- [ ] Disable changes while the animation is running
+- [x] Warn before dismissing unsaved changes
+- [x] Disable changes while the animation is running
 
 # Error
 - [x] Backend TypeError: Object of type int64 is not JSON serializable

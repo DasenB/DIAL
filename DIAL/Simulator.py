@@ -1,4 +1,5 @@
 import random
+import textwrap
 import types
 from copy import deepcopy
 from typing import Callable, Tuple
@@ -144,6 +145,17 @@ class Simulator:
         self.theta = new_position[1]
         # Find inputs for the next processing step
         current_message = self.messages[self.time][self.theta]
+        edge_is_in_topology = self.topology.has_edge(current_message.source_address.node_name, current_message.target_address.node_name)
+        is_manual_message = current_message._parent_message == None
+        if not edge_is_in_topology and not is_manual_message and not current_message._is_self_message:
+            warning_message = f'''
+            > WARNING: Message {str(current_message._id)} violates topology!
+            > 
+            > Edge {current_message.source_address.node_name} -> {current_message.target_address.node_name} is not in topology.
+            '''
+            warning_message = textwrap.dedent(warning_message)
+            print('\033[96m' + warning_message + '\033[0m')
+
         target_address = current_message.target_address
         if target_address not in self.states.keys():
             neighbors = self.topology.get_neighbors(target_address.node_name)

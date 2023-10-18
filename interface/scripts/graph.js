@@ -105,7 +105,7 @@ class DialGraph extends LitElement {
         };
 
         this.config.visjsOptions = {
-            "nodes": {
+            nodes: {
                 color: {
                     border: this.config.messageBorderColor,
                     highlight: {
@@ -122,20 +122,26 @@ class DialGraph extends LitElement {
                     minimum: 20,
                 },
             },
-            "edges": {
-                "smooth": false,
-                "selectionWidth": 0,
-                "width": 1.4
+            edges: {
+                smooth: false,
+                selectionWidth: 0,
+                width: 1.4,
+                arrows: {
+                    to: {
+                        enabled: true,
+                        scaleFactor: 0.5,
+                    },
+                },
             },
-            "physics": {
-                "barnesHut": {
-                    "springLength": 105,
-                    "springConstant": 0.025,
-                    "gravitationalConstant": -5000
+            physics: {
+                barnesHut: {
+                    springLength: 105,
+                    springConstant: 0.025,
+                    gravitationalConstant: -5000
                 }
             },
-            "layout": {
-                "randomSeed": 0
+            layout: {
+                randomSeed: 0
             }
         };
     }

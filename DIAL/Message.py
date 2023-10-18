@@ -98,7 +98,7 @@ class Message:
             warning_message = f"""
             > Warning: '{error}'
             >
-            > The JSON format of the message with ID='{self._id}' might not look as expected.
+            > The data attribute of the message with ID='{self._id}' might not look as expected.
             > If you want to send messages containing data formats that are not serializable to
             > JSON you must encode and decode it to some JSON serializable datatype yourself.
             > https://stackoverflow.com/questions/3768895/how-to-make-a-class-json-serializable
@@ -109,6 +109,6 @@ class Message:
             #                                .replace("\n>", "")
             #                                .replace("\n", "")
             #                                .replace("\"", "'"))[1:]
-            print('\033[93m' + warning_message + '\033[0m')
+            print('\033[96m' + warning_message + '\033[0m')
         return json_representation
 

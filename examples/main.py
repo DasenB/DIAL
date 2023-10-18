@@ -34,7 +34,7 @@ def example_hook(node: State, messages: list[Message], time: int):
     if len(messages) > 0:
         self_message = Message(source_address=node.address.copy(),
                                target_address=node.address.copy(algorithm="print_after_delay"))
-        self_message.data["t"] = time
+        self_message.data["t"] = int(time)
         self_message.color = Colors.BLUE.value
         send_to_self(self_message, 5)
 
@@ -54,6 +54,8 @@ t.add_node("E")
 t.add_node("F")
 
 t.add_edge("A", "E", reliable_local_fifo)
+t.add_edge("E", "A", reliable_local_fifo)
+t.add_edge("E", "E", reliable_local_fifo)
 t.add_edge("C", "E", reliable_local_fifo)
 t.add_edge("D", "F", reliable_local_fifo)
 t.add_edge("B", "D", reliable_local_fifo)
