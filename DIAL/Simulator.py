@@ -146,8 +146,7 @@ class Simulator:
         # Find inputs for the next processing step
         current_message = self.messages[self.time][self.theta]
         edge_is_in_topology = self.topology.has_edge(current_message.source_address.node_name, current_message.target_address.node_name)
-        is_manual_message = current_message._parent_message == None
-        if not edge_is_in_topology and not is_manual_message and not current_message._is_self_message:
+        if not edge_is_in_topology:
             warning_message = f'''
             > WARNING: Message {str(current_message._id)} violates topology!
             > 

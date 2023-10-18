@@ -101,7 +101,9 @@ class DialGraph extends LitElement {
         this.config = {
             messageSize: 8,
             messageBorderColor: window.getComputedStyle(this.$graphContainer).getPropertyValue('--sl-color-neutral-400'),
-            messageBorderSelectedColor: window.getComputedStyle(this.$graphContainer).getPropertyValue('--sl-color-sky-500')
+            messageBorderSelectedColor: window.getComputedStyle(this.$graphContainer).getPropertyValue('--sl-color-sky-500'),
+            selfMessageStartAngle: Math.PI/4,
+            selfMessageEndAngle: Math.PI/4,
         };
 
         this.config.visjsOptions = {
@@ -132,6 +134,10 @@ class DialGraph extends LitElement {
                         scaleFactor: 0.5,
                     },
                 },
+                selfReference: {
+                    size: 20,
+                    angle: Math.PI/4,
+                }
             },
             physics: {
                 barnesHut: {
@@ -234,6 +240,17 @@ class DialGraph extends LitElement {
     }
 
     getMessageCirclePositionOnCircle(message, progress) {
+        const node_center = new Victor.fromObject(this.network.getPosition(message.source));
+        const node_ellipse = this.network.getBoundingBox(message.source);
+        const line_start = node_center;
+        const line_end = node_center.clone().add(new Victor(1000, -1000));
+        const path_center = this.getIntersectionLineEllipse(line_start, line_end, node_ellipse);
+        const progress_angle = Math.PI * 2 * progress * 0.75;
+        const path_radius = this.config.visjsOptions.edges.selfReference.size;
+        const radius_vec = new Victor.fromArray([0, path_radius]);
+        const rotated_radius_vec = radius_vec.clone().rotateBy(progress_angle);
+        const position = path_center.clone().add(rotated_radius_vec);
+        return position;
         return this.getMessageCirclePositionOnLine(message, progress);
     }
 
@@ -261,7 +278,7 @@ class DialGraph extends LitElement {
 
         const progress = (this.time - message.emitTime) / (message.receiveTime - message.emitTime);
         let position;
-        if(message.isSelfMessage) {
+        if(message.isSelfMessage || message.source === message.target) {
             position = this.getMessageCirclePositionOnCircle(message, progress);
         } else {
             position = this.getMessageCirclePositionOnLine(message, progress);

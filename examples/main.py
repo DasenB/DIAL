@@ -45,7 +45,7 @@ reliable_local_fifo = EdgeConfig(
     scheduler=DefaultScheduler.LOCAL_FIFO
 )
 
-t = Topology()
+t = Topology(all_nodes_have_loops=True)
 t.add_node("A")
 t.add_node("B")
 t.add_node("CCC")

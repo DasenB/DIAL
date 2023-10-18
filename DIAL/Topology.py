@@ -28,10 +28,12 @@ class EdgeConfig:
 class Topology:
     nodes: list[str]
     edges: dict[Tuple[str, str], EdgeConfig]
+    all_nodes_have_loops: bool
 
-    def __init__(self):
+    def __init__(self, all_nodes_have_loops: bool = True):
         self.nodes = []
         self.edges = {}
+        self.all_nodes_have_loops = all_nodes_have_loops
 
     def has_node(self, node: str) -> bool:
         return node in self.nodes
@@ -44,13 +46,22 @@ class Topology:
         for other in self.nodes:
             if self.has_edge(source=node, target=other):
                 neighbors.append(other)
+        if node in neighbors:
+            neighbors.remove(node)
         return neighbors
 
     def add_node(self, node: str) -> bool:
-        if node not in self.nodes:
-            self.nodes.append(node)
-            return True
-        return False
+        if node in self.nodes:
+            return False
+        self.nodes.append(node)
+        if self.all_nodes_have_loops:
+            self_edge_config = EdgeConfig(
+                reliability=1.0,
+                direction=EdgeDirection.UNIDIRECTIONAL,
+                scheduler=DefaultScheduler.LOCAL_FIFO
+            )
+            self.add_edge(node, node, self_edge_config)
+        return True
 
     def get_edge_config(self, source: str, target: str) -> EdgeConfig | None:
         if not self.has_edge(source, target):
