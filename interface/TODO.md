@@ -17,6 +17,7 @@
 - [x] Paint Node-color based on selection in menu
 - [x] Self messages do not stay still but complete one circle around the border of its node
 - [x] Visually distinguish between unidirectional and bidirectional links
+- [ ] Add optional statistics overlay (active messages, total messages; active_messages-selected-algo, total messages-selected-algo)
 
 # Detail View
 - [x] Messages are updated by the simulation
