@@ -206,7 +206,15 @@ class DialSimulator extends LitElement {
         document.addEventListener("message:reschedule", (e) => {
             console.log(e.detail);
             this.api.get(`reschedule/${e.detail.id}/${e.detail.newTime}/${e.detail.newTheta}`).then(response => {
-                this.updateView();
+                this.loadMessages();
+            }).catch(err => {
+                let errorDialog = {
+                    title: "Can not reschedule message.",
+                    text: err,
+                    actions: [this.$dialog.defaultActions.ok]
+                };
+                this.$dialog.pushDialogToQueue(errorDialog);
+                this.$dialog.showDialog();
             });
         });
     }

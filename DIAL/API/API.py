@@ -1,5 +1,8 @@
 import copy
 import json
+import sys
+
+import math
 from enum import Enum
 from typing import Tuple
 
@@ -186,16 +189,20 @@ class API:
                 theta = int(theta_str)
         except ValueError:
             return self.response(status=300, response="Failed to parse theta")
-        # Only messages that have not been received can be changed
-        if original_time < self.simulator.time or (original_time == self.simulator.time and original_theta < self.simulator.theta):
-            return self.response(status=300, response="Can not reschedule messages that already have been received.")
-        # Can not move a message into the past
-        if time < self.simulator.time or (time == self.simulator.time and theta < self.simulator.theta):
-            print(f'time={time}/{theta}')
-            return self.response(status=300, response="Can not reschedule a message into the past")
+
+        if self.simulator.time is not None or self.simulator.theta is not None:
+            # Only messages that have not been received can be changed
+            if original_time < self.simulator.time or (original_time == self.simulator.time and original_theta < self.simulator.theta):
+                return self.response(status=300, response="Can not reschedule messages that already have been received.")
+            # Can not move a message into the past
+            if time < self.simulator.time or (time == self.simulator.time and theta <= self.simulator.theta):
+                return self.response(status=300, response="Can not reschedule a message into the past")
+        # Cannot move a message to a time before it was created
+        if time < message._creation_time or (time == message._creation_time and theta <= message._creation_theta):
+            return self.response(status=300, response="Can not reschedule a message to a time before it was created.")
         # A message can not be rescheduled to a time before it was created
-        parent_arrival_time: int = 0
-        parent_arrival_theta: int = 0
+        parent_arrival_time: int = -sys.maxsize
+        parent_arrival_theta: int = -sys.maxsize
         if message._parent_message is not None:
             parent = self.simulator.get_message(message._parent_message)
             if parent is not None:
@@ -206,9 +213,9 @@ class API:
                                  response="Can not reschedule messages to a time before its parent message has been received.")
         # A message can not be inserted with a theta greater than the length of the list at the given time
         if time not in self.simulator.messages.keys() and theta != 0:
-            return self.response(status=300, response=f'Theta is ot of range for time={time}')
+            return self.response(status=300, response=f'Theta is out of range for time={time}')
         if time in self.simulator.messages.keys() and theta > len(self.simulator.messages[time]):
-            return self.response(status=300, response=f'Theta is ot of range for time={time}')
+            return self.response(status=300, response=f'Theta is out of range for time={time}')
         # Remove the message from its old place
         for index in range(original_theta + 1, len(self.simulator.messages[original_time])):
             self.simulator.messages[original_time][index]._arrival_theta -= 1

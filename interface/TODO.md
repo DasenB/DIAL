@@ -25,7 +25,10 @@
 - [x] Messages should be shown from the moment on they are created
 - [ ] Messages that are highlighted in the graph view should also be highlighted in the detail view
 - [x] Fix bug when reordered messages are duplicated as time progresses
-- [ ] Give Feedback when rescheduling failed because the desired time/theta is invalid.
+- [x] Give Feedback when rescheduling failed because the desired time/theta is invalid.
+- [ ] Use Number-Picker for Theta Value and restrict to valid numbers
+- [x] Once the first simulation step has been made the first message can not be changed anymore
+- [x] Rescheduling a message does not (always) update the graph view
 
 # Menu
 - [x] Toggle Play/Pause Icon on Button
@@ -34,6 +37,7 @@
 # Editor
 - [x] Warn before dismissing unsaved changes
 - [x] Disable changes while the animation is running
+- [ ] Save changes
 
 # Error
 - [x] Backend TypeError: Object of type int64 is not JSON serializable

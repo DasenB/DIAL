@@ -28,6 +28,12 @@ class DialDialog extends LitElement {
                     this.closeDialog();
                 }
             },
+            ok: {
+                title: "OK",
+                handler: () => {
+                    this.closeDialog();
+                }
+            },
             reload: {
                 title: "Reload Page",
                 handler: () => {

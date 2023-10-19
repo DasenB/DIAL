@@ -130,7 +130,7 @@ class DialDetailView extends LitElement {
             (a, b) => {
                 return  Number(a) - Number(b);
             });
-
+        let isFirstMessage = true;
         sortedTimeKeys.forEach(time => {
             let pastMessages = [];
             let currentMessages = [];
@@ -150,7 +150,11 @@ class DialDetailView extends LitElement {
                 let processedByBackend =
                     (msg.arrival_time < this.backendTime)
                     ||
-                    (msg.arrival_time === this.backendTime && msg.arrival_theta <= this.backendTheta);
+                    (msg.arrival_time === this.backendTime && msg.arrival_theta <= this.backendTheta)
+                    ||
+                    (isFirstMessage && this.backendTime !== null);
+                isFirstMessage = false;
+
                 let messageView = html`
                     <dial-message 
                             messageId="${msg.id}"
