@@ -1,6 +1,8 @@
 # Simulator
 - [x] Skip lost messages
 - [ ] Fix bug where rescheduling is impossible before the first step was executed. 
+- [ ] good way to distribute package
+- [ ] generate certs if they do not exist
 
 # General
 - [x] Warning if no connection to backend can be made

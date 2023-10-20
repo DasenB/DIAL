@@ -1,5 +1,6 @@
 import copy
 import json
+import os
 import sys
 
 import math
@@ -25,14 +26,16 @@ class API:
     api: Flask
     initial_simulator: Simulator
 
-    def __init__(self, simulator: Simulator, host: IPAddress = "127.0.0.1", port: int = 10101):
+    def __init__(self, simulator: Simulator, host: IPAddress = "127.0.0.1", port: int = 10101, verbose: bool = False):
         self.initial_simulator = copy.deepcopy(simulator)
 
         self.simulator = simulator
         self.host = host
         self.port = port
-        self.api = Flask(__name__, static_url_path='/', static_folder='../../interface3')
-        # logging.getLogger("werkzeug").disabled = True  # disable logging of every flask http-request
+        self.api = Flask(__name__, static_folder="../../interface/", static_url_path="/")
+        if not verbose:
+            # Do not print every HTTP-request
+            logging.getLogger("werkzeug").disabled = True
 
 
         self.api.route('/topology', methods=['GET'])(self.get_topology)
@@ -66,7 +69,10 @@ class API:
         return response
 
     def run(self):
-        self.api.run(host=self.host, port=self.port, ssl_context=('../certs/cert.pem', '../certs/key.pem'))
+        cert_path_prefix = ""
+        if os.getcwd().endswith("/DIAL/DIAL"):
+            cert_path_prefix = "../"
+        self.api.run(host=self.host, port=self.port, ssl_context=(cert_path_prefix + 'certs/cert.pem', cert_path_prefix + 'certs/key.pem'))
 
 
     def get_topology(self):
