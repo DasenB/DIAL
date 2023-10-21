@@ -120,6 +120,10 @@ class DialMenu extends LitElement {
         });
     }
 
+    handleConfigChange() {
+        console.log("handleConfigChange");
+    }
+
     static styles = css`
       :host {
         box-sizing: border-box;
@@ -150,7 +154,7 @@ class DialMenu extends LitElement {
       }
       
       #instance-input {
-        width: calc(100% - 140px - 99px - 120px - 300px - 10px);
+        width: calc(100% - 140px - 99px - 120px - 300px - 10px - 200px);
         min-width: 150px;
         overflow: visible !important;
       }
@@ -201,6 +205,12 @@ class DialMenu extends LitElement {
         height: 30px;
         margin-top: 7px;
       }
+      
+      #config-input::part(panel) {
+        background-color: var(--sl-color-neutral-0);
+        padding-top: 5px;
+        padding-bottom: 5px;
+      }
     
     `;
 
@@ -245,11 +255,16 @@ class DialMenu extends LitElement {
                     <sl-icon name="speedometer" slot="prefix"></sl-icon>
                 </sl-input>
                 <sl-divider vertical></sl-divider>
-                <sl-select @sl-change=${this.handleInstanceChange} placement="top" id="instance-input" label="Node Color" id="color-input" placeholder="Select Instance" clearable>
+                <sl-select @sl-change=${this.handleInstanceChange} placement="top" id="instance-input" label="Node Color" placeholder="Select Instance" clearable>
                     <sl-icon name="paint-bucket" slot="prefix"></sl-icon>
                     ${instanceOptions}
                 </sl-select>
-                
+                <sl-divider vertical></sl-divider>
+                <sl-dropdown placement="top" id="config-input" hoist open>
+                    <sl-button slot="trigger" caret><sl-icon name="gear"></sl-icon> Config</sl-button>
+                    <sl-menu-item type="checkbox" checked>Show Statistics</sl-menu-item>
+                    <sl-menu-item>Dropdown Item 1</sl-menu-item>
+                </sl-dropdown>
         `;
     }
 }

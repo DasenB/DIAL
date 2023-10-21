@@ -1,13 +1,16 @@
 import {css, html, LitElement} from '../libraries/lit-core.js';
 
 export class DialGraphMessage {
-    constructor(messageId, source, target, emitTime, receiveTime, theta, color, isLost, isSelfMessage) {
+    constructor(messageId, source, target, emitTime, emitTheta, receiveTime, receiveTheta, color, isLost, isSelfMessage) {
         this.messageId = messageId;
-        this.source = source;
-        this.target = target;
+        this.source = source.split("/")[0];
+        this.target = target.split("/")[0];
+        this.sourceAlgorithm = source;
+        this.targetAlgorithm = target;
         this.emitTime = emitTime;
+        this.emitTheta = emitTheta;
         this.receiveTime = receiveTime;
-        this.theta = theta;
+        this.receiveTheta = receiveTheta;
         this.color = color;
         this.selected = false;
         this.isLost = isLost;
@@ -52,6 +55,9 @@ class DialGraph extends LitElement {
             }};
         this.topology.nodes.update(node);
     }
+    setSelectedAlgorithm(algorithm) {
+        this.selectedAlgorithm = algorithm;
+    }
 
 
     forceRender() {
@@ -68,7 +74,7 @@ class DialGraph extends LitElement {
         this.messages.sort(
             function(a, b) {
                 if (a.receiveTime === b.receiveTime) {
-                    return b.theta < a.theta ? 1 : -1;
+                    return b.receiveTheta < a.receiveTheta ? 1 : -1;
                 }
                 return a.receiveTime > b.receiveTime ? 1 : -1;
             });
@@ -303,6 +309,77 @@ class DialGraph extends LitElement {
         }
     }
 
+    drawStatistics(context) {
+        let statistics = {
+            total_received_messages: 0,
+            total_send_messages: 0,
+            total_pending_messages: 0,
+            selected_received_messages: 0,
+            selected_send_messages: 0,
+            selected_pending_messages: 0,
+        };
+
+        this.messages.forEach(msg => {
+            let wasSend = msg.emitTime < this.time || (msg.emitTime === this.time && msg.emitTheta < msg.theta);
+            let wasReceived = msg.receiveTime < this.time || (msg.receiveTime === this.time && msg.receiveTheta < msg.theta);
+            let isPending = wasSend && !wasReceived;
+            let sourceAlgorithmSelected = msg.sourceAlgorithm.endsWith("/" + this.selectedAlgorithm);
+            let targetAlgorithmSelected = msg.targetAlgorithm.endsWith("/" + this.selectedAlgorithm);
+
+            if(wasSend) {
+                statistics.total_send_messages += 1;
+            }
+            if(wasReceived) {
+                statistics.total_received_messages += 1;
+            }
+            if(isPending) {
+                statistics.total_pending_messages += 1;
+            }
+
+            if(wasSend && sourceAlgorithmSelected) {
+                statistics.selected_send_messages += 1;
+            }
+            if(wasReceived && targetAlgorithmSelected) {
+                statistics.selected_received_messages += 1;
+            }
+            if(isPending && targetAlgorithmSelected) {
+                statistics.selected_pending_messages += 1;
+            }
+        });
+
+        let fontSize = 22;
+        let lineHeight = fontSize + 10;
+        let pos = {
+            x: 20,
+            y: lineHeight,
+        };
+        let width = 480;
+        let numberOffset = 10;
+
+        context.setTransform();
+        context.fillStyle = "rgba(0, 0, 0, 0.8)";
+        context.fillRect(0, 0, width, 10 * lineHeight);
+        context.font = `${fontSize}px Courier New`;
+        context.fillStyle = "#f2f2f2";
+        context.fillText("All Algorithms:", pos.x, pos.y + lineHeight * 0);
+        context.fillText("  Send Messages:", pos.x, pos.y + lineHeight * 1);
+        context.fillText("  Received Messages:", pos.x, pos.y + lineHeight * 2);
+        context.fillText("  Pending Messages:", pos.x, pos.y + lineHeight * 3);
+        context.fillText("Selected Algorithm:", pos.x, pos.y + lineHeight * 5);
+        context.fillText("  Send Messages:", pos.x, pos.y + lineHeight * 6);
+        context.fillText("  Received Messages:", pos.x, pos.y + lineHeight * 7);
+        context.fillText("  Pending Messages:", pos.x, pos.y + lineHeight * 8);
+        // Which Algorithm is a message pending for with source:AlgoX, target:AlgoY??? (target??..!)
+
+        context.textAlign = "right";
+        context.fillText(statistics.total_send_messages, width - numberOffset, pos.y + lineHeight * 1);
+        context.fillText(statistics.total_received_messages, width - numberOffset, pos.y + lineHeight * 2);
+        context.fillText(statistics.total_pending_messages, width - numberOffset, pos.y + lineHeight * 3);
+        context.fillText(statistics.selected_send_messages, width - numberOffset, pos.y + lineHeight * 6);
+        context.fillText(statistics.selected_received_messages, width - numberOffset, pos.y + lineHeight * 7);
+        context.fillText(statistics.selected_pending_messages, width - numberOffset, pos.y + lineHeight * 8);
+    }
+
     draw(context) {
         this.messages.reverse();
         this.messages.forEach(msg => {
@@ -345,8 +422,6 @@ class DialGraph extends LitElement {
                 context.stroke();
             }
 
-
-
             context.strokeStyle = originalStrokeStyle;
             context.fillStyle = originalFillStyle;
             context.lineWidth = originalLineWidth;
@@ -354,6 +429,9 @@ class DialGraph extends LitElement {
 
         });
         this.messages.reverse();
+
+        this.drawStatistics(context);
+
     }
 
     render() {

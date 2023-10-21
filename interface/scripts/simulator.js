@@ -118,6 +118,7 @@ class DialSimulator extends LitElement {
 
         document.addEventListener("dial-menu:change-instance", (e) => {
             this.instanceUsedForStateColor = e.detail.instance;
+            this.$graph.setSelectedAlgorithm(this.instanceUsedForStateColor);
             this.updateStates();
         });
 
@@ -353,7 +354,8 @@ class DialSimulator extends LitElement {
             instances.add(instance);
             if(this.instanceUsedForStateColor === undefined) {
                 this.instanceUsedForStateColor = instance;
-                this.$menu.setInstanceAddresses(instance);
+                this.$graph.setSelectedAlgorithm(instance);
+                this.$menu.setInstanceAddresses([instance]);
             }
             if(CompareTime(this.time.frontendTime, time) >= 0 && this.instanceUsedForStateColor === instance) {
                 nodeColors[address.node] = color;
@@ -376,9 +378,10 @@ class DialSimulator extends LitElement {
             this.messages[t].forEach(msg => {
                 let graphMessage = new DialGraphMessage(
                     msg.id,
-                    msg.source.split("/")[0],
-                    msg.target.split("/")[0],
+                    msg.source,
+                    msg.target,
                     msg.creation_time,
+                    msg.creation_theta,
                     msg.arrival_time,
                     msg.arrival_theta,
                     msg.color,
