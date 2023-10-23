@@ -15,8 +15,62 @@ class DialMenu extends LitElement {
 
     constructor() {
         super();
+
+        let savedSpeed = Number(this.getCookie("dial-menu-speed"));
+        if (savedSpeed === undefined) {
+            savedSpeed = 1.0;
+            this.setCookie("dial-menu-speed", savedSpeed);
+        }
+
+        let savedStatisticsState = this.getCookie("dial-menu-statistics-state");
+        if (savedStatisticsState === undefined) {
+            savedStatisticsState = false;
+            this.setCookie("dial-menu-statistics-state", savedStatisticsState);
+        } else {
+            savedStatisticsState = savedStatisticsState === "true";
+        }
+
+        let savedMatchSource = this.getCookie("dial-menu-match-source");
+        if (savedMatchSource === undefined) {
+            savedMatchSource = false;
+            this.setCookie("dial-menu-match-source", savedMatchSource);
+        } else {
+            savedMatchSource = savedMatchSource === "true";
+        }
+
+        let savedMatchTarget = this.getCookie("dial-menu-match-target");
+        if (savedMatchTarget === undefined) {
+            savedMatchTarget = false;
+            this.setCookie("dial-menu-match-target", savedMatchTarget);
+        } else {
+            savedMatchTarget = savedMatchTarget === "true";
+        }
+
+        this.speed = savedSpeed;
+        this.statisticsState = savedStatisticsState;
+        this.matchSource = savedMatchSource;
+        this.matchTarget = savedMatchTarget;
         this.timeIndicator = undefined;
         this.instancesAddresses = [];
+    }
+
+    setCookie(name, value) {
+        let date = new Date();
+        date.setTime(date.getTime() + (14 * 24 * 60 * 60 * 1000));
+        const expires = "expires=" + date.toUTCString();
+        document.cookie = name + "=" + value + "; " + expires + "; path=/; SameSite=Strict";
+    }
+
+    getCookie(name) {
+        name = name + "=";
+        const cDecoded = decodeURIComponent(document.cookie); //to be careful
+        const cArr = cDecoded .split('; ');
+        let res;
+        cArr.forEach(val => {
+            if (val.indexOf(name) === 0) res = val.substring(name.length);
+        });
+        return res;
+
     }
 
     firstUpdated() {
@@ -30,9 +84,9 @@ class DialMenu extends LitElement {
         this.$stepForwardButton = this.renderRoot.querySelector("sl-tooltip[content='Step Forward'] sl-button");
         this.$fastForwardButton = this.renderRoot.querySelector("sl-tooltip[content='Fast Forward'] sl-button");
 
-        this.$statisticsToggle = this.renderRoot.querySelector("#statisticsToggle");
-        this.$messageFilterTargetToggle = this.renderRoot.querySelector("#messageFilterTargetToggle");
-        this.$messageFilterSourceToggle = this.renderRoot.querySelector("#messageFilterSourceToggle");
+        this.handleSpeedChange();
+        this.handleConfigToggleStatistic();
+        this.handleConfigToggleMessageFiltering();
     }
 
     setTimeIndicator(time, theta) {
@@ -106,6 +160,8 @@ class DialMenu extends LitElement {
     }
 
     handleSpeedChange() {
+        this.speed = this.$speedSelector.value;
+        this.setCookie("dial-menu-speed", this.speed);
         this.emitEvent("change-speed", {
             speed: this.$speedSelector.value
         });
@@ -124,28 +180,19 @@ class DialMenu extends LitElement {
         });
     }
 
-    setConfigToggleStatistic() {
-        let state = !this.$statisticsToggle.checked; // change happens after @click event handler
+    handleConfigToggleStatistic() {
+        this.setCookie("dial-menu-statistics-state", this.statisticsState);
         this.emitEvent("toggle-statistics", {
-            state: state
+            state: this.statisticsState
         });
     }
 
-    setConfigToggleSourceMessageFiltering() {
-        let sourceState = !this.$messageFilterSourceToggle.checked;
-        let targetState = this.$messageFilterTargetToggle.checked;
+    handleConfigToggleMessageFiltering() {
+        this.setCookie("dial-menu-match-source", this.matchSource);
+        this.setCookie("dial-menu-match-target", this.matchTarget);
         this.emitEvent("toggle-filter-messages", {
-            sourceFiltering: sourceState,
-            targetFiltering: targetState
-        });
-    }
-
-    setConfigToggleTargetMessageFiltering() {
-        let sourceState = this.$messageFilterSourceToggle.checked;
-        let targetState = !this.$messageFilterTargetToggle.checked;
-        this.emitEvent("toggle-filter-messages", {
-            sourceFiltering: sourceState,
-            targetFiltering: targetState
+            sourceFiltering: this.matchSource,
+            targetFiltering: this.matchTarget
         });
     }
 
@@ -280,7 +327,7 @@ class DialMenu extends LitElement {
                     <div id="time-indicator_value">${this.timeIndicator}</div>
                 </div>
                 <sl-divider vertical></sl-divider>
-                <sl-input @sl-change=${this.handleSpeedChange} label="Speed" id="speed-input" type="number" value="1" min="0.1" max="9.9" step="0.1">
+                <sl-input @sl-change=${this.handleSpeedChange} label="Speed" id="speed-input" type="number" value="${this.speed}" min="0.1" max="9.9" step="0.1">
                     <sl-icon name="speedometer" slot="prefix"></sl-icon>
                 </sl-input>
                 <sl-divider vertical></sl-divider>
@@ -297,11 +344,11 @@ class DialMenu extends LitElement {
                             <sl-menu-item>Network View</sl-menu-item>
                             <sl-menu-item>Timeline View</sl-menu-item>
                             <sl-divider></sl-divider>
-                            <sl-menu-item id="statisticsToggle" type="checkbox" @click=${this.setConfigToggleStatistic}>Show Statistics</sl-menu-item>
+                            <sl-menu-item type="checkbox" ?checked=${this.statisticsState} @click=${ () => {this.statisticsState = !this.statisticsState; this.handleConfigToggleStatistic();}}>Show Statistics</sl-menu-item>
                             <sl-divider></sl-divider>
                             <sl-menu-label>Filter Messages</sl-menu-label>
-                            <sl-menu-item id="messageFilterSourceToggle" type="checkbox" @click=${this.setConfigToggleSourceMessageFiltering}>Match Source Instance</sl-menu-item>
-                            <sl-menu-item id="messageFilterTargetToggle" type="checkbox" @click=${this.setConfigToggleTargetMessageFiltering}>Match Target Instance</sl-menu-item>
+                            <sl-menu-item type="checkbox" ?checked=${this.matchSource} @click=${() => {this.matchSource = !this.matchSource; this.handleConfigToggleMessageFiltering()}}>Match Source Instance</sl-menu-item>
+                            <sl-menu-item type="checkbox" ?checked=${this.matchTarget} @click=${() => {this.matchTarget = !this.matchTarget; this.handleConfigToggleMessageFiltering()}}>Match Target Instance</sl-menu-item>
                         </sl-menu>
                     </sl-dropdown> 
                 </div>

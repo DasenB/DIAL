@@ -76,7 +76,7 @@ class DialGraph extends LitElement {
         if (this.network !== undefined) {
             this.network.redraw();
         } else {
-            console.error("Can not force render graph: this.network === undefined");
+            console.warn("Can not force render graph: this.network === undefined");
         }
     }
 
