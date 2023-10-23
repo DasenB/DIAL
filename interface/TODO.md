@@ -1,6 +1,6 @@
 # Simulator
 - [x] Skip lost messages
-- [ ] Fix bug where rescheduling is impossible before the first step was executed. 
+- [x] Fix bug where rescheduling is impossible before the first step was executed. 
 - [ ] good way to distribute package
 - [ ] generate certs if they do not exist
 
@@ -19,14 +19,17 @@
 - [x] Paint Node-color based on selection in menu
 - [x] Self messages do not stay still but complete one circle around the border of its node
 - [x] Visually distinguish between unidirectional and bidirectional links
-- [ ] Add optional statistics overlay (active messages, total messages; active_messages-selected-algo, total messages-selected-algo)
+- [x] Add optional statistics overlay (active messages, total messages; active_messages-selected-algo, total messages-selected-algo)
+
+# Timeline View:
+- [ ] Implement
 
 # Detail View
 - [x] Messages are updated by the simulation
 - [x] Lost messages are clearly marked
 - [x] Messages should not be shown before the time they are created
 - [x] Messages should be shown from the moment on they are created
-- [ ] Messages that are highlighted in the graph view should also be highlighted in the detail view
+- [x] Messages that are highlighted in the graph view should also be highlighted in the detail view
 - [x] Fix bug when reordered messages are duplicated as time progresses
 - [x] Give Feedback when rescheduling failed because the desired time/theta is invalid.
 - [ ] Use Number-Picker for Theta Value and restrict to valid numbers
@@ -36,11 +39,11 @@
 # Menu
 - [x] Toggle Play/Pause Icon on Button
 - [ ] Disable Backwards/Forwards Buttons at Start/End
+- [ ] Make settings persistent over page loads (speed, settings, view selection)
 
 # Editor
 - [x] Warn before dismissing unsaved changes
 - [x] Disable changes while the animation is running
-- [ ] Make settings persistent over page loads (speed, settings)
 - [ ] Save changes
 
 # Error
