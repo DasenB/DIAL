@@ -29,6 +29,10 @@ class DialMenu extends LitElement {
         this.$playPauseButton = this.renderRoot.querySelector("sl-tooltip[content='Play/Pause'] sl-button");
         this.$stepForwardButton = this.renderRoot.querySelector("sl-tooltip[content='Step Forward'] sl-button");
         this.$fastForwardButton = this.renderRoot.querySelector("sl-tooltip[content='Fast Forward'] sl-button");
+
+        this.$statisticsToggle = this.renderRoot.querySelector("#statisticsToggle");
+        this.$messageFilterTargetToggle = this.renderRoot.querySelector("#messageFilterTargetToggle");
+        this.$messageFilterSourceToggle = this.renderRoot.querySelector("#messageFilterSourceToggle");
     }
 
     setTimeIndicator(time, theta) {
@@ -120,8 +124,29 @@ class DialMenu extends LitElement {
         });
     }
 
-    handleConfigChange() {
-        console.log("handleConfigChange");
+    setConfigToggleStatistic() {
+        let state = !this.$statisticsToggle.checked; // change happens after @click event handler
+        this.emitEvent("toggle-statistics", {
+            state: state
+        });
+    }
+
+    setConfigToggleSourceMessageFiltering() {
+        let sourceState = !this.$messageFilterSourceToggle.checked;
+        let targetState = this.$messageFilterTargetToggle.checked;
+        this.emitEvent("toggle-filter-messages", {
+            sourceFiltering: sourceState,
+            targetFiltering: targetState
+        });
+    }
+
+    setConfigToggleTargetMessageFiltering() {
+        let sourceState = this.$messageFilterSourceToggle.checked;
+        let targetState = !this.$messageFilterTargetToggle.checked;
+        this.emitEvent("toggle-filter-messages", {
+            sourceFiltering: sourceState,
+            targetFiltering: targetState
+        });
     }
 
     static styles = css`
@@ -154,7 +179,7 @@ class DialMenu extends LitElement {
       }
       
       #instance-input {
-        width: calc(100% - 140px - 99px - 120px - 300px - 10px - 200px);
+        width: calc(100% - 140px - 99px - 120px - 300px - 10px - 130px);
         min-width: 150px;
         overflow: visible !important;
       }
@@ -205,11 +230,15 @@ class DialMenu extends LitElement {
         height: 30px;
         margin-top: 7px;
       }
-      
-      #config-input::part(panel) {
-        background-color: var(--sl-color-neutral-0);
-        padding-top: 5px;
-        padding-bottom: 5px;
+
+      #config-button {
+        width: 90px;
+      }
+
+      #config-label {
+        position: relative;
+        margin-top: 0.5px !important;
+        padding-bottom: 1.5px;
       }
     
     `;
@@ -255,16 +284,29 @@ class DialMenu extends LitElement {
                     <sl-icon name="speedometer" slot="prefix"></sl-icon>
                 </sl-input>
                 <sl-divider vertical></sl-divider>
-                <sl-select @sl-change=${this.handleInstanceChange} placement="top" id="instance-input" label="Node Color" placeholder="Select Instance" clearable>
+                <sl-select @sl-change=${this.handleInstanceChange} placement="top" id="instance-input" label="Instance" placeholder="Select Instance" clearable>
                     <sl-icon name="paint-bucket" slot="prefix"></sl-icon>
                     ${instanceOptions}
                 </sl-select>
                 <sl-divider vertical></sl-divider>
-                <sl-dropdown placement="top" id="config-input" hoist open>
-                    <sl-button slot="trigger" caret><sl-icon name="gear"></sl-icon> Config</sl-button>
-                    <sl-menu-item type="checkbox" checked>Show Statistics</sl-menu-item>
-                    <sl-menu-item>Dropdown Item 1</sl-menu-item>
-                </sl-dropdown>
+                <div id="config-section">
+                    <div id="config-label">Settings</div>
+                    <sl-dropdown>
+                        <sl-button id="config-button" slot="trigger" caret><sl-icon name="gear"></sl-icon></sl-button>
+                        <sl-menu>
+                            <sl-menu-item>Network View</sl-menu-item>
+                            <sl-menu-item>Timeline View</sl-menu-item>
+                            <sl-divider></sl-divider>
+                            <sl-menu-item id="statisticsToggle" type="checkbox" @click=${this.setConfigToggleStatistic}>Show Statistics</sl-menu-item>
+                            <sl-divider></sl-divider>
+                            <sl-menu-label>Filter Messages</sl-menu-label>
+                            <sl-menu-item id="messageFilterSourceToggle" type="checkbox" @click=${this.setConfigToggleSourceMessageFiltering}>Match Source Instance</sl-menu-item>
+                            <sl-menu-item id="messageFilterTargetToggle" type="checkbox" @click=${this.setConfigToggleTargetMessageFiltering}>Match Target Instance</sl-menu-item>
+                        </sl-menu>
+                    </sl-dropdown> 
+                </div>
+
+
         `;
     }
 }

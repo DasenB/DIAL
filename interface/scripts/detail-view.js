@@ -46,6 +46,7 @@ class DialDetailView extends LitElement {
 
     setMessages(messages) {
         this.messages = messages;
+        this.requestUpdate();
     }
 
     allowModifications(bool) {
@@ -106,11 +107,6 @@ class DialDetailView extends LitElement {
         padding: 0;
       }
       
-      .chosen {
-        border-color: var(--sl-color-sky-500);
-        background-color: var(--sl-color-sky-500);
-      }
-      
       dial-card-group dial-message, dial-card-group dial-state {
         border: solid 4px transparent;
         display: inline-block;
@@ -120,6 +116,11 @@ class DialDetailView extends LitElement {
 
       .past-messages {
         //background-color: red;
+      }
+
+      .selected {
+        border-color: var(--sl-color-sky-500);
+        background-color: var(--sl-color-sky-500);
       }
 
     `;
@@ -168,7 +169,8 @@ class DialDetailView extends LitElement {
                             ?received=${wasReceived}
                             ?disableEditing=${!this.editingEnabled || processedByBackend}
                             ?isLost=${msg.is_lost === "True"}
-                    ><div class="handle"></div></dial-message>
+                            class="${msg.selected ? "selected": "" }"
+                    ></dial-message>
                 `;
 
                 if (wasReceived) {

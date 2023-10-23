@@ -40,6 +40,7 @@
 # Editor
 - [x] Warn before dismissing unsaved changes
 - [x] Disable changes while the animation is running
+- [ ] Make settings persistent over page loads (speed, settings)
 - [ ] Save changes
 
 # Error

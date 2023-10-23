@@ -60,6 +60,18 @@ class DialGraph extends LitElement {
     }
 
 
+    enableStatistics(bool) {
+        this.statisticsEnabled = bool;
+        this.forceRender();
+    }
+
+    enableMessageFiltering(sourceFiltering, targetFiltering) {
+        this.filterMessages.matchSource = sourceFiltering;
+        this.filterMessages.matchTarget = targetFiltering;
+        this.forceRender();
+    }
+
+
     forceRender() {
         if (this.network !== undefined) {
             this.network.redraw();
@@ -91,6 +103,17 @@ class DialGraph extends LitElement {
         }
     }
 
+    emitEvent(name, data) {
+        console.log(name);
+        const event = new CustomEvent(`dial-graph:${name}`, {
+            detail: data,
+            bubbles: true,
+            composed: true,
+            cancelable: true,
+        });
+        this.dispatchEvent(event);
+    }
+
     constructor() {
         super();
         this.topology = {
@@ -100,7 +123,13 @@ class DialGraph extends LitElement {
         this.messages = [];
         this.time = 0;
         this.theta = undefined;
+        this.statisticsEnabled = false;
+        this.filterMessages = {
+            matchSource: false,
+            matchTarget: false
+        };
     }
+
 
     firstUpdated() {
         this.$graphContainer = this.renderRoot.getElementById("graph-container");
@@ -171,6 +200,7 @@ class DialGraph extends LitElement {
 
     onClick(event) {
         const clickPos = new Victor(event.pointer.canvas.x, event.pointer.canvas.y);
+        let selectedMessages = [];
         this.messages.forEach(msg => {
            const circle = this.getMessageCircle(msg);
            if (circle === undefined) {
@@ -181,8 +211,10 @@ class DialGraph extends LitElement {
            msg.selected = distance <= circle.radius;
            if(msg.selected) {
                this.network.unselectAll();
+               selectedMessages.push(msg.messageId);
            }
         });
+        this.emitEvent("select-message", selectedMessages);
     }
 
     static styles = css`
@@ -383,6 +415,15 @@ class DialGraph extends LitElement {
     draw(context) {
         this.messages.reverse();
         this.messages.forEach(msg => {
+
+            if(this.filterMessages.matchTarget || this.filterMessages.matchSource) {
+                let sourceMatchesFilter = msg.sourceAlgorithm.endsWith("/" + this.selectedAlgorithm) || !this.filterMessages.matchSource;
+                let targetMatchesFilter = msg.targetAlgorithm.endsWith("/" + this.selectedAlgorithm)  || !this.filterMessages.matchTarget;
+                if (!targetMatchesFilter || !sourceMatchesFilter) {
+                    return;
+                }
+            }
+
             const circle = this.getMessageCircle(msg);
             if (circle === undefined) {
                 return;
@@ -430,7 +471,9 @@ class DialGraph extends LitElement {
         });
         this.messages.reverse();
 
-        this.drawStatistics(context);
+        if(this.statisticsEnabled) {
+            this.drawStatistics(context);
+        }
 
     }
 

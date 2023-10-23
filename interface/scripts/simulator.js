@@ -31,6 +31,7 @@ class DialSimulator extends LitElement {
         };
         this.states = {};
         this.instanceUsedForStateColor = undefined;
+        this.selectedMessages = [];
     }
 
     updateView(selectCurrentMessage) {
@@ -67,6 +68,16 @@ class DialSimulator extends LitElement {
         });
     }
 
+    handleSelection(selectedIds) {
+        this.selectedMessages = selectedIds;
+        Object.keys(this.messages).forEach(t => {
+            this.messages[t].forEach(msg => {
+                msg.selected = selectedIds.includes(msg.id);
+            });
+        });
+        this.updateMessages();
+    }
+
     setupEventHandlers() {
 
         let discardUnsavedChangesDialog = {
@@ -90,6 +101,7 @@ class DialSimulator extends LitElement {
         };
 
         document.addEventListener("dial-menu:reset", (e) => {
+            this.$editor.closeDocument();
             this.api.get("reset").then(response => {
                 this.loadTopology().then(() => {
                     this.updateView();
@@ -103,6 +115,7 @@ class DialSimulator extends LitElement {
                 this.$dialog.showDialog();
                 return;
             }
+            this.$editor.closeDocument();
 
             if(this.isRunning) {
                 this.stop();
@@ -128,6 +141,7 @@ class DialSimulator extends LitElement {
                 this.$dialog.showDialog();
                 return;
             }
+            this.$editor.closeDocument();
             this.api.get(`time-forward/100`).then(response => {
                 this.updateView();
             });
@@ -139,6 +153,7 @@ class DialSimulator extends LitElement {
                 this.$dialog.showDialog();
                 return;
             }
+            this.$editor.closeDocument();
             this.api.get(`time-backward/100`).then(response => {
                 this.updateView();
             });
@@ -162,6 +177,7 @@ class DialSimulator extends LitElement {
                 this.$dialog.showDialog();
                 return;
             }
+            this.$editor.closeDocument();
             if(this.time.frontendTime.theta === undefined && this.time.backendTime.time !== null) {
                 this.time.frontendTime.time = this.time.backendTime.time;
                 this.time.frontendTime.theta = this.time.backendTime.theta;
@@ -179,9 +195,18 @@ class DialSimulator extends LitElement {
                 this.$dialog.showDialog();
                 return;
             }
+            this.$editor.closeDocument();
             this.api.get(`step-backward/1`).then(response => {
                 this.updateView();
             });
+        });
+
+        document.addEventListener("dial-menu:toggle-statistics", (e) => {
+            this.$graph.enableStatistics(e.detail.state);
+        });
+
+        document.addEventListener("dial-menu:toggle-filter-messages", (e) => {
+            this.$graph.enableMessageFiltering(e.detail.sourceFiltering, e.detail.targetFiltering);
         });
 
         document.addEventListener("message:edit", (e) => {
@@ -196,13 +221,14 @@ class DialSimulator extends LitElement {
         });
 
         document.addEventListener("message:highlight", (e) => {
-            Object.keys(this.messages).forEach(t => {
-                this.messages[t].forEach(msg => {
-                    msg.selected = msg.id === e.detail;
-                });
-            });
-            this.updateMessages();
+            this.handleSelection(e.detail);
         });
+
+        document.addEventListener("dial-graph:select-message", (e) => {
+            this.handleSelection(e.detail);
+        });
+
+
 
         document.addEventListener("message:reschedule", (e) => {
             console.log(e.detail);
@@ -418,6 +444,11 @@ class DialSimulator extends LitElement {
             if (response.actions.length > 0) {
                 this.api.get("messages").then(messages => {
                     this.messages = messages.messages;
+                    Object.keys(this.messages).forEach(t => {
+                        this.messages[t].forEach(msg => {
+                            msg.selected = this.selectedMessages.includes(msg.id);
+                        })
+                    });
                     this.isFetchingData = false;
                     this.updateMessages();
                     if(this.isRunning) {
