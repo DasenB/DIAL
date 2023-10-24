@@ -26,6 +26,7 @@ class DialDetailView extends LitElement {
         super();
         this.sortables = [];
         this.messages = {};
+        this.states = {};
         this.time = 0;
         this.theta = 0;
         this.editingEnabled = true;
@@ -46,6 +47,12 @@ class DialDetailView extends LitElement {
 
     setMessages(messages) {
         this.messages = messages;
+        this.requestUpdate();
+    }
+
+    setStates(states) {
+        this.states = states;
+        console.log(states);
         this.requestUpdate();
     }
 

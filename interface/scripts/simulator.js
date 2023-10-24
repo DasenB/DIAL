@@ -29,7 +29,10 @@ class DialSimulator extends LitElement {
             nodes: [],
             edges: [],
         };
-        this.states = {};
+        this.states = {
+            colors: {},
+            neighbors: {}
+        };
         this.instanceUsedForStateColor = undefined;
         this.selectedMessages = [];
     }
@@ -358,8 +361,9 @@ class DialSimulator extends LitElement {
 
     loadStates() {
         return this.api.get("states").then(states => {
-            this.states = states;
-            // this.updateStates();
+            this.states.colors = states.colors;
+            this.states.neighbors = states.neighbors;
+            this.updateStates();
         });
     }
 
@@ -368,9 +372,9 @@ class DialSimulator extends LitElement {
         let instances = new Set();
         let nodeColors = {};
 
-        Object.keys(this.states).forEach(timeTuple => {
-            let addressString = Object.keys(this.states[timeTuple])[0];
-            let color = this.states[timeTuple][addressString];
+        Object.keys(this.states.colors).forEach(timeTuple => {
+            let addressString = Object.keys(this.states.colors[timeTuple])[0];
+            let color = this.states.colors[timeTuple][addressString];
             let splitTimeTuple = timeTuple.split("/");
             let splitAddress = addressString.split("/");
             let time = {
@@ -400,6 +404,7 @@ class DialSimulator extends LitElement {
         this.topology.nodes.forEach(node => {
             this.$graph.setNodeColor(node.id, nodeColors[node.id]);
         });
+        this.$detailView.setStates(this.states);
 
     }
 

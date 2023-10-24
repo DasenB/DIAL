@@ -480,10 +480,6 @@ class DialGraph extends LitElement {
             context.beginPath();
             context.arc(circle.x, circle.y, circle.radius, 0, 2 * Math.PI);
             context.fillStyle = msg.color;
-            // if(msg.isSelfMessage) {
-            //     context.fillStyle = "#ff00ff";
-            // }
-
             context.fill();
             context.stroke();
 

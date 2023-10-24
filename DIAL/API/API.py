@@ -239,14 +239,26 @@ class API:
         return self.response(status=200, response=f'OK')
 
     def get_states(self):
-        result: dict[str, any] = { }
+        color_transitions: dict[str, any] = {}
         for time_tuple in self.simulator.node_colors.keys():
             time_str = str(time_tuple[0]) + "/" + str(time_tuple[1])
             for address in self.simulator.node_colors[time_tuple].keys():
-                result[time_str] = {
+                color_transitions[time_str] = {
                     address.__repr__(): self.simulator.node_colors[time_tuple][address].__str__()
                 }
-        return self.response(status=200, response=result)
+        neighbor_transitions: dict[str, any] = {}
+        for time_tuple in self.simulator.node_neighbors.keys():
+            time_str = str(time_tuple[0]) + "/" + str(time_tuple[1])
+            for address in self.simulator.node_neighbors[time_tuple].keys():
+                neighbor_transitions[time_str] = {
+                    address.__repr__(): self.simulator.node_neighbors[time_tuple][address].__str__()
+                }
+        response: dict[str, any] = {
+            "colors": color_transitions,
+            "neighbors": neighbor_transitions
+        }
+
+        return self.response(status=200, response=response)
 
     def get_state(self, node: str, algorithm: str, instance: str):
         address = Address(node_name=node, algorithm=algorithm, instance=instance)
