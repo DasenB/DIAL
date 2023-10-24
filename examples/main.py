@@ -92,7 +92,7 @@ s = Simulator(topology=t, algorithms=a, initial_messages={1: [initial_message], 
 # s.step_forward(verbose=False)
 #
 
-api = API(simulator=s, verbose=False)
+api = API(simulator=s, verbose=True)
 p = Process(target=api.run)
 p.start()
 

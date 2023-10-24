@@ -12,12 +12,12 @@ from flask import Flask, request
 from ipaddr import IPAddress
 import logging
 
+from DIAL.State import State
 from DIAL.Address import Address
 from DIAL.Color import Color, Colors
 from DIAL.Message import Message
 from DIAL.Simulator import Simulator
-from DIAL.State import State
-
+from flask_cors import CORS
 
 class API:
     simulator: Simulator
@@ -33,6 +33,7 @@ class API:
         self.host = host
         self.port = port
         self.api = Flask(__name__, static_folder="../../interface/", static_url_path="/")
+        CORS(self.api)
         if not verbose:
             # Do not print every HTTP-request
             logging.getLogger("werkzeug").disabled = True
@@ -65,7 +66,6 @@ class API:
             status=status,
             mimetype='application/json',
         )
-        response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
     def run(self):

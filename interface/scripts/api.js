@@ -53,12 +53,17 @@ export class API {
         const url = `https://${this.host}:${this.port}/${path}`;
         return new Promise((resolve, reject) => {
             fetch(url, {
-                method: "DELETE"
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                },
             }).then((response) => {
                 response.text().then((body) => {
                     response.ok ? resolve(body) : reject(body)
                 })
             }).catch((error) => {
+                this.emitEvent("no-connection-to-backend", error);
+                console.log(error);
                 reject(error);
             });
         });

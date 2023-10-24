@@ -224,6 +224,12 @@ class DialSimulator extends LitElement {
             this.handleSelection(e.detail);
         });
 
+        document.addEventListener("message:delete", (e) => {
+            this.api.del(`message/${e.detail}`).then(response => {
+                this.loadMessages();
+            });
+        });
+
         document.addEventListener("dial-graph:select-message", (e) => {
             this.handleSelection(e.detail);
         });
