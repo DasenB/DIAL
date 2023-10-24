@@ -1,5 +1,33 @@
 import {css, html, LitElement} from '../libraries/lit-core.js';
 
+class ScreenResolution {
+
+    constructor() {
+        this.base = {
+            dpi: 96,
+            dpcm: 96 / 2.54,
+        };
+    }
+
+    ie() {
+        return Math.sqrt(screen.deviceXDPI * screen.deviceYDPI) / this.base.dpi;
+    }
+
+    dppx() {
+        // devicePixelRatio: Webkit (Chrome/Android/Safari), Opera (Presto 2.8+), FF 18+
+        return typeof window == 'undefined' ? 0 : +window.devicePixelRatio || this.ie() || 0;
+    }
+
+    dpcm() {
+        return this.dppx() * this.base.dpcm;
+    }
+
+    dpi() {
+        return this.dppx() * this.base.dpi;
+    }
+
+}
+
 export class DialGraphMessage {
     constructor(messageId, source, target, emitTime, emitTheta, receiveTime, receiveTheta, color, isLost, isSelfMessage) {
         this.messageId = messageId;
@@ -128,6 +156,7 @@ class DialGraph extends LitElement {
             matchSource: false,
             matchTarget: false
         };
+        this.screenResolution = new ScreenResolution();
     }
 
 
@@ -379,7 +408,11 @@ class DialGraph extends LitElement {
             }
         });
 
-        let fontSize = 22;
+        let fontSize = 15;
+        if(this.screenResolution.dpi() >= 150) {
+            fontSize *= 2;
+        }
+
         let lineHeight = fontSize + 10;
         let pos = {
             x: 20,

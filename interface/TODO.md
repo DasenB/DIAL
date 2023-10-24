@@ -20,6 +20,7 @@
 - [x] Self messages do not stay still but complete one circle around the border of its node
 - [x] Visually distinguish between unidirectional and bidirectional links
 - [x] Add optional statistics overlay (active messages, total messages; active_messages-selected-algo, total messages-selected-algo)
+- [ ] When the detail-view highlights a message a currently highlighted node should be un-highlighted
 
 # Timeline View:
 - [ ] Implement
