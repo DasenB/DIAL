@@ -240,7 +240,6 @@ class DialSimulator extends LitElement {
 
 
         document.addEventListener("message:reschedule", (e) => {
-            console.log(e.detail);
             this.api.get(`reschedule/${e.detail.id}/${e.detail.newTime}/${e.detail.newTheta}`).then(response => {
                 this.loadMessages();
             }).catch(err => {
@@ -280,6 +279,7 @@ class DialSimulator extends LitElement {
         const newFrontendTime = this.time.frontendTime.time + (time_since_last_frame * this.speed);
         this.time.frontendTime.time = newFrontendTime;
         this.time.frontendTime.theta = undefined;
+
 
         // Find Messages that need to be processed
         if (this.time.backendTime === null && this.time.frontendTime.time >= Math.min(...Object.keys(this.messages))) {

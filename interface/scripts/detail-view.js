@@ -52,7 +52,6 @@ class DialDetailView extends LitElement {
 
     setStates(states) {
         this.states = states;
-        console.log(states);
         this.requestUpdate();
     }
 

@@ -61,7 +61,6 @@ class DialMessage extends LitElement {
 
     openTimeDialog(messageId) {
         this.$dialog.show();
-        console.log(messageId);
     }
 
     emitEvent(name, data) {

@@ -17,7 +17,7 @@ class DialMenu extends LitElement {
         super();
 
         let savedSpeed = Number(this.getCookie("dial-menu-speed"));
-        if (savedSpeed === undefined) {
+        if (savedSpeed === undefined || isNaN(savedSpeed)) {
             savedSpeed = 1.0;
             this.setCookie("dial-menu-speed", savedSpeed);
         }
