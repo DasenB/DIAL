@@ -1,7 +1,23 @@
 import {css, html, LitElement} from '../libraries/lit-core.js';
 import {API} from "../scripts/api.js";
-import {CompareTime} from "../scripts/time.js";
 import {DialGraphMessage} from "../scripts/graph.js";
+
+function CompareTime(a, b) {
+
+    if (a.time === null && b.time === null) {
+        return 0;
+    }
+    if (a.time === null && b.time !== null) {
+        return -1;
+    }
+    if (a.time !== null && b.time === null) {
+        return 1;
+    }
+    if (Number(a.time) === Number(b.time)) {
+        return Number(a.theta) - Number(b.theta);
+    }
+    return Number(a.time) - Number(b.time);
+}
 
 class DialSimulator extends LitElement {
 
@@ -21,6 +37,7 @@ class DialSimulator extends LitElement {
                 lastFrame: undefined,
             }
         };
+        this.selectedView = "time";
         this.speed = 0.5;
         this.messages = {};
         this.isRunning = false;
@@ -60,12 +77,12 @@ class DialSimulator extends LitElement {
 
     firstUpdated() {
         this.$graph = this.renderRoot.querySelector("dial-graph");
+        this.$timeline = this.renderRoot.querySelector("dial-time");
         this.$menu = this.renderRoot.querySelector("dial-menu");
         this.$dialog = this.renderRoot.querySelector("dial-dialog");
         this.$detailView = this.renderRoot.querySelector("dial-detail-view");
         this.$editor = this.renderRoot.querySelector("dial-editor");
         this.setupEventHandlers();
-
         this.loadTopology().then(() => {
             this.updateView();
         });
@@ -135,6 +152,7 @@ class DialSimulator extends LitElement {
         document.addEventListener("dial-menu:change-instance", (e) => {
             this.instanceUsedForStateColor = e.detail.instance;
             this.$graph.setSelectedAlgorithm(this.instanceUsedForStateColor);
+            this.$timeline.setSelectedAlgorithm(this.instanceUsedForStateColor);
             this.updateStates();
         });
 
@@ -206,10 +224,25 @@ class DialSimulator extends LitElement {
 
         document.addEventListener("dial-menu:toggle-statistics", (e) => {
             this.$graph.enableStatistics(e.detail.state);
+            this.$timeline.enableStatistics(e.detail.state);
         });
 
         document.addEventListener("dial-menu:toggle-filter-messages", (e) => {
             this.$graph.enableMessageFiltering(e.detail.sourceFiltering, e.detail.targetFiltering);
+            this.$timeline.enableMessageFiltering(e.detail.sourceFiltering, e.detail.targetFiltering);
+        });
+
+        document.addEventListener("dial-menu:change-view", (e) => {
+            this.selectedView = e.detail.view;
+            if(this.selectedView === "graph") {
+                this.$graph.style.display = '';
+                this.$timeline.style.display = 'none';
+                this.$graph.setTime(this.time.frontendTime);
+            } else if(this.selectedView === "time") {
+                this.$graph.style.display = 'none';
+                this.$timeline.style.display = '';
+                this.$timeline.setTime(this.time.frontendTime);
+            }
         });
 
         document.addEventListener("message:edit", (e) => {
@@ -333,6 +366,7 @@ class DialSimulator extends LitElement {
                 edges: new vis.DataSet(edges),
             }
             this.$graph.setTopology(this.topology);
+            this.$timeline.setTopology(this.topology);
         });
     }
 
@@ -368,7 +402,6 @@ class DialSimulator extends LitElement {
     }
 
     updateStates() {
-        console.log("update state");
         let instances = new Set();
         let nodeColors = {};
 
@@ -391,6 +424,7 @@ class DialSimulator extends LitElement {
             if(this.instanceUsedForStateColor === undefined) {
                 this.instanceUsedForStateColor = instance;
                 this.$graph.setSelectedAlgorithm(instance);
+                this.$timeline.setSelectedAlgorithm(instance);
                 this.$menu.setInstanceAddresses([instance]);
             }
             if(CompareTime(this.time.frontendTime, time) >= 0 && this.instanceUsedForStateColor === instance) {
@@ -404,8 +438,8 @@ class DialSimulator extends LitElement {
         this.topology.nodes.forEach(node => {
             this.$graph.setNodeColor(node.id, nodeColors[node.id]);
         });
+        this.$timeline.setColorTransitions(this.states.colors);
         this.$detailView.setStates(this.states);
-
     }
 
 
@@ -433,11 +467,16 @@ class DialSimulator extends LitElement {
         });
         this.$detailView.setMessages(this.messages);
         this.$graph.setMessages(graphMessages);
+        this.$timeline.setMessages(graphMessages);
     }
 
     updateTime() {
         this.time.frontendTime.time = Number(this.time.frontendTime.time); // TODO After fixing the problem at its root
-        this.$graph.setTime(this.time.frontendTime.time);
+        if(this.selectedView === "graph") {
+            this.$graph.setTime(this.time.frontendTime.time);
+        } else if (this.selectedView === "graph") {
+            this.$timeline.setTime(this.time.frontendTime.time);
+        }
         this.$menu.setTimeIndicator(this.time.frontendTime.time, this.time.frontendTime.theta);
         this.$detailView.setProgress(
             this.time.frontendTime.time,
@@ -493,7 +532,6 @@ class DialSimulator extends LitElement {
     }
 
 
-
     static styles = css`
       :host {
         box-sizing: border-box;
@@ -545,6 +583,7 @@ class DialSimulator extends LitElement {
                         <div slot="start" id="graph-container">
                             <dial-menu></dial-menu>
                             <dial-graph></dial-graph>
+                            <dial-time></dial-time>
                         </div>
                         <div slot="end" id="editor-container">
                             <dial-editor></dial-editor>

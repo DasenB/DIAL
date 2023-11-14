@@ -46,12 +46,34 @@ class DialMenu extends LitElement {
             savedMatchTarget = savedMatchTarget === "true";
         }
 
+        let savedSelectedView = this.getCookie("dial-menu-selected-view");
+        if (savedSelectedView === undefined || savedSelectedView === null) {
+            savedSelectedView = "graph";
+            this.setCookie("dial-menu-selected-view", savedMatchTarget);
+        }
+
+
+        this.selectedView = savedSelectedView;
         this.speed = savedSpeed;
         this.statisticsState = savedStatisticsState;
         this.matchSource = savedMatchSource;
         this.matchTarget = savedMatchTarget;
         this.timeIndicator = undefined;
         this.instancesAddresses = [];
+    }
+
+    handleSelectedViewChange(view) {
+        this.selectedView = view;
+        this.setCookie("dial-menu-selected-view", view);
+        this.emitEvent("change-view", {
+            view: view
+        });
+        if(view === "graph") {
+            this.$timeSelectItem.checked = false;
+        }
+        if(view === "time") {
+            this.$graphSelectItem.checked = false;
+        }
     }
 
     setCookie(name, value) {
@@ -84,9 +106,13 @@ class DialMenu extends LitElement {
         this.$stepForwardButton = this.renderRoot.querySelector("sl-tooltip[content='Step Forward'] sl-button");
         this.$fastForwardButton = this.renderRoot.querySelector("sl-tooltip[content='Fast Forward'] sl-button");
 
+        this.$graphSelectItem = this.renderRoot.querySelector("#graph-view-selection-item");
+        this.$timeSelectItem = this.renderRoot.querySelector("#time-view-selection-item");
+
         this.handleSpeedChange();
         this.handleConfigToggleStatistic();
         this.handleConfigToggleMessageFiltering();
+        this.handleSelectedViewChange(this.selectedView);
     }
 
     setTimeIndicator(time, theta) {
@@ -123,6 +149,7 @@ class DialMenu extends LitElement {
         this.$stepBackwardButton.disabled = !state;
         this.$fastBackwardButton.disabled = !state;
     }
+
 
     emitEvent(name, data) {
         console.log(name);
@@ -341,8 +368,8 @@ class DialMenu extends LitElement {
                     <sl-dropdown>
                         <sl-button id="config-button" slot="trigger" caret><sl-icon name="gear"></sl-icon></sl-button>
                         <sl-menu>
-                            <sl-menu-item>Network View</sl-menu-item>
-                            <sl-menu-item>Timeline View</sl-menu-item>
+                            <sl-menu-item type="checkbox" id="graph-view-selection-item" ?checked=${this.selectedView === "graph"} @click="${() => {this.handleSelectedViewChange("graph");}}">Graph View</sl-menu-item>
+                            <sl-menu-item type="checkbox" id="time-view-selection-item" ?checked=${this.selectedView === "time"} @click="${() => {this.handleSelectedViewChange("time");}}">Time View</sl-menu-item>
                             <sl-divider></sl-divider>
                             <sl-menu-item type="checkbox" ?checked=${this.statisticsState} @click=${ () => {this.statisticsState = !this.statisticsState; this.handleConfigToggleStatistic();}}>Show Statistics</sl-menu-item>
                             <sl-divider></sl-divider>
