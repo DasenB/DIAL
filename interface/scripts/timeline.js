@@ -37,40 +37,53 @@ class DialTimeline extends LitElement {
             matchTarget: false
         };
         this.selectedAlgorithm = undefined;
-        this.screenResolution = new ScreenResolution();
-        this.zoom = 1.0;
-        this.scrolPosition = null;
-        this.clipping = {
-            lowerTime: undefined,
-            upperTime: undefined,
+
+        this.viewport = {
+            screenResolution: new ScreenResolution(),
+            zoom: 1.0,
+            offset: {
+                x: 0,
+                y: 0,
+            },
+            size: {
+                height: 0,
+                width: 0,
+            },
+            clipping: {
+                top: 0,
+                bottom: 0,
+                left: 0,
+                right: 0,
+            }
         };
-        this.size = {
-            height: null,
-            width: null,
-        }
         this.config = {};
     }
 
 
     setTopology(topology) {
         this.nodes = topology.nodes;
+        this.renderCanvas();
     }
 
     setColorTransitions(colors) {
         this.colorTransitions = colors;
+        this.renderCanvas();
     }
 
     setSelectedAlgorithm(algorithm) {
         this.selectedAlgorithm = algorithm;
+        this.renderCanvas();
     }
 
     enableStatistics(bool) {
         this.statisticsEnabled = bool;
+        this.renderCanvas();
     }
 
     enableMessageFiltering(sourceFiltering, targetFiltering) {
         this.filterMessages.matchSource = sourceFiltering;
         this.filterMessages.matchTarget = targetFiltering;
+        this.renderCanvas();
     }
 
     setMessages(messages) {
@@ -83,11 +96,12 @@ class DialTimeline extends LitElement {
                 return a.receiveTime > b.receiveTime ? 1 : -1;
             }
         );
+        this.renderCanvas();
     }
 
     setTime(time, theta) {
         this.time = time;
-        this.draw();
+        this.renderCanvas();
     }
 
     emitEvent(name, data) {
@@ -104,30 +118,14 @@ class DialTimeline extends LitElement {
 
     firstUpdated() {
         this.$timelineContainer = this.renderRoot.getElementById("timeline-container");
+        this.$canvas = this.renderRoot.getElementById("timeline-canvas");
+        this.$context = this.$canvas.getContext("2d");
         this.config = {
             messageSize: 8,
             messageBorderColor: window.getComputedStyle(this.$timelineContainer).getPropertyValue('--sl-color-neutral-400'),
             messageBorderSelectedColor: window.getComputedStyle(this.$timelineContainer).getPropertyValue('--sl-color-sky-500'),
         };
-    }
-
-    onClick(event) {
-        const clickPos = new Victor(event.pointer.canvas.x, event.pointer.canvas.y);
-        let selectedMessages = [];
-        this.messages.forEach(msg => {
-            const circle = this.getMessageCircle(msg);
-            if (circle === undefined) {
-                return;
-            }
-            const centerPos = new Victor(circle.x, circle.y);
-            const distance = centerPos.distance(clickPos);
-            msg.selected = distance <= circle.radius;
-            if(msg.selected) {
-                this.network.unselectAll();
-                selectedMessages.push(msg.messageId);
-            }
-        });
-        this.emitEvent("select-message", selectedMessages);
+        this.renderCanvas();
     }
 
     static styles = css`
@@ -140,88 +138,113 @@ class DialTimeline extends LitElement {
         width: 100%;
         background-color: var(--sl-color-neutral-0);
       }
+      
+      canvas {
+        height: 100%;
+        width: 100%;
+        box-sizing: border-box;
+      }
     `;
 
-
-    getMessageCircle(message) {
-
-    }
-
-    drawStatistics(context) {
-        let statistics = {
-            total_received_messages: 0,
-            total_send_messages: 0,
-            total_pending_messages: 0,
-            selected_received_messages: 0,
-            selected_send_messages: 0,
-            selected_pending_messages: 0,
-        };
-
+    findEarliestTime() {
+        let t = Infinity;
         this.messages.forEach(msg => {
-            let wasSend = msg.emitTime < this.time || (msg.emitTime === this.time && msg.emitTheta < msg.theta);
-            let wasReceived = msg.receiveTime < this.time || (msg.receiveTime === this.time && msg.receiveTheta < msg.theta);
-            let isPending = wasSend && !wasReceived;
-            let sourceAlgorithmSelected = msg.sourceAlgorithm.endsWith("/" + this.selectedAlgorithm);
-            let targetAlgorithmSelected = msg.targetAlgorithm.endsWith("/" + this.selectedAlgorithm);
-
-            if(wasSend) {
-                statistics.total_send_messages += 1;
-            }
-            if(wasReceived) {
-                statistics.total_received_messages += 1;
-            }
-            if(isPending) {
-                statistics.total_pending_messages += 1;
-            }
-
-            if(wasSend && sourceAlgorithmSelected) {
-                statistics.selected_send_messages += 1;
-            }
-            if(wasReceived && targetAlgorithmSelected) {
-                statistics.selected_received_messages += 1;
-            }
-            if(isPending && targetAlgorithmSelected) {
-                statistics.selected_pending_messages += 1;
+            if (msg.emitTime < t) {
+                t = msg.emitTime;
             }
         });
-
-        let fontSize = 15;
-        if(this.screenResolution.dpi() >= 150) {
-            fontSize *= 2;
-        }
-
-        let lineHeight = fontSize + 10;
-        let pos = {
-            x: 20,
-            y: lineHeight,
-        };
-        let width = 480;
-        let numberOffset = 10;
-
-        context.setTransform();
-        context.fillStyle = "rgba(0, 0, 0, 0.8)";
-        context.fillRect(0, 0, width, 10 * lineHeight);
-        context.font = `${fontSize}px Courier New`;
-        context.fillStyle = "#f2f2f2";
-        context.fillText("All Algorithms:", pos.x, pos.y + lineHeight * 0);
-        context.fillText("  Send Messages:", pos.x, pos.y + lineHeight * 1);
-        context.fillText("  Received Messages:", pos.x, pos.y + lineHeight * 2);
-        context.fillText("  Pending Messages:", pos.x, pos.y + lineHeight * 3);
-        context.fillText("Selected Algorithm:", pos.x, pos.y + lineHeight * 5);
-        context.fillText("  Send Messages:", pos.x, pos.y + lineHeight * 6);
-        context.fillText("  Received Messages:", pos.x, pos.y + lineHeight * 7);
-        context.fillText("  Pending Messages:", pos.x, pos.y + lineHeight * 8);
-
-        context.textAlign = "right";
-        context.fillText(statistics.total_send_messages, width - numberOffset, pos.y + lineHeight * 1);
-        context.fillText(statistics.total_received_messages, width - numberOffset, pos.y + lineHeight * 2);
-        context.fillText(statistics.total_pending_messages, width - numberOffset, pos.y + lineHeight * 3);
-        context.fillText(statistics.selected_send_messages, width - numberOffset, pos.y + lineHeight * 6);
-        context.fillText(statistics.selected_received_messages, width - numberOffset, pos.y + lineHeight * 7);
-        context.fillText(statistics.selected_pending_messages, width - numberOffset, pos.y + lineHeight * 8);
+        return t;
     }
 
-    draw(context) {
+    drawCanvas() {
+        if(this.$context === undefined) {
+            return;
+        }
+        let ctx = this.$context;
+
+        ctx.translate(this.viewport.offset.x, this.viewport.offset.y);
+
+
+        let earliestTime = this.findEarliestTime();
+        let historyBars = {};
+        let lastChangeTime = {};
+        let lastChangeColor = {};
+
+        Object.keys(this.colorTransitions).forEach((timeStr) => {
+            Object.keys(this.colorTransitions[timeStr]).forEach(address => {
+                let color = this.colorTransitions[timeStr][address];
+                let time = Number(timeStr.split("/")[0]);
+                if (!(address in historyBars)) {
+                    historyBars[address] = [];
+                    lastChangeTime[address] = earliestTime;
+                    lastChangeColor[address] = "#ffffff";
+                } else {
+                    historyBars[address].push({
+                       start: lastChangeTime[address],
+                       end: time,
+                       color: lastChangeColor[address]
+                    });
+                    lastChangeColor[address] = color;
+                    lastChangeTime[address] = time;
+                }
+            });
+        });
+        Object.keys(historyBars).forEach(address => {
+            historyBars[address].push({
+                start: lastChangeTime[address],
+                end: this.time.time,
+                color: lastChangeColor[address]
+            });
+        });
+
+        let barHeight = 30;
+        let timeUnitWidth = 60;
+        let barIndex = 0;
+
+        Object.keys(historyBars).forEach(address => {
+           historyBars[address].forEach(bar => {
+               ctx.strokeStyle = this.config.messageBorderColor;
+               ctx.fillStyle = bar.color;
+               ctx.fillRect(bar.start * timeUnitWidth, barIndex * barHeight, timeUnitWidth * (bar.end - bar.start), barHeight);
+               ctx.strokeRect(bar.start * timeUnitWidth, barIndex * barHeight, timeUnitWidth * (bar.end - bar.start), barHeight);
+           });
+           barIndex += 2;
+        });
+        console.log(historyBars);
+        // Object.keys(this.colorTransitions).forEach((node) => {
+        //    console.log(node);
+        // });
+        // this.messages.forEach((msg) => {
+        //
+        //     // ctx.beginPath();
+        //     // ctx.arc(100, 75, 50, 0, 2 * Math.PI);
+        //     // ctx.stroke();
+        //     console.log(msg);
+        // });
+
+        ctx.strokeStyle = "red";
+        ctx.strokeRect(-100, -100, 150, 150);
+
+
+
+
+    }
+
+
+
+    renderCanvas() {
+        if(this.$canvas === undefined) {
+            return;
+        }
+
+        // Resize Canvas
+        this.$canvas.width  = Math.ceil(this.$canvas.offsetWidth * this.viewport.screenResolution.dppx());
+        this.$canvas.height = Math.ceil(this.$canvas.offsetHeight * this.viewport.screenResolution.dppx());
+
+        // Calculate Viewport
+
+        this.drawCanvas();
+
         // Calculate Clipping
 
         // Calculate StateBars
@@ -231,11 +254,14 @@ class DialTimeline extends LitElement {
         // Calculate MessageCircles
         // Draw Arrows
         // Draw Circles
+        // requestAnimationFrame(() => {this.renderCanvas();});
     }
 
     render() {
         return html`
-            <div id="timeline-container"></div>
+            <div id="timeline-container">
+                <canvas id="timeline-canvas"></canvas>
+            </div>
         `;
     }
 }

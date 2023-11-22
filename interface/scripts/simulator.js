@@ -565,7 +565,7 @@ class DialSimulator extends LitElement {
       dial-detail-view {
         height: 100%;
       }
-      dial-graph {
+      dial-graph, dial-time {
         display: block;
         position: absolute;
         height: calc(100% - 80px) !important;
