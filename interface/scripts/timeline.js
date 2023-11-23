@@ -171,9 +171,12 @@ class DialTimeline extends LitElement {
         let lastChangeColor = {};
 
         Object.keys(this.colorTransitions).forEach((timeStr) => {
+            let time = Number(timeStr.split("/")[0]);
+            if(time > this.time) {
+                return;
+            }
             Object.keys(this.colorTransitions[timeStr]).forEach(address => {
                 let color = this.colorTransitions[timeStr][address];
-                let time = Number(timeStr.split("/")[0]);
                 if (!(address in historyBars)) {
                     historyBars[address] = [];
                     lastChangeTime[address] = earliestTime;
@@ -192,44 +195,50 @@ class DialTimeline extends LitElement {
         Object.keys(historyBars).forEach(address => {
             historyBars[address].push({
                 start: lastChangeTime[address],
-                end: this.time.time,
+                end: this.time,
                 color: lastChangeColor[address]
             });
         });
 
-        let barHeight = 30;
+        let barHeight = 50;
+        let barSpacing = 0.5 * barHeight;
         let timeUnitWidth = 60;
         let barIndex = 0;
+        let addressToIndexMapping = {}
 
         Object.keys(historyBars).forEach(address => {
-           historyBars[address].forEach(bar => {
-               ctx.strokeStyle = this.config.messageBorderColor;
+            ctx.strokeStyle = this.config.messageBorderColor;
+            let yPos = barIndex * barHeight + (barIndex + 1) * barSpacing;
+            addressToIndexMapping[address] = barIndex;
+            historyBars[address].forEach(bar => {
                ctx.fillStyle = bar.color;
-               ctx.fillRect(bar.start * timeUnitWidth, barIndex * barHeight, timeUnitWidth * (bar.end - bar.start), barHeight);
-               ctx.strokeRect(bar.start * timeUnitWidth, barIndex * barHeight, timeUnitWidth * (bar.end - bar.start), barHeight);
-           });
-           barIndex += 2;
+               ctx.fillRect(bar.start * timeUnitWidth, yPos, timeUnitWidth * (bar.end - bar.start), barHeight);
+               ctx.strokeRect(bar.start * timeUnitWidth, yPos, timeUnitWidth * (bar.end - bar.start), barHeight);
+            });
+            ctx.font = "30px Arial";
+            ctx.fillStyle = this.config.messageBorderColor;
+            ctx.fillText(address, 20, yPos + 2*barHeight/3);
+            barIndex += 1;
         });
-        console.log(historyBars);
-        // Object.keys(this.colorTransitions).forEach((node) => {
-        //    console.log(node);
-        // });
-        // this.messages.forEach((msg) => {
-        //
-        //     // ctx.beginPath();
-        //     // ctx.arc(100, 75, 50, 0, 2 * Math.PI);
-        //     // ctx.stroke();
-        //     console.log(msg);
-        // });
 
-        ctx.strokeStyle = "red";
-        ctx.strokeRect(-100, -100, 150, 150);
-
-
-
+        console.log(Object.keys(historyBars));
+        this.messages.forEach(msg => {
+            console.log(`${msg.sourceAlgorithm} -> ${msg.targetAlgorithm}`);
+            let xStart = msg.emitTime * timeUnitWidth;
+            let xEnd = msg.receiveTime * timeUnitWidth;
+            let yStart = addressToIndexMapping[msg.sourceAlgorithm] * barHeight + (addressToIndexMapping[msg.sourceAlgorithm] + 1) * barSpacing + 0.5 * barHeight;
+            let yEnd = addressToIndexMapping[msg.targetAlgorithm] * barHeight + (addressToIndexMapping[msg.sourceAlgorithm] + 1) * barSpacing + 0.5 * barHeight;
+            if (isNaN(xStart) || isNaN(xEnd) || isNaN(yStart) || isNaN(yEnd)) {
+                return;
+            }
+            ctx.beginPath();
+            ctx.moveTo(xStart, yStart);
+            ctx.lineTo(xEnd, yEnd);
+            ctx.stroke();
+            console.log(`${xStart}/${yStart} -> ${xEnd}/${yEnd}`);
+        });
 
     }
-
 
 
     renderCanvas() {
@@ -242,7 +251,6 @@ class DialTimeline extends LitElement {
         this.$canvas.height = Math.ceil(this.$canvas.offsetHeight * this.viewport.screenResolution.dppx());
 
         // Calculate Viewport
-
         this.drawCanvas();
 
         // Calculate Clipping

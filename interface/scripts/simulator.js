@@ -237,11 +237,11 @@ class DialSimulator extends LitElement {
             if(this.selectedView === "graph") {
                 this.$graph.style.display = '';
                 this.$timeline.style.display = 'none';
-                this.$graph.setTime(this.time.frontendTime);
+                this.$graph.setTime(this.time.frontendTime.time, this.time.frontendTime.theta);
             } else if(this.selectedView === "time") {
                 this.$graph.style.display = 'none';
                 this.$timeline.style.display = '';
-                this.$timeline.setTime(this.time.frontendTime);
+                this.$timeline.setTime(this.time.frontendTime.time, this.time.frontendTime.theta);
             }
         });
 
@@ -473,9 +473,9 @@ class DialSimulator extends LitElement {
     updateTime() {
         this.time.frontendTime.time = Number(this.time.frontendTime.time); // TODO After fixing the problem at its root
         if(this.selectedView === "graph") {
-            this.$graph.setTime(this.time.frontendTime.time);
-        } else if (this.selectedView === "graph") {
-            this.$timeline.setTime(this.time.frontendTime.time);
+            this.$graph.setTime(this.time.frontendTime.time, this.time.frontendTime.theta);
+        } else if (this.selectedView === "time") {
+            this.$timeline.setTime(this.time.frontendTime.time, this.time.frontendTime.theta);
         }
         this.$menu.setTimeIndicator(this.time.frontendTime.time, this.time.frontendTime.theta);
         this.$detailView.setProgress(
