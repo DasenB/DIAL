@@ -52,6 +52,24 @@ class DialMenu extends LitElement {
             this.setCookie("dial-menu-selected-view", savedMatchTarget);
         }
 
+        let savedReducedTimelineState = this.getCookie("dial-menu-reduced-timeline-state");
+        if (savedReducedTimelineState === undefined) {
+            savedReducedTimelineState = false;
+            this.setCookie("dial-menu-reduced-timeline-state", savedReducedTimelineState);
+        } else {
+            savedReducedTimelineState = savedReducedTimelineState === "true";
+        }
+
+        let savedSortTimelineState = this.getCookie("dial-menu-sort-timeline-state");
+        if (savedSortTimelineState === undefined) {
+            savedSortTimelineState = false;
+            this.setCookie("dial-menu-sort-timeline-state", savedSortTimelineState);
+        } else {
+            savedSortTimelineState = savedSortTimelineState === "true";
+        }
+
+        this.reducedTimelineState = savedReducedTimelineState;
+        this.sortTimelineState = savedSortTimelineState;
 
         this.selectedView = savedSelectedView;
         this.speed = savedSpeed;
@@ -74,6 +92,7 @@ class DialMenu extends LitElement {
         if(view === "time") {
             this.$graphSelectItem.checked = false;
         }
+        // this.render();
     }
 
     setCookie(name, value) {
@@ -129,6 +148,21 @@ class DialMenu extends LitElement {
         } else {
             this.$playPauseIcon.name = "play";
         }
+    }
+
+    handleViewChangeVerification() {
+        this.$timeSelectItem.updateComplete.then(() => {
+            if(this.selectedView === "time" && this.$timeSelectItem.checked) {
+                this.$timeSelectItem.click();
+                this.render();
+            }
+        });
+        this.$graphSelectItem.updateComplete.then( () => {
+            if(this.selectedView === "graph" && this.$graphSelectItem.checked) {
+                this.$graphSelectItem.click();
+                this.render();
+            }
+        });
     }
 
     setInstanceAddresses(instanceAddresses) {
@@ -211,6 +245,20 @@ class DialMenu extends LitElement {
         this.setCookie("dial-menu-statistics-state", this.statisticsState);
         this.emitEvent("toggle-statistics", {
             state: this.statisticsState
+        });
+    }
+
+    handleConfigToggleReducedTimeline() {
+        this.setCookie("dial-menu-reduced-timeline-state", this.reducedTimelineState);
+        this.emitEvent("toggle-reduced-timeline", {
+            state: this.reducedTimelineState
+        });
+    }
+
+    handleConfigToggleSortTimeline() {
+        this.setCookie("dial-menu-sort-timeline-state", this.sortTimelineState);
+        this.emitEvent("toggle-sort-timeline", {
+            state: this.sortTimelineState
         });
     }
 
@@ -368,9 +416,11 @@ class DialMenu extends LitElement {
                     <sl-dropdown>
                         <sl-button id="config-button" slot="trigger" caret><sl-icon name="gear"></sl-icon></sl-button>
                         <sl-menu>
-                            <sl-menu-item type="checkbox" id="graph-view-selection-item" ?checked=${this.selectedView === "graph"} @click="${() => {this.handleSelectedViewChange("graph");}}">Graph View</sl-menu-item>
-                            <sl-menu-item type="checkbox" id="time-view-selection-item" ?checked=${this.selectedView === "time"} @click="${() => {this.handleSelectedViewChange("time");}}">Time View</sl-menu-item>
+                            <sl-menu-item type="checkbox" id="graph-view-selection-item" ?checked=${this.selectedView === "graph"} @click="${(e) => {this.handleSelectedViewChange("graph"); this.handleViewChangeVerification();}}">Graph View</sl-menu-item>
+                            <sl-menu-item type="checkbox" id="time-view-selection-item" ?checked=${this.selectedView === "time"} @click="${(e) => {this.handleSelectedViewChange("time"); this.handleViewChangeVerification();}}">Time View</sl-menu-item>
                             <sl-divider></sl-divider>
+                            <sl-menu-item type="checkbox" ?checked=${this.reducedTimelineState} @click=${ () => {this.reducedTimelineState = !this.reducedTimelineState; this.handleConfigToggleReducedTimeline();}}>Reduced Timeline</sl-menu-item>
+                            <sl-menu-item type="checkbox" ?checked=${this.sortTimelineState} @click=${ () => {this.sortTimelineState = !this.sortTimelineState; this.handleConfigToggleSortTimeline();}}>Sort Timeline</sl-menu-item>
                             <sl-menu-item type="checkbox" ?checked=${this.statisticsState} @click=${ () => {this.statisticsState = !this.statisticsState; this.handleConfigToggleStatistic();}}>Show Statistics</sl-menu-item>
                             <sl-divider></sl-divider>
                             <sl-menu-label>Filter Messages</sl-menu-label>

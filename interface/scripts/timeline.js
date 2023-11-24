@@ -38,6 +38,17 @@ class DialTimeline extends LitElement {
         };
         this.selectedAlgorithm = undefined;
 
+        this.mouse = {
+            dragStart: {
+              x: 0,
+              y: 0,
+            },
+            isDown: false,
+            position: {
+                x: 0,
+                y: 0,
+            }
+        };
         this.viewport = {
             screenResolution: new ScreenResolution(),
             zoom: 1.0,
@@ -104,6 +115,31 @@ class DialTimeline extends LitElement {
         this.renderCanvas();
     }
 
+    mouseMoveWhilstDown(target, whileMove) {
+        let f = (event) => {
+            this.mouse.position.x = event.layerX;
+            this.mouse.position.y = event.layerY;
+            whileMove(event);
+        };
+        let endMove =  () => {
+            this.viewport.offset = {
+                x: this.viewport.offset.x + (this.mouse.position.x - this.mouse.dragStart.x) * this.viewport.screenResolution.dppx(),
+                y: this.viewport.offset.y + (this.mouse.position.y - this.mouse.dragStart.y) * this.viewport.screenResolution.dppx(),
+            };
+            this.mouse.isDown = false;
+            window.removeEventListener('mousemove', f);
+            window.removeEventListener('mouseup', endMove);
+        };
+        target.addEventListener('mousedown', (event) => {
+            this.mouse.isDown = true;
+            this.mouse.dragStart.x = event.layerX;
+            this.mouse.dragStart.y = event.layerY;
+            event.stopPropagation();
+            window.addEventListener('mousemove', f);
+            window.addEventListener('mouseup', endMove);
+        });
+    }
+
     emitEvent(name, data) {
         console.log(name);
         const event = new CustomEvent(`dial-timeline:${name}`, {
@@ -124,7 +160,23 @@ class DialTimeline extends LitElement {
             messageSize: 8,
             messageBorderColor: window.getComputedStyle(this.$timelineContainer).getPropertyValue('--sl-color-neutral-400'),
             messageBorderSelectedColor: window.getComputedStyle(this.$timelineContainer).getPropertyValue('--sl-color-sky-500'),
+            arrowColor: window.getComputedStyle(this.$timelineContainer).getPropertyValue('--sl-color-neutral-800'),
         };
+        this.$canvas.addEventListener('wheel', (event) =>{
+            let y = event.wheelDeltaY  * 0.0002;
+            this.viewport.zoom += y;
+            if (this.viewport.zoom < 0.01) {
+                this.viewport.zoom = 0.01;
+            }
+            if (this.viewport.zoom > 5) {
+                this.viewport.zoom = 5;
+            }
+            event.preventDefault();
+            this.renderCanvas();
+        }, false);
+        this.mouseMoveWhilstDown(this.$canvas, (event) => {
+            this.renderCanvas();
+        });
         this.renderCanvas();
     }
 
@@ -161,8 +213,16 @@ class DialTimeline extends LitElement {
             return;
         }
         let ctx = this.$context;
+        let screenResolutionScale = this.viewport.screenResolution.dppx();
 
         ctx.translate(this.viewport.offset.x, this.viewport.offset.y);
+
+        if(this.mouse.isDown) {
+            ctx.translate(
+                screenResolutionScale * (this.mouse.position.x - this.mouse.dragStart.x),
+                screenResolutionScale * (this.mouse.position.y - this.mouse.dragStart.y)
+            );
+        }
 
 
         let earliestTime = this.findEarliestTime();
@@ -200,9 +260,21 @@ class DialTimeline extends LitElement {
             });
         });
 
+        this.messages.forEach(msg => {
+            if (!(msg.targetAlgorithm in historyBars)) {
+                historyBars[msg.targetAlgorithm] = [
+                    {
+                        start: earliestTime,
+                        end: this.time,
+                        color: "#ffffff"
+                    }
+                ];
+            }
+        });
+
         let barHeight = 50;
         let barSpacing = 0.5 * barHeight;
-        let timeUnitWidth = 60;
+        let timeUnitWidth = 100.0 * this.viewport.zoom;
         let barIndex = 0;
         let addressToIndexMapping = {}
 
@@ -221,21 +293,31 @@ class DialTimeline extends LitElement {
             barIndex += 1;
         });
 
-        console.log(Object.keys(historyBars));
         this.messages.forEach(msg => {
-            console.log(`${msg.sourceAlgorithm} -> ${msg.targetAlgorithm}`);
             let xStart = msg.emitTime * timeUnitWidth;
             let xEnd = msg.receiveTime * timeUnitWidth;
-            let yStart = addressToIndexMapping[msg.sourceAlgorithm] * barHeight + (addressToIndexMapping[msg.sourceAlgorithm] + 1) * barSpacing + 0.5 * barHeight;
-            let yEnd = addressToIndexMapping[msg.targetAlgorithm] * barHeight + (addressToIndexMapping[msg.sourceAlgorithm] + 1) * barSpacing + 0.5 * barHeight;
+            let sourceIndex = addressToIndexMapping[msg.sourceAlgorithm]
+            let targetIndex = addressToIndexMapping[msg.targetAlgorithm]
+            let yStart = (0.5 + sourceIndex) * barHeight + (sourceIndex + 1) * barSpacing;
+            let yEnd = (0.5 + targetIndex) * barHeight + (targetIndex + 1) * barSpacing;
+
+
             if (isNaN(xStart) || isNaN(xEnd) || isNaN(yStart) || isNaN(yEnd)) {
+                console.log("MISSING");
                 return;
             }
+            ctx.lineWidth = 2 * screenResolutionScale;
+            ctx.strokeStyle = this.config.arrowColor;
             ctx.beginPath();
             ctx.moveTo(xStart, yStart);
             ctx.lineTo(xEnd, yEnd);
             ctx.stroke();
-            console.log(`${xStart}/${yStart} -> ${xEnd}/${yEnd}`);
+            ctx.closePath();
+            ctx.arc(xEnd, yEnd, 3 * screenResolutionScale, 0, 2 * Math.PI);
+            ctx.fillStyle = this.config.arrowColor;
+            ctx.fill();
+
+
         });
 
     }
