@@ -132,6 +132,8 @@ class DialMenu extends LitElement {
         this.handleConfigToggleStatistic();
         this.handleConfigToggleMessageFiltering();
         this.handleSelectedViewChange(this.selectedView);
+        this.handleConfigToggleSortTimeline();
+        this.handleConfigToggleReducedTimeline();
     }
 
     setTimeIndicator(time, theta) {

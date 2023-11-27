@@ -232,6 +232,14 @@ class DialSimulator extends LitElement {
             this.$timeline.enableMessageFiltering(e.detail.sourceFiltering, e.detail.targetFiltering);
         });
 
+        document.addEventListener("dial-menu:toggle-sort-timeline", (e) => {
+            this.$timeline.enableTimelineSorting(e.detail.state);
+        });
+
+        document.addEventListener("dial-menu:toggle-reduced-timeline", (e) => {
+            this.$timeline.enableReducedTimeline(e.detail.state);
+        });
+
         document.addEventListener("dial-menu:change-view", (e) => {
             this.selectedView = e.detail.view;
             if(this.selectedView === "graph") {
