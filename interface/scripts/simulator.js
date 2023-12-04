@@ -253,6 +253,33 @@ class DialSimulator extends LitElement {
             }
         });
 
+        document.addEventListener("dial-editor:save", (e) => {
+            let failedToSaveDialog = {
+                title: "Failed to save changes",
+                text: undefined,
+                actions: [this.$dialog.defaultActions.ok]
+            };
+
+            let documentString = e.detail;
+            let documentData = undefined;
+            try {
+                documentData = JSON.parse(documentString);
+            } catch(err) {
+                failedToSaveDialog.text = err.message;
+                this.$dialog.pushDialogToQueue(failedToSaveDialog);
+                this.$dialog.showDialog();
+                return;
+            }
+
+            this.api.put(`message/${documentData.id}`, documentData).then(response => {
+                console.log(response);
+            }).catch(err => {
+                failedToSaveDialog.text = err;
+                this.$dialog.pushDialogToQueue(failedToSaveDialog);
+                this.$dialog.showDialog();
+            });
+        });
+
         document.addEventListener("message:edit", (e) => {
             if(this.$editor.hasUnsavedChanges()) {
                 this.$dialog.pushDialogToQueue(discardUnsavedChangesDialog);
@@ -260,7 +287,7 @@ class DialSimulator extends LitElement {
                 return;
             }
             this.api.get(`message/${e.detail}`).then(response => {
-                this.$editor.setDocument("message/" + e.detail, response)
+                this.$editor.setDocument("message/" + e.detail, response);
             });
         });
 
@@ -275,6 +302,10 @@ class DialSimulator extends LitElement {
         });
 
         document.addEventListener("dial-graph:select-message", (e) => {
+            this.handleSelection(e.detail);
+        });
+
+        document.addEventListener("dial-timeline:select-message", (e) => {
             this.handleSelection(e.detail);
         });
 

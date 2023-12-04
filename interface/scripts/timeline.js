@@ -30,6 +30,7 @@ class DialTimeline extends LitElement {
         this.nodes = [];
         this.colorTransitions = {}
         this.messages = [];
+        this.messageCircles = {};
         this.time = 0;
         this.statisticsEnabled = false;
         this.reducedTimeline = false;
@@ -129,6 +130,7 @@ class DialTimeline extends LitElement {
     }
 
     mouseMoveWhilstDown(target, whileMove) {
+        console.log("asf");
         let f = (event) => {
             this.mouse.position.x = event.layerX;
             this.mouse.position.y = event.layerY;
@@ -219,6 +221,25 @@ class DialTimeline extends LitElement {
             }
         });
         return t;
+    }
+
+    onClick(event) {
+        let screenResolutionScale = this.viewport.screenResolution.dppx();
+        const clickPos = new Victor(event.clientX, event.clientY);
+        let selectedMessages = [];
+        this.messages.forEach(msg => {
+            const circle = this.messageCircles[msg.id];
+            if (circle === undefined) {
+                return;
+            }
+            const centerPos = new Victor(circle.x, circle.y);
+            const distance = centerPos.distance(clickPos);
+            msg.selected = distance <= circle.radius;
+            if(msg.selected) {
+                selectedMessages.push(msg.messageId);
+            }
+        });
+        this.emitEvent("select-message", selectedMessages);
     }
 
     drawCanvas() {
@@ -334,10 +355,11 @@ class DialTimeline extends LitElement {
             });
             ctx.font = "30px Arial";
             ctx.fillStyle = this.config.messageBorderColor;
-            ctx.fillText(address, 20, yPos + 2*barHeight/3);
+            ctx.fillText(address,  20, yPos + 2*barHeight/3);
             barIndex += 1;
         });
 
+        this.messageCircles = [];
         this.messages.forEach(msg => {
             let xStart = msg.emitTime * timeUnitWidth;
             let xEnd = msg.receiveTime * timeUnitWidth;
@@ -412,6 +434,13 @@ class DialTimeline extends LitElement {
                 }
                 radius += 5 * screenResolutionScale;
 
+                this.messageCircles[msg.id] = {
+                    id: msg.id,
+                    x: position.x,
+                    y: position.y,
+                    radius: radius
+                };
+
 
                 ctx.beginPath();
                 ctx.arc(position.x, position.y, radius, 0, 2 * Math.PI);
@@ -462,7 +491,7 @@ class DialTimeline extends LitElement {
     render() {
         return html`
             <div id="timeline-container">
-                <canvas id="timeline-canvas"></canvas>
+                <canvas id="timeline-canvas" @click=${(event) => {this.onClick(event);}}></canvas>
             </div>
         `;
     }

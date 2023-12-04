@@ -4,6 +4,7 @@ import os
 import sys
 
 import math
+import uuid
 from enum import Enum
 from typing import Tuple
 
@@ -136,6 +137,9 @@ class API:
         if message is None:
             return self.response(status=404, response=f'No message with ID "{message_id}"')
         new_values: dict[str, any] = request.get_json()
+        for key in new_values.keys():
+            if key not in list(message.summary().keys()) + ["data"]:
+                return self.response(status=300, response=f'Invalid attribute message.{key}')
         changes: dict[str, any] = {}
         if "title" in new_values.keys():
             if not isinstance(new_values["title"], str):
@@ -146,31 +150,66 @@ class API:
             if color is None:
                 return self.response(status=300, response=f'Failed to parse attribute message.color')
             changes["color"] = color
-        for address_key in ["target_address", "source_address"]:
+        for address_key in ["target", "source"]:
             if address_key in new_values.keys():
                 address = Address.from_string(new_values[address_key])
                 if address is None:
                     return self.response(status=300, response=f'Failed to parse attribute message."{address_key}"')
-                changes[address_key] = address
+                changes[address_key + "_address"] = address
         if "data" in new_values.keys():
             if not isinstance(new_values["data"], dict):
                 return self.response(status=300, response=f'message.data must be of type dict[str, any]')
             if not all(isinstance(elem, str) for elem in new_values["data"].keys()):
                 return self.response(status=300, response=f'message.data must be of type dict[str, any]')
             changes["data"] = new_values["data"]
-        for key in new_values.keys():
-            if key not in ["data", "title", "color", "target_address", "source_address"]:
-                return self.response(status=300, response=f'Invalid attribute message.{key}')
-        if "data" in changes.keys():
-            message.data = changes["data"]
-        if "color" in changes.keys():
-            message.color = changes["color"]
-        if "title" in changes.keys():
-            message.title = changes["title"]
-        if "target_address" in changes.keys():
-            message.target_address = changes["target_address"]
-        if "source_address" in changes.keys():
-            message.source_address = changes["source_address"]
+        if "parent" in new_values.keys():
+            parent = new_values["parent"]
+            if not isinstance(parent, str):
+                return self.response(status=300, response=f'Attribute message.parent must be a string')
+            if parent == "None":
+                changes["parent"] = None
+            else:
+                try:
+                    changes["parent"] = uuid.UUID(parent)
+                except:
+                    return self.response(status=300, response=f'Attribute message.parent must be a valid UUID4')
+        # CHILDREN
+        for attribute in ["creation_time", "creation_theta", "arrival_time", "arrival_theta", "self_message_delay"]:
+            if attribute in new_values.keys():
+                if not isinstance(new_values[attribute], int):
+                    return self.response(status=300, response=f'Attribute message.{attribute} must be an integer')
+                if attribute in ["creation_theta", "arrival_theta", "self_message_delay"]:
+                    if new_values[attribute] < 0:
+                        return self.response(status=300, response=f'Attribute message.{attribute} must be >= 0')
+                changes[attribute] = new_values[attribute]
+        for attribute in ["self_message", "is_lost"]:
+            if attribute not in new_values.keys():
+                continue
+            if isinstance(new_values[attribute], str):
+                if new_values[attribute] == "True":
+                    changes[attribute] = True
+                elif new_values[attribute] == "False":
+                    changes[attribute] = False
+                else:
+                    return self.response(status=300, response=f'Attribute message.{attribute} must be either "True" or "False"')
+            if isinstance(new_values[attribute], bool):
+                changes[attribute] = new_values[attribute]
+
+
+        if "arrival_time" in changes.keys() or "arrival_theta" in changes.keys():
+            both_parameters_set = "arrival_time" in changes.keys() and "arrival_theta" in changes.keys()
+            if not both_parameters_set:
+                return self.response(status=300, response=f'To reschedule a message both message.arrival_theta and arrival_time must be set.')
+            reschedule_result = self.get_reschedule(message_id=message_id, time_str=changes["arrival_time"], theta_str=changes["arrival_theta"])
+            if reschedule_result.status_code != 200:
+                return reschedule_result
+
+        for key in changes.keys():
+            private_variable_prefix = "_"
+            if key in ["source_address", "target_address", "color", "title", "data"]:
+                private_variable_prefix = ""
+            setattr(message, private_variable_prefix + key, changes[key])
+
         return self.response(status=200, response=message.to_json())
 
     def get_reschedule(self, message_id: str, time_str: str, theta_str: str):

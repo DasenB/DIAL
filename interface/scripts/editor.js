@@ -80,6 +80,37 @@ class DialEditor extends LitElement {
         return originalString !== documentString;
     }
 
+    saveDocument() {
+        let hasChanges = this.hasUnsavedChanges();
+        if(!hasChanges) {
+            return;
+        }
+
+        let documentString = undefined;
+        try {
+            let document = this.codemirror.getDoc();
+            documentString = document.getValue();
+        } catch (err) {
+            // This error seems to have no effect. This is just to silence it.
+        }
+        if(documentString === undefined) {
+            return;
+        }
+        this.emitEvent("save", documentString);
+
+    }
+
+    emitEvent(name, data) {
+        console.log(name);
+        const event = new CustomEvent(`dial-editor:${name}`, {
+            detail: data,
+            bubbles: true,
+            composed: true,
+            cancelable: true,
+        });
+        this.dispatchEvent(event);
+    }
+
 
     static styles = css`
       :host {
@@ -151,7 +182,7 @@ class DialEditor extends LitElement {
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/dracula.min.css">
             <div id="menu">
                 <sl-tooltip placement="right" content="Save">
-                    <sl-button variant="default" ?disabled=${disableButtons} outline><sl-icon name="floppy" label="Save"></sl-icon></sl-button>
+                    <sl-button variant="default" ?disabled=${disableButtons} @click=${this.saveDocument} outline><sl-icon name="floppy" label="Save"></sl-icon></sl-button>
                 </sl-tooltip>
                 <sl-tooltip placement="right" content="Discard">
                     <sl-button variant="default" ?disabled=${disableButtons} outline  @click=${this.closeDocument}><sl-icon name="x-lg" label="Discard"></sl-icon></sl-button>
