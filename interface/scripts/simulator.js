@@ -253,6 +253,16 @@ class DialSimulator extends LitElement {
             }
         });
 
+        document.addEventListener("dial-editor:parse-error", (e) => {
+            let failedToParseJson = {
+                title: "Failed to save changes",
+                text: e.detail.message,
+                actions: [this.$dialog.defaultActions.ok]
+            };
+            this.$dialog.pushDialogToQueue(failedToParseJson);
+            this.$dialog.showDialog();
+        });
+
         document.addEventListener("dial-editor:save", (e) => {
             let failedToSaveDialog = {
                 title: "Failed to save changes",
@@ -272,7 +282,7 @@ class DialSimulator extends LitElement {
             }
 
             this.api.put(`message/${documentData.id}`, documentData).then(response => {
-                console.log(response);
+                this.updateView();
             }).catch(err => {
                 failedToSaveDialog.text = err;
                 this.$dialog.pushDialogToQueue(failedToSaveDialog);

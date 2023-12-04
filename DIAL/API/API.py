@@ -173,7 +173,13 @@ class API:
                     changes["parent"] = uuid.UUID(parent)
                 except:
                     return self.response(status=300, response=f'Attribute message.parent must be a valid UUID4')
-        # CHILDREN
+            time_values = list(self.simulator.messages.keys())
+            time_values.sort()
+        if "children" in new_values.keys():
+            if isinstance(new_values["children"], list):
+                if set(new_values["children"]) != set(message._child_messages):
+                    return self.response(status=300, response=f'Modifying message.children is not allowed.')
+
         for attribute in ["creation_time", "creation_theta", "arrival_time", "arrival_theta", "self_message_delay"]:
             if attribute in new_values.keys():
                 if not isinstance(new_values[attribute], int):
@@ -195,14 +201,53 @@ class API:
             if isinstance(new_values[attribute], bool):
                 changes[attribute] = new_values[attribute]
 
+        creation_time = message._creation_time
+        creation_theta = message._creation_theta
+        if "creation_time" in changes.keys():
+            creation_time = changes["creation_time"]
+        if "creation_theta" in changes.keys():
+            creation_theta = changes["creation_theta"]
+
+        if "parent" in changes.keys():
+            if changes["parent"] is not None:
+                parent_mismatch_response = self.response(status=300, response=f'No parent message with given id exists matching message.creation_time and message.creation_theta')
+                if creation_time not in self.simulator.messages.keys():
+                    return parent_mismatch_response
+                if len(self.simulator.messages[creation_time]) <= creation_theta:
+                    return parent_mismatch_response
+                if str(self.simulator.messages[creation_time][creation_theta]._id) != str(changes["parent"]):
+                    return parent_mismatch_response
 
         if "arrival_time" in changes.keys() or "arrival_theta" in changes.keys():
             both_parameters_set = "arrival_time" in changes.keys() and "arrival_theta" in changes.keys()
             if not both_parameters_set:
                 return self.response(status=300, response=f'To reschedule a message both message.arrival_theta and arrival_time must be set.')
+            if creation_time > changes["arrival_time"] or (creation_time == changes["arrival_time"] and creation_theta >= changes["arrival_theta"]):
+                return self.response(status=300, response=f'The message can not be received before it was created.')
             reschedule_result = self.get_reschedule(message_id=message_id, time_str=changes["arrival_time"], theta_str=changes["arrival_theta"])
             if reschedule_result.status_code != 200:
                 return reschedule_result
+
+        if "parent" in changes.keys():
+            if str(changes["parent"]) != str(message._parent_message):
+                if message._parent_message is not None:
+                    old_parent = self.simulator.get_message(str(message._parent_message))
+                    if message._id in old_parent._child_messages:
+                        old_parent._child_messages.remove(message._id)
+                if changes["parent"] is not None:
+                    new_parent = self.simulator.get_message(str(changes["parent"]))
+                    if changes["parent"] not in new_parent._child_messages:
+                        new_parent._child_messages.append(message._id)
+
+        if "self_message" in changes.keys():
+            changes["is_self_message"] = changes["self_message"]
+            del changes["self_message"]
+        if "parent" in changes.keys():
+            changes["parent_message"] = changes["parent"]
+            del changes["parent"]
+        if "children" in changes.keys():
+            changes["child_messages"] = changes["children"]
+            del changes["children"]
 
         for key in changes.keys():
             private_variable_prefix = "_"

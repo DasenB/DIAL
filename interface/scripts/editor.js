@@ -14,17 +14,19 @@ class DialEditor extends LitElement {
         data: {
             state: true,
             type: String
-        },
+        }
     };
 
     constructor() {
         super();
         this.location = undefined;
         this.data = undefined;
+        this.unsavedChanges = false;
     }
 
     firstUpdated() {
         this.$editorDiv = this.renderRoot.querySelector("#editor");
+        this.$saveButton = this.renderRoot.querySelector("#saveButton");
         this.codemirror = CodeMirror(this.$editorDiv, {
             value: "No document selected",
             mode:  {name: "javascript", json: true},
@@ -37,6 +39,7 @@ class DialEditor extends LitElement {
             autocapitalize: false,
             readOnly: true
         });
+        this.codemirror.on("change", () => {this.updateSaveButton();});
         this.noDocument = this.codemirror.getDoc();
     }
 
@@ -50,6 +53,8 @@ class DialEditor extends LitElement {
         this.location = undefined;
         this.data = undefined;
         this.codemirror.setOption("readOnly", true);
+        this.codemirror.refresh();
+        this.updateSaveButton();
     }
 
     updated() {
@@ -76,9 +81,13 @@ class DialEditor extends LitElement {
         } catch (err) {
             // This error seems to have no effect. This is just to silence it.
         }
-
         return originalString !== documentString;
     }
+
+    updateSaveButton() {
+        this.$saveButton.disabled = !this.hasUnsavedChanges();
+    }
+
 
     saveDocument() {
         let hasChanges = this.hasUnsavedChanges();
@@ -96,8 +105,14 @@ class DialEditor extends LitElement {
         if(documentString === undefined) {
             return;
         }
+        try {
+            this.data = JSON.parse(documentString)
+        } catch (err) {
+            this.emitEvent("parse-error", err);
+            return;
+        }
         this.emitEvent("save", documentString);
-
+        this.updateSaveButton();
     }
 
     emitEvent(name, data) {
@@ -175,17 +190,18 @@ class DialEditor extends LitElement {
     render() {
         // this.codemirror.refresh();
 
-        let disableButtons = this.data === undefined;
+        let disableCloseButton = this.data === undefined;
+        let disableSaveButton = this.data === undefined || !this.unsavedChanges;
 
         return html`
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/dracula.min.css">
             <div id="menu">
                 <sl-tooltip placement="right" content="Save">
-                    <sl-button variant="default" ?disabled=${disableButtons} @click=${this.saveDocument} outline><sl-icon name="floppy" label="Save"></sl-icon></sl-button>
+                    <sl-button id="saveButton" variant="default" ?disabled=${disableSaveButton} @click=${this.saveDocument} outline><sl-icon name="floppy" label="Save"></sl-icon></sl-button>
                 </sl-tooltip>
                 <sl-tooltip placement="right" content="Discard">
-                    <sl-button variant="default" ?disabled=${disableButtons} outline  @click=${this.closeDocument}><sl-icon name="x-lg" label="Discard"></sl-icon></sl-button>
+                    <sl-button variant="default" ?disabled=${disableCloseButton} outline  @click=${this.closeDocument}><sl-icon name="x-lg" label="Discard"></sl-icon></sl-button>
                 </sl-tooltip>
             </div>
             <div id="editor"></div>
