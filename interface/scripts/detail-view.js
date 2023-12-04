@@ -7,6 +7,10 @@ class DialDetailView extends LitElement {
             state: true,
             hashChanged: () => {return true;}
         },
+        states: {
+          state: true,
+          hashChanged: () => {return true;}
+        },
         time: {
             state: true,
             hashChanged: (newTime, oldTime) => {
@@ -207,7 +211,7 @@ class DialDetailView extends LitElement {
             messageView.push(cardGroup);
         });
 
-        const stateView = html`
+        let stateView = html`
             <dial-card-group headline="flooding/example1">
                 <dial-state></dial-state>
                 <dial-state></dial-state>
@@ -218,6 +222,48 @@ class DialDetailView extends LitElement {
                 <dial-state></dial-state>
             </dial-card-group>
         `
+        stateView =  [];
+
+        let states = {};
+
+        if(this.states.colors !== undefined) {
+            Object.keys(this.states.colors).forEach(time => {
+                Object.keys(this.states.colors[time]).forEach(instanceAddress => {
+                    let splitAddress = instanceAddress.split("/");
+                    let stateGroup = splitAddress[1] + "/" + splitAddress[2];
+                    if (states[stateGroup] === undefined) {
+                      states[stateGroup] = {};
+                    }
+                    let neighborString = this.states.neighbors[time][instanceAddress].replace(/'/g, '"');
+                    states[stateGroup][splitAddress[0]] = {
+                        address: instanceAddress,
+                        color: this.states.colors[time][instanceAddress],
+                        neighbors: JSON.parse(neighborString)
+                    }
+                });
+            });
+        }
+
+        console.log(states);
+        Object.keys(states).forEach(stateAddress => {
+            let stateElements = [];
+            Object.keys(states[stateAddress]).forEach(node => {
+                let address = states[stateAddress][node].address;
+                let color = states[stateAddress][node].color;
+                let neighbors = states[stateAddress][node].neighbors;
+                stateElements.push(html`
+                <dial-state color="${color}" address="${address}" neighbors="${JSON.stringify(neighbors)}"></dial-state>
+                `);
+            });
+
+            let cardGroup = html`
+               <dial-card-group headline="${stateAddress}">
+                   ${stateElements}
+               </dial-card-group>
+            `;
+            stateView.push(cardGroup);
+        });
+
         return html`
             <sl-tab-group>
                 <sl-tab slot="nav" panel="general">Messages</sl-tab>

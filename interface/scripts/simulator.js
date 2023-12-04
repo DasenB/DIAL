@@ -263,7 +263,7 @@ class DialSimulator extends LitElement {
             this.$dialog.showDialog();
         });
 
-        document.addEventListener("dial-editor:save", (e) => {
+        document.addEventListener("dial-editor:save-message", (e) => {
             let failedToSaveDialog = {
                 title: "Failed to save changes",
                 text: undefined,

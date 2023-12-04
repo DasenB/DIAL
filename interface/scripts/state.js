@@ -3,11 +3,22 @@ import {css, html, LitElement} from '../libraries/lit-core.js';
 class DialState extends LitElement {
 
     static properties = {
-
+        address: {
+            type: String
+        },
+        color: {
+            type: String
+        },
+        neighbors: {
+            type: Array
+        },
     };
 
     constructor() {
         super();
+        this.address = "Node/Algorithm/Instance";
+        this.color = "#ffffff";
+        this.neighbors = [];
     }
 
 
@@ -57,45 +68,42 @@ class DialState extends LitElement {
         border-top-width: 10px;
       }
 
-      sl-tag {
-        margin-top: 5px;
+      td > sl-tag {
+        margin-top: 0px;
         margin-bottom: 0px;
-        margin-left: 0px;
+        margin-left: 5px;
         margin-right: 0px;
       }
       
     `;
 
     render() {
-        var randomColor = Math.floor(Math.random()*16777215).toString(16);
-
         return html`
             <style>
                 .color-circle {
-                    background-color: #${randomColor};
+                    background-color: ${this.color};
                 }
             </style>
             
             <sl-card id="state-card">
                 <div slot="header">
                     <div class="color-circle"></div>
-                    <sl-tag variant="primary">A/flooding/example_instance</sl-tag>
+                    <sl-tag variant="primary">Node ${this.address.split("/")[0]}</sl-tag>
                     <div>
-                        <sl-tooltip placement="bottom" content="Highlight Node">
+                        <sl-tooltip placement="bottom" content="Highlight State">
                             <sl-icon-button name="binoculars" label="Highlight"></sl-icon-button>
                         </sl-tooltip>
-                        <sl-tooltip placement="bottom" content="Edit state">
+                        <sl-tooltip placement="bottom" content="Edit State">
                             <sl-icon-button name="pencil" label="Edit"></sl-icon-button>
                         </sl-tooltip>
                     </div>
                 </div>
                 <table>
-                    <tr><th>Address</th><td>A/flooding/example_instance</td></tr>
+                    <tr><th>Address</th><td>${this.address}</td></tr>
                     <tr><th>Neighbors</th><td>
-                        <sl-tag>Node A</sl-tag>
-                        <sl-tag>Node Start</sl-tag>
-                        <sl-tag>Node Example</sl-tag>
-                        <sl-tag>Node A Really Long Node Name</sl-tag>
+                        ${this.neighbors.map((neighbor) =>
+                                html`<sl-tag>${neighbor}</sl-tag>`
+                        )}
                     </td></tr>
                 </table>
             </sl-card>
