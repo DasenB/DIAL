@@ -25,7 +25,7 @@ class DialState extends LitElement {
 
     static styles = css`
       :host {
-        
+        width: 100%;
       }
 
       #state-card {

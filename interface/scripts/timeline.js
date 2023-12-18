@@ -102,16 +102,25 @@ class DialTimeline extends LitElement {
 
     enableTimelineSorting(value) {
         this.timelineSorting = value;
-        this.drawCanvas();
+        this.renderCanvas();
     }
 
     enableReducedTimeline(value) {
         this.reducedTimeline = value;
-        this.drawCanvas();
+        this.renderCanvas();
     }
 
 
     setMessages(messages) {
+        if(this.messages.length === 0) {
+            let earliestEmitTime = Number.POSITIVE_INFINITY;
+            messages.forEach(msg => {
+                if (msg.emitTime < earliestEmitTime) {
+                    earliestEmitTime = msg.emitTime;
+                }
+            });
+            this.viewport.offset.x = 100.0 * this.viewport.zoom * -1 * earliestEmitTime;
+        }
         this.messages = messages;
         this.messages.sort(
             function(a, b) {
@@ -130,25 +139,28 @@ class DialTimeline extends LitElement {
     }
 
     mouseMoveWhilstDown(target, whileMove) {
-        console.log("asf");
         let f = (event) => {
-            this.mouse.position.x = event.layerX;
-            this.mouse.position.y = event.layerY;
+            this.mouse.position.x = event.pageX;
+            this.mouse.position.y = event.pageY;
             whileMove(event);
         };
-        let endMove =  () => {
+        let endMove =  (event) => {
+            this.mouse.isDown = false;
+            window.removeEventListener('mousemove', f);
+            window.removeEventListener('mouseup', endMove);
+            if (event.pageX === this.mouse.dragStart.x && event.pageY === this.mouse.dragStart.y) {
+                return;
+            }
             this.viewport.offset = {
                 x: this.viewport.offset.x + (this.mouse.position.x - this.mouse.dragStart.x) * this.viewport.screenResolution.dppx(),
                 y: this.viewport.offset.y + (this.mouse.position.y - this.mouse.dragStart.y) * this.viewport.screenResolution.dppx(),
             };
-            this.mouse.isDown = false;
-            window.removeEventListener('mousemove', f);
-            window.removeEventListener('mouseup', endMove);
         };
         target.addEventListener('mousedown', (event) => {
             this.mouse.isDown = true;
-            this.mouse.dragStart.x = event.layerX;
-            this.mouse.dragStart.y = event.layerY;
+            this.mouse.dragStart.x = event.pageX;
+            this.mouse.dragStart.y = event.pageY;
+            f(event);
             event.stopPropagation();
             window.addEventListener('mousemove', f);
             window.addEventListener('mouseup', endMove);
@@ -173,10 +185,17 @@ class DialTimeline extends LitElement {
         this.$context = this.$canvas.getContext("2d");
         this.config = {
             messageSize: 10,
+            borderWidthSelected: 3,
             messageBorderColor: window.getComputedStyle(this.$timelineContainer).getPropertyValue('--sl-color-neutral-400'),
             messageBorderSelectedColor: window.getComputedStyle(this.$timelineContainer).getPropertyValue('--sl-color-sky-500'),
             arrowColor: window.getComputedStyle(this.$timelineContainer).getPropertyValue('--sl-color-neutral-800'),
         };
+        window.addEventListener("resize", () => {
+            this.renderCanvas();
+        });
+        window.addEventListener("sl-reposition", () => {
+            this.renderCanvas();
+        });
         this.$canvas.addEventListener('wheel', (event) =>{
             let y = event.wheelDeltaY  * 0.0002;
             this.viewport.zoom += y;
@@ -225,10 +244,12 @@ class DialTimeline extends LitElement {
 
     onClick(event) {
         let screenResolutionScale = this.viewport.screenResolution.dppx();
-        const clickPos = new Victor(event.clientX, event.clientY);
+        const clickPos = new Victor(
+            event.clientX * screenResolutionScale - this.viewport.offset.x,
+            event.clientY * screenResolutionScale - this.viewport.offset.y);
         let selectedMessages = [];
         this.messages.forEach(msg => {
-            const circle = this.messageCircles[msg.id];
+            const circle = this.messageCircles[msg.messageId];
             if (circle === undefined) {
                 return;
             }
@@ -240,6 +261,81 @@ class DialTimeline extends LitElement {
             }
         });
         this.emitEvent("select-message", selectedMessages);
+    }
+
+    drawStatistics(context) {
+        let statistics = {
+            total_received_messages: 0,
+            total_send_messages: 0,
+            total_pending_messages: 0,
+            selected_received_messages: 0,
+            selected_send_messages: 0,
+            selected_pending_messages: 0,
+        };
+
+        this.messages.forEach(msg => {
+            let wasSend = msg.emitTime < this.time || (msg.emitTime === this.time && msg.emitTheta < msg.theta);
+            let wasReceived = msg.receiveTime < this.time || (msg.receiveTime === this.time && msg.receiveTheta < msg.theta);
+            let isPending = wasSend && !wasReceived;
+            let sourceAlgorithmSelected = msg.sourceAlgorithm.endsWith("/" + this.selectedAlgorithm);
+            let targetAlgorithmSelected = msg.targetAlgorithm.endsWith("/" + this.selectedAlgorithm);
+
+            if(wasSend) {
+                statistics.total_send_messages += 1;
+            }
+            if(wasReceived) {
+                statistics.total_received_messages += 1;
+            }
+            if(isPending) {
+                statistics.total_pending_messages += 1;
+            }
+
+            if(wasSend && sourceAlgorithmSelected) {
+                statistics.selected_send_messages += 1;
+            }
+            if(wasReceived && targetAlgorithmSelected) {
+                statistics.selected_received_messages += 1;
+            }
+            if(isPending && targetAlgorithmSelected) {
+                statistics.selected_pending_messages += 1;
+            }
+        });
+
+        let fontSize = 15;
+        if(this.viewport.screenResolution.dpi() >= 150) {
+            fontSize *= 2;
+        }
+
+        let lineHeight = fontSize + 10;
+        let pos = {
+            x: 20,
+            y: lineHeight,
+        };
+        let width = 480;
+        let numberOffset = 10;
+
+        this.$context.setTransform();
+        this.$context.fillStyle = "rgba(0, 0, 0, 0.8)";
+        this.$context.fillRect(0, 0, width, 10 * lineHeight);
+        this.$context.font = `${fontSize}px Courier New`;
+        this.$context.fillStyle = "#f2f2f2";
+        this.$context.fillText("All Algorithms:", pos.x, pos.y + lineHeight * 0);
+        this.$context.fillText("  Send Messages:", pos.x, pos.y + lineHeight * 1);
+        this.$context.fillText("  Received Messages:", pos.x, pos.y + lineHeight * 2);
+        this.$context.fillText("  Pending Messages:", pos.x, pos.y + lineHeight * 3);
+        this.$context.fillText("Selected Algorithm:", pos.x, pos.y + lineHeight * 5);
+        this.$context.fillText("  Send Messages:", pos.x, pos.y + lineHeight * 6);
+        this.$context.fillText("  Received Messages:", pos.x, pos.y + lineHeight * 7);
+        this.$context.fillText("  Pending Messages:", pos.x, pos.y + lineHeight * 8);
+        // Which Algorithm is a message pending for with source:AlgoX, target:AlgoY??? (target??..!)
+
+        this.$context.textAlign = "right";
+        this.$context.fillText(statistics.total_send_messages, width - numberOffset, pos.y + lineHeight * 1);
+        this.$context.fillText(statistics.total_received_messages, width - numberOffset, pos.y + lineHeight * 2);
+        this.$context.fillText(statistics.total_pending_messages, width - numberOffset, pos.y + lineHeight * 3);
+        this.$context.fillText(statistics.selected_send_messages, width - numberOffset, pos.y + lineHeight * 6);
+        this.$context.fillText(statistics.selected_received_messages, width - numberOffset, pos.y + lineHeight * 7);
+        this.$context.fillText(statistics.selected_pending_messages, width - numberOffset, pos.y + lineHeight * 8);
     }
 
     drawCanvas() {
@@ -378,6 +474,9 @@ class DialTimeline extends LitElement {
             if (isNaN(xStart) || isNaN(xEnd) || isNaN(yStart) || isNaN(yEnd)) {
                 return;
             }
+            if(this.time < msg.emitTime) {
+                return;
+            }
 
             let startVector = new Victor(xStart, yStart);
             let endVector = new Victor(xEnd, yEnd);
@@ -433,27 +532,30 @@ class DialTimeline extends LitElement {
                     radius = this.config.messageSize * screenResolutionScale;
                 }
                 radius += 5 * screenResolutionScale;
-
-                this.messageCircles[msg.id] = {
-                    id: msg.id,
+                this.messageCircles[msg.messageId] = {
+                    id: msg.messageId,
                     x: position.x,
                     y: position.y,
                     radius: radius
                 };
 
-
                 ctx.beginPath();
                 ctx.arc(position.x, position.y, radius, 0, 2 * Math.PI);
                 ctx.fillStyle = msg.color;
                 ctx.fill();
-                ctx.lineWidth = 1 * screenResolutionScale;
-                ctx.strokeStyle = this.config.messageBorderColor;
                 if(msg.isLost) {
                     ctx.strokeStyle = this.config.messageBorderColor;
                     ctx.moveTo(position.x + Math.cos(0.25 * Math.PI) * radius, position.y + Math.sin(0.25 * Math.PI) * radius);
                     ctx.lineTo(position.x + Math.cos(1.25 * Math.PI) * radius, position.y + Math.sin(1.25 * Math.PI) * radius);
                     ctx.moveTo(position.x + Math.cos(0.75 * Math.PI) * radius, position.y + Math.sin(0.75 * Math.PI) * radius);
                     ctx.lineTo(position.x + Math.cos(1.75 * Math.PI) * radius, position.y + Math.sin(1.75 * Math.PI) * radius);
+                }
+                if(msg.selected) {
+                    ctx.strokeStyle = this.config.messageBorderSelectedColor;
+                    ctx.lineWidth = this.config.borderWidthSelected * screenResolutionScale;
+                } else {
+                    ctx.strokeStyle = this.config.messageBorderColor;
+                    ctx.lineWidth = 1 * screenResolutionScale
                 }
                 ctx.stroke();
                 ctx.closePath();
@@ -473,19 +575,11 @@ class DialTimeline extends LitElement {
         this.$canvas.width  = Math.ceil(this.$canvas.offsetWidth * this.viewport.screenResolution.dppx());
         this.$canvas.height = Math.ceil(this.$canvas.offsetHeight * this.viewport.screenResolution.dppx());
 
-        // Calculate Viewport
         this.drawCanvas();
 
-        // Calculate Clipping
-
-        // Calculate StateBars
-        // Draw StateBars
-
-        // Calculate MessageArrows
-        // Calculate MessageCircles
-        // Draw Arrows
-        // Draw Circles
-        // requestAnimationFrame(() => {this.renderCanvas();});
+        if(this.statisticsEnabled) {
+            this.drawStatistics();
+        }
     }
 
     render() {

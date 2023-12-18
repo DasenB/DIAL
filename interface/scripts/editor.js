@@ -131,6 +131,10 @@ class DialEditor extends LitElement {
         this.dispatchEvent(event);
     }
 
+    addMessage() {
+        console.log("Add message");
+    }
+
 
     static styles = css`
       :host {
@@ -197,16 +201,21 @@ class DialEditor extends LitElement {
 
         let disableCloseButton = this.data === undefined;
         let disableSaveButton = this.data === undefined || !this.unsavedChanges;
+        let disableAddButton = disableSaveButton;
+        console.log(disableAddButton);
 
         return html`
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/dracula.min.css">
             <div id="menu">
                 <sl-tooltip placement="right" content="Save">
-                    <sl-button id="saveButton" variant="default" ?disabled=${disableSaveButton} @click=${this.saveDocument} outline><sl-icon name="floppy" label="Save"></sl-icon></sl-button>
+                    <sl-button id="saveButt2on" variant="default" ?disabled=${disableSaveButton} @click=${this.saveDocument} outline><sl-icon name="floppy" label="Save"></sl-icon></sl-button>
                 </sl-tooltip>
                 <sl-tooltip placement="right" content="Discard">
                     <sl-button variant="default" ?disabled=${disableCloseButton} outline  @click=${this.closeDocument}><sl-icon name="x-lg" label="Discard"></sl-icon></sl-button>
+                </sl-tooltip>
+                <sl-tooltip placement="right" content="Add Message">
+                    <sl-button variant="default" ?disabled=${disableAddButton} outline  @click=${this.addMessage}><sl-icon name="plus-circle" label="Add Message"></sl-icon></sl-button>
                 </sl-tooltip>
             </div>
             <div id="editor"></div>

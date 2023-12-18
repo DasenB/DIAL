@@ -244,7 +244,6 @@ class DialDetailView extends LitElement {
             });
         }
 
-        console.log(states);
         Object.keys(states).forEach(stateAddress => {
             let stateElements = [];
             Object.keys(states[stateAddress]).forEach(node => {
