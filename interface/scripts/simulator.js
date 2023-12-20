@@ -263,6 +263,34 @@ class DialSimulator extends LitElement {
             this.$dialog.showDialog();
         });
 
+        document.addEventListener("dial-editor:add-message", (e) => {
+            let failedToCreateDialog = {
+                title: "Failed to create message",
+                text: undefined,
+                actions: [this.$dialog.defaultActions.ok]
+            };
+
+            let documentString = e.detail;
+            let documentData = undefined;
+            try {
+                documentData = JSON.parse(documentString);
+            } catch(err) {
+                failedToCreateDialog.text = err.message;
+                this.$dialog.pushDialogToQueue(failedToCreateDialog);
+                this.$dialog.showDialog();
+                return;
+            }
+
+            this.api.post(`message`, documentData).then(response => {
+                this.updateView();
+            }).catch(err => {
+                failedToCreateDialog.text = err;
+                this.$dialog.pushDialogToQueue(failedToCreateDialog);
+                this.$dialog.showDialog();
+            });
+        });
+
+
         document.addEventListener("dial-editor:save-message", (e) => {
             let failedToSaveDialog = {
                 title: "Failed to save changes",

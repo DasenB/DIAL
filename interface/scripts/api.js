@@ -49,6 +49,27 @@ export class API {
         });
     }
 
+    post(path, data) {
+        const url = `https://${this.host}:${this.port}/${path}`;
+        return new Promise((resolve, reject) => {
+            fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(data),
+            }).then((response) => {
+                response.json().then((body) => {
+                    response.ok ? resolve(body) : reject(body)
+                })
+            }).catch((error) => {
+                this.emitEvent("no-connection-to-backend", error);
+                reject(error);
+            });
+        });
+    }
+
+
     del(path) {
         const url = `https://${this.host}:${this.port}/${path}`;
         return new Promise((resolve, reject) => {

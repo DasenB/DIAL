@@ -45,6 +45,7 @@ class API:
         self.api.route('/reset', methods=['GET'])(self.get_reset)
 
         self.api.route('/messages', methods=['GET'])(self.get_messages)
+        self.api.route('/message', methods=['POST'])(self.add_message)
         self.api.route('/message/<message_id>', methods=['GET'])(self.get_message)
         self.api.route('/message/<message_id>', methods=['DELETE'])(self.del_message)
         self.api.route('/message/<message_id>', methods=['PUT'])(self.put_message)
@@ -131,6 +132,29 @@ class API:
         if len(self.simulator.messages[time]) == 0:
             del self.simulator.messages[time]
         return self.response(status=200, response=f'OK')
+
+    def add_message(self):
+        new_values: dict[str, any] = request.get_json()
+
+        if "target" not in new_values.keys():
+            return self.response(status=400, response=f'message.target is not set.')
+        target = Address.from_string(new_values["target"])
+        if target is None:
+            return self.response(status=400, response=f'message.target is not a valid address.')
+        if not self.simulator.topology.has_node(target.node_name):
+            return self.response(status=400, response=f'message.target has invalid node.')
+        if not self.simulator.topology.has_node(target.node_name):
+            return self.response(status=400, response=f'message.target has invalid node.')
+
+        target_address = new_values["target"]
+        source_address = new_values["source"]
+        title = new_values["title"]
+        color = new_values["color"]
+        data = new_values["data"]
+        message = Message(target_address, source_address, title, color, data)
+        # self.simulator.insert_message_to_queue(message)
+        return self.response(status=300, response=f'Not implemented')
+    
 
     def put_message(self, message_id: str):
         message = self.simulator.get_message(message_id)

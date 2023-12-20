@@ -27,6 +27,7 @@ class DialEditor extends LitElement {
     firstUpdated() {
         this.$editorDiv = this.renderRoot.querySelector("#editor");
         this.$saveButton = this.renderRoot.querySelector("#saveButton");
+        this.$addButton = this.renderRoot.querySelector("#addButton");
         this.codemirror = CodeMirror(this.$editorDiv, {
             value: "No document selected",
             mode:  {name: "javascript", json: true},
@@ -39,7 +40,7 @@ class DialEditor extends LitElement {
             autocapitalize: false,
             readOnly: true
         });
-        this.codemirror.on("change", () => {this.updateSaveButton();});
+        this.codemirror.on("change", () => {this.updateButtons();});
         this.noDocument = this.codemirror.getDoc();
     }
 
@@ -54,7 +55,7 @@ class DialEditor extends LitElement {
         this.data = undefined;
         this.codemirror.setOption("readOnly", true);
         this.codemirror.refresh();
-        this.updateSaveButton();
+        this.updateButtons();
     }
 
     updated() {
@@ -84,8 +85,9 @@ class DialEditor extends LitElement {
         return originalString !== documentString;
     }
 
-    updateSaveButton() {
+    updateButtons() {
         this.$saveButton.disabled = !this.hasUnsavedChanges();
+        this.$addButton.disabled = this.hasUnsavedChanges();
     }
 
 
@@ -116,8 +118,11 @@ class DialEditor extends LitElement {
         } else if(this.location.startsWith("state/")) {
             this.emitEvent("save-state", documentString);
         }
+        if(this.location === "TEMPLATE") {
+            this.emitEvent("add-message", documentString);
+        }
 
-        this.updateSaveButton();
+        this.updateButtons();
     }
 
     emitEvent(name, data) {
@@ -132,7 +137,23 @@ class DialEditor extends LitElement {
     }
 
     addMessage() {
-        console.log("Add message");
+        let template = {
+            "source": "Node/Algorithm/Instance",
+            "target": "Node/Algorithm/AnotherInstance",
+            "color": "#FFFFFF",
+            "title": "Hello World",
+            "parent": "None",
+            "children": [],
+            "arrival_time": 0,
+            "arrival_theta": 0,
+            "creation_time": 0,
+            "creation_theta": 0,
+            "is_lost": "True",
+            "self_message": "False",
+            "self_message_delay": 0,
+            "data": {}
+        }
+        this.setDocument("TEMPLATE", template)
     }
 
 
@@ -201,21 +222,20 @@ class DialEditor extends LitElement {
 
         let disableCloseButton = this.data === undefined;
         let disableSaveButton = this.data === undefined || !this.unsavedChanges;
-        let disableAddButton = disableSaveButton;
-        console.log(disableAddButton);
+        let disableAddButton = this.unsavedChanges;
 
         return html`
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/dracula.min.css">
             <div id="menu">
                 <sl-tooltip placement="right" content="Save">
-                    <sl-button id="saveButt2on" variant="default" ?disabled=${disableSaveButton} @click=${this.saveDocument} outline><sl-icon name="floppy" label="Save"></sl-icon></sl-button>
+                    <sl-button id="saveButton" variant="default" ?disabled=${disableSaveButton} @click=${this.saveDocument} outline><sl-icon name="floppy" label="Save"></sl-icon></sl-button>
                 </sl-tooltip>
                 <sl-tooltip placement="right" content="Discard">
                     <sl-button variant="default" ?disabled=${disableCloseButton} outline  @click=${this.closeDocument}><sl-icon name="x-lg" label="Discard"></sl-icon></sl-button>
                 </sl-tooltip>
                 <sl-tooltip placement="right" content="Add Message">
-                    <sl-button variant="default" ?disabled=${disableAddButton} outline  @click=${this.addMessage}><sl-icon name="plus-circle" label="Add Message"></sl-icon></sl-button>
+                    <sl-button id="addButton" variant="default" ?disabled=${disableAddButton} outline  @click=${this.addMessage}><sl-icon name="plus-circle" label="Add Message"></sl-icon></sl-button>
                 </sl-tooltip>
             </div>
             <div id="editor"></div>
