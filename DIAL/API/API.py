@@ -18,6 +18,7 @@ from DIAL.Address import Address
 from DIAL.Color import Color, Colors
 from DIAL.Message import Message
 from DIAL.Simulator import Simulator
+from DIAL.API.MessageParser import MessageParser, ParseError
 from flask_cors import CORS
 
 class API:
@@ -134,26 +135,24 @@ class API:
         return self.response(status=200, response=f'OK')
 
     def add_message(self):
-        new_values: dict[str, any] = request.get_json()
 
-        if "target" not in new_values.keys():
-            return self.response(status=400, response=f'message.target is not set.')
-        target = Address.from_string(new_values["target"])
-        if target is None:
-            return self.response(status=400, response=f'message.target is not a valid address.')
-        if not self.simulator.topology.has_node(target.node_name):
-            return self.response(status=400, response=f'message.target has invalid node.')
-        if not self.simulator.topology.has_node(target.node_name):
-            return self.response(status=400, response=f'message.target has invalid node.')
+        message_parser = MessageParser(self.simulator, generate_missing_id=True)
+        message = message_parser.parse_message(request.get_json())
+        if isinstance(message, ParseError):
+            return self.response(status=400, response=message.error_message)
+        # TODO: Fix stuff below
+        # if message._arrival_time in self.simulator.messages.keys():
+        #     if message._arrival_theta < len(self.simulator.messages[message._arrival_time]):
+        #         return self.response(status=400, response="Invalid theta for provided arrival_time")
+        # if message._arrival_time not in self.simulator.messages.keys():
+        #     if message._arrival_theta != 0:
+        #         return self.response(status=400, response="Invalid theta for provided arrival_time")
 
-        target_address = new_values["target"]
-        source_address = new_values["source"]
-        title = new_values["title"]
-        color = new_values["color"]
-        data = new_values["data"]
-        message = Message(target_address, source_address, title, color, data)
-        # self.simulator.insert_message_to_queue(message)
-        return self.response(status=300, response=f'Not implemented')
+        if message._is_self_message:
+            self.simulator.insert_self_message_to_queue(message)
+        else:
+            self.simulator.insert_message_to_queue(message)
+        return self.response(status=200, response=f'OK')
     
 
     def put_message(self, message_id: str):

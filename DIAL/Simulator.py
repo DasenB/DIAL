@@ -110,7 +110,7 @@ class Simulator:
                                                                        message.target_address.node_name)
         if edge_config is None:
             print(
-                f'No edge exists between {message.source_address.node} and {message.target_address.node}. Can not send message.')
+                f'No edge exists between {message.source_address.node_name} and {message.target_address.node_name}. Can not send message.')
             exit(1)
         message._is_lost = self.random_generator.random() > edge_config.reliability
 
@@ -123,7 +123,9 @@ class Simulator:
         message._arrival_theta = len(self.messages[insert_time])
         self.messages[insert_time].append(message)
 
-    def get_message(self, message_id: str):
+    def get_message(self, message_id: str | None) -> Message | None:
+        if message_id is None:
+            return None
         for t in self.messages.keys():
             for msg in self.messages[t]:
                 if str(msg._id) == str(message_id):

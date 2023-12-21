@@ -91,7 +91,9 @@ def local_fifo_scheduler(
         message: Message,
         random_number_generator: numpy.random.Generator
 ) -> int:
-    min_valid_time: int = time + 1
+    min_valid_time: int = 0
+    if time is not None:
+        min_valid_time = time + 1
     for time_index in message_queue.keys():
         if time_index < time:
             continue
