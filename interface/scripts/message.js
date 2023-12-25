@@ -142,7 +142,9 @@ class DialMessage extends LitElement {
       }
       
       table {
-        width: 100%;
+        table-layout: fixed;
+          word-wrap: break-word;
+          width: 100%;
         border-collapse: collapse;
       }
       
@@ -154,6 +156,7 @@ class DialMessage extends LitElement {
       
       th {
         padding-right: 20px;
+          width: 80px;
       }
 
       tr + tr > td {
@@ -184,6 +187,7 @@ class DialMessage extends LitElement {
           sl-icon-button:hover {
             cursor: not-allowed !important;
           }
+
         `
 
         let cardButtons = html`
@@ -228,7 +232,7 @@ class DialMessage extends LitElement {
             <sl-card id="message-card">
                 <div slot="header">
                     <div class="color-circle">
-                        <sl-icon name="x-lg" class="is-los-cross"></sl-icon>
+                        <sl-icon name="x-lg" class="is-lost-cross"></sl-icon>
                     </div>
                     <sl-tag variant="primary">Δ = ${this.theta}</sl-tag>
                     <div>
