@@ -103,15 +103,14 @@ class Simulator:
                 return t, len(self.messages[t]) - 1
         return None
 
-    def insert_message_to_queue(self, message: Message):
+    def insert_message_to_queue(self, message: Message) -> bool:
 
         # Determine whether message is lost
         edge_config: EdgeConfig | None = self.topology.get_edge_config(message.source_address.node_name,
                                                                        message.target_address.node_name)
         if edge_config is None:
-            print(
-                f'No edge exists between {message.source_address.node_name} and {message.target_address.node_name}. Can not send message.')
-            exit(1)
+            print(f'No edge exists between {message.source_address.node_name} and {message.target_address.node_name}. Can not send message.')
+            return False
         message._is_lost = self.random_generator.random() > edge_config.reliability
 
         # Determine position in the queue
@@ -122,6 +121,7 @@ class Simulator:
         message._arrival_time = insert_time
         message._arrival_theta = len(self.messages[insert_time])
         self.messages[insert_time].append(message)
+        return True
 
     def get_message(self, message_id: str | None) -> Message | None:
         if message_id is None:

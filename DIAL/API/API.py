@@ -21,6 +21,9 @@ from DIAL.Simulator import Simulator
 from DIAL.API.MessageParser import MessageParser, ParseError
 from flask_cors import CORS
 
+from DIAL.Topology import EdgeConfig
+
+
 class API:
     simulator: Simulator
     host: IPAddress
@@ -135,22 +138,22 @@ class API:
         return self.response(status=200, response=f'OK')
 
     def add_message(self):
-
         message_parser = MessageParser(self.simulator, generate_missing_id=True)
         message = message_parser.parse_message(request.get_json())
         if isinstance(message, ParseError):
             return self.response(status=400, response=message.error_message)
-        # TODO: Fix stuff below
-        # if message._arrival_time in self.simulator.messages.keys():
-        #     if message._arrival_theta < len(self.simulator.messages[message._arrival_time]):
-        #         return self.response(status=400, response="Invalid theta for provided arrival_time")
-        # if message._arrival_time not in self.simulator.messages.keys():
-        #     if message._arrival_theta != 0:
-        #         return self.response(status=400, response="Invalid theta for provided arrival_time")
-
+        if message._arrival_time in self.simulator.messages.keys():
+            if message._arrival_theta < len(self.simulator.messages[message._arrival_time]):
+                return self.response(status=400, response="Invalid theta for provided arrival_time")
+        if message._arrival_time not in self.simulator.messages.keys():
+            if message._arrival_theta != 0:
+                return self.response(status=400, response="Invalid theta for provided arrival_time")
         if message._is_self_message:
             self.simulator.insert_self_message_to_queue(message)
         else:
+            edge_config: EdgeConfig | None = self.simulator.topology.get_edge_config(message.source_address.node_name, message.target_address.node_name)
+            if edge_config is None:
+                return self.response(status=400, response="No edge exists between nodes in message.source and message.target")
             self.simulator.insert_message_to_queue(message)
         return self.response(status=200, response=f'OK')
     

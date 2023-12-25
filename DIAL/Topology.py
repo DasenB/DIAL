@@ -94,6 +94,8 @@ def local_fifo_scheduler(
     min_valid_time: int = 0
     if time is not None:
         min_valid_time = time + 1
+    else:
+        return 0
     for time_index in message_queue.keys():
         if time_index < time:
             continue
