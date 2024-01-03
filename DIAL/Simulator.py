@@ -103,7 +103,7 @@ class Simulator:
                 return t, len(self.messages[t]) - 1
         return None
 
-    def insert_message_to_queue(self, message: Message) -> bool:
+    def insert_message_to_queue(self, message: Message, time: int | None = None, theta: int | None = None) -> bool:
 
         # Determine whether message is lost
         edge_config: EdgeConfig | None = self.topology.get_edge_config(message.source_address.node_name,
@@ -115,11 +115,18 @@ class Simulator:
 
         # Determine position in the queue
         scheduler = edge_config.scheduler
-        insert_time = scheduler(self.topology, self.time, self.theta, self.messages, message, self.random_generator)
+        insert_time = time
+        if time is None:
+            insert_time = scheduler(self.topology, self.time, self.theta, self.messages, message, self.random_generator)
         if insert_time not in self.messages.keys():
             self.messages[insert_time] = []
         message._arrival_time = insert_time
-        message._arrival_theta = len(self.messages[insert_time])
+
+        insert_theta = len(self.messages[insert_time])
+        if theta is not None:
+            if insert_theta != theta:
+                return False
+        message._arrival_theta = insert_theta
         self.messages[insert_time].append(message)
         return True
 

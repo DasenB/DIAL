@@ -144,11 +144,11 @@ class DialEditor extends LitElement {
             "title": "Hello World",
             "parent": "None",
             "children": [],
-            "arrival_time": 0,
+            "arrival_time": 1,
             "arrival_theta": 0,
             "creation_time": 0,
             "creation_theta": 0,
-            "is_lost": "True",
+            "is_lost": "False",
             "self_message": "False",
             "self_message_delay": 0,
             "data": {}
