@@ -336,6 +336,21 @@ class DialSimulator extends LitElement {
             this.handleSelection(e.detail);
         });
 
+        document.addEventListener("state:edit", (e) => {
+            if(this.$editor.hasUnsavedChanges()) {
+                this.$dialog.pushDialogToQueue(discardUnsavedChangesDialog);
+                this.$dialog.showDialog();
+                return;
+            }
+            this.api.get(`state/${e.detail}`).then(response => {
+                this.$editor.setDocument("state/" + e.detail, response);
+            });
+        });
+
+        document.addEventListener("state:highlight", (e) => {
+            this.handleSelection(e.detail);
+        });
+
         document.addEventListener("message:delete", (e) => {
             this.api.del(`message/${e.detail}`).then(response => {
                 this.loadMessages();

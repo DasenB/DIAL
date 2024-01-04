@@ -21,7 +21,24 @@ class DialState extends LitElement {
         this.neighbors = [];
     }
 
+    emitEvent(name, data) {
+        console.log(name);
+        const event = new CustomEvent(`state:${name}`, {
+            detail: data,
+            bubbles: true,
+            composed: true,
+            cancelable: true,
+        });
+        this.dispatchEvent(event);
+    }
 
+    highlightState() {
+        this.emitEvent("highlight", this.address);
+    }
+
+    editState() {
+        this.emitEvent("edit", this.address);
+    }
 
     static styles = css`
       :host {
@@ -91,9 +108,9 @@ class DialState extends LitElement {
                     <sl-tag variant="primary">Node ${this.address.split("/")[0]}</sl-tag>
                     <div>
                         <sl-tooltip placement="bottom" content="Highlight State">
-                            <sl-icon-button name="binoculars" label="Highlight"></sl-icon-button>
+                            <sl-icon-button name="binoculars" label="Highlight" @click="${this.highlightState}" ></sl-icon-button>
                         </sl-tooltip>
-                        <sl-tooltip placement="bottom" content="Edit State">
+                        <sl-tooltip placement="bottom" content="Edit State" @click="${this.editState}">
                             <sl-icon-button name="pencil" label="Edit"></sl-icon-button>
                         </sl-tooltip>
                     </div>
