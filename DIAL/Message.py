@@ -161,6 +161,7 @@ class MessageParser:
         msg._arrival_theta = parsed_values["arrival_theta"]
         msg._creation_time = parsed_values["creation_time"]
         msg._creation_theta = parsed_values["creation_theta"]
+        msg._is_lost = parsed_values["is_lost"]
         msg._is_self_message = parsed_values["self_message"]
         msg._self_message_delay = parsed_values["self_message_delay"]
         msg.data = parsed_values["data"]
@@ -186,7 +187,7 @@ class MessageParser:
             return Error("Violated constraint: message.creation_time < message.arrival_time")
         if message._parent_message is not None:
             parent = self.simulator.get_message(str(message._parent_message))
-            if parent is not  None:
+            if parent is not None:
                 if parent._arrival_time != message._creation_time or parent._arrival_theta != message._creation_theta:
                     return Error("Violated constraint: Message creation must be equal to parent arrival.")
 
@@ -223,16 +224,19 @@ class MessageParser:
         return json[key]
 
     def parse_id(self, json: dict[str, any], key: str) -> uuid.UUID | None | Error:
-        if "id" not in json.keys() and self.generate_missing_id:
+        if key == "id" and "id" not in json.keys() and self.generate_missing_id:
             return uuid.uuid4()
-        if "id" not in json.keys() and not self.generate_missing_id:
+        if key not in json.keys():
             return Error("Missing attribute message.id")
         if not isinstance(json[key], str):
             return Error(f"message.{key} is not a string")
-        id_str = json["id"]
+        id_str = json[key]
         if id_str == "None" and key == "parent":
             return None
-        return uuid.UUID(id_str)
+        try:
+            return uuid.UUID(id_str)
+        except:
+            return Error(f"message.{key} contains a badly formed hexadecimal UUID string")
 
     def parse_address(self, json: dict[str, any], key: str) -> Address | Error:
         if key not in json.keys():
@@ -253,9 +257,6 @@ class MessageParser:
             return Error(f"Missing attribute message.{key}")
         try:
             value = int(json[key])
-            print(key)
-            print(value)
-            print("=====")
             return value
         except:
             return Error(f'Invalid value for message.{key}')
@@ -266,6 +267,8 @@ class MessageParser:
         if not isinstance(json[key], str):
             return Error(f"message.{key} is not a string")
         value = json[key]
+        print(key)
+        print(value)
         if value == "True":
             return True
         if value == "False":

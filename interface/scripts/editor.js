@@ -108,21 +108,21 @@ class DialEditor extends LitElement {
             return;
         }
         try {
-            this.data = JSON.parse(documentString)
+            JSON.parse(documentString)
         } catch (err) {
             this.emitEvent("parse-error", err);
             return;
         }
         if(this.location.startsWith("message/")) {
             this.emitEvent("save-message", documentString);
-        } else if(this.location.startsWith("state/")) {
+        }
+        if(this.location.startsWith("state/")) {
             this.emitEvent("save-state", documentString);
         }
         if(this.location === "TEMPLATE") {
             this.emitEvent("add-message", documentString);
         }
 
-        this.updateButtons();
     }
 
     emitEvent(name, data) {

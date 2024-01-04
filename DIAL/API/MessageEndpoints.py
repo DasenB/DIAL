@@ -1,11 +1,7 @@
 from DIAL.Message import Message, MessageParser
 from DIAL.Error import Error
 from DIAL.Topology import EdgeConfig
-from DIAL.Color import Color
-from DIAL.Address import Address
 from flask import request
-import uuid
-
 
 class MessageEndpoints:
     api: any
@@ -95,30 +91,32 @@ class MessageEndpoints:
         if isinstance(new_message, Error):
             return self.api.response(status=400, response=new_message.message)
 
+        if old_message._child_messages != new_message._child_messages:
+            return self.api.response(status=400, response="Manually changing message.children is not permitted.")
+
+        if old_message._parent_message != new_message._parent_message:
+            return self.api.response(status=400, response="Manually changing message.parent is not permitted.")
+
         if new_message._arrival_time != old_message._arrival_time or new_message._arrival_theta != old_message._arrival_theta:
             response = self.api.control_endpoint.get_reschedule(message_id, new_message._arrival_time, new_message._arrival_theta)
-            if response.status != 200:
+            print(response.status)
+            if response.status != "200 OK":
                 return response
 
         old_message.title = new_message.title
         old_message.color = new_message.color
         old_message.target_address = new_message.target_address
         old_message.source_address = new_message.source_address
-        old_message.data = new_message.data
+        for key in list(old_message.data.keys()):
+            del old_message.data[key]
+        old_message.data |= new_message.data
 
+        old_message._is_lost = new_message._is_lost
+        old_message._is_self_message = new_message._is_self_message
+        old_message._self_message_delay = new_message._self_message_delay
+        old_message._arrival_time = new_message._arrival_time
+        old_message._arrival_theta = new_message._arrival_theta
+        old_message._creation_time = new_message._creation_time
+        old_message._creation_theta = new_message._creation_theta
 
-        old_message._parent_message = new_message._parent_message
-        old_message._child_messages = new_message._child_messages
-
-        # TODO Modify children and parent to reflect changes here
-        # TODO: Check if reschedule validation works
-
-        old_message._is_lost: bool
-        old_message._is_self_message: bool
-        old_message._self_message_delay: int
-        old_message._arrival_time: int
-        old_message._arrival_theta: int
-        old_message._creation_time: int
-        old_message._creation_theta: int
-
-    return self.api.response(status=200, response=message.to_json())
+        return self.api.response(status=200, response=old_message.to_json())

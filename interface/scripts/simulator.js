@@ -310,6 +310,9 @@ class DialSimulator extends LitElement {
             }
 
             this.api.put(`message/${documentData.id}`, documentData).then(response => {
+                console.log(response);
+                this.$editor.data = response;
+                this.$editor.updateButtons();
                 this.updateView();
             }).catch(err => {
                 failedToSaveDialog.text = err;
