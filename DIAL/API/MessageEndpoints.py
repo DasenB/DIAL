@@ -91,6 +91,9 @@ class MessageEndpoints:
         if isinstance(new_message, Error):
             return self.api.response(status=400, response=new_message.message)
 
+        if old_message._id != new_message._id:
+            return self.api.response(status=400, response="Changing message.id is not permitted.")
+
         if old_message._child_messages != new_message._child_messages:
             return self.api.response(status=400, response="Manually changing message.children is not permitted.")
 
@@ -99,7 +102,6 @@ class MessageEndpoints:
 
         if new_message._arrival_time != old_message._arrival_time or new_message._arrival_theta != old_message._arrival_theta:
             response = self.api.control_endpoint.get_reschedule(message_id, new_message._arrival_time, new_message._arrival_theta)
-            print(response.status)
             if response.status != "200 OK":
                 return response
 

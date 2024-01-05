@@ -267,8 +267,6 @@ class MessageParser:
         if not isinstance(json[key], str):
             return Error(f"message.{key} is not a string")
         value = json[key]
-        print(key)
-        print(value)
         if value == "True":
             return True
         if value == "False":

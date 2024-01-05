@@ -52,7 +52,7 @@ class API:
 
         self.api.route('/states', methods=['GET'])(self.state_endpoint.get_states)
         self.api.route('/state/<node>/<algorithm>/<instance>', methods=['GET'])(self.state_endpoint.get_state)
-        self.api.route('/states/<node>/<algorithm>/<instance>', methods=['PUT'])(self.state_endpoint.put_state)
+        self.api.route('/state/<node>/<algorithm>/<instance>', methods=['PUT'])(self.state_endpoint.put_state)
 
         self.api.route('/messages', methods=['GET'])(self.message_endpoint.get_messages)
         self.api.route('/message', methods=['POST'])(self.message_endpoint.add_message)

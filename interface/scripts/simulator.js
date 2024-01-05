@@ -298,7 +298,8 @@ class DialSimulator extends LitElement {
                 actions: [this.$dialog.defaultActions.ok]
             };
 
-            let documentString = e.detail;
+            let location = e.detail.location.replace("message/", "");
+            let documentString = e.detail.document;
             let documentData = undefined;
             try {
                 documentData = JSON.parse(documentString);
@@ -309,8 +310,7 @@ class DialSimulator extends LitElement {
                 return;
             }
 
-            this.api.put(`message/${documentData.id}`, documentData).then(response => {
-                console.log(response);
+            this.api.put(`message/${location}`, documentData).then(response => {
                 this.$editor.data = response;
                 this.$editor.updateButtons();
                 this.updateView();
@@ -349,6 +349,36 @@ class DialSimulator extends LitElement {
 
         document.addEventListener("state:highlight", (e) => {
             this.handleSelection(e.detail);
+        });
+
+        document.addEventListener("dial-editor:save-state", (e) => {
+            let failedToSaveDialog = {
+                title: "Failed to save changes",
+                text: undefined,
+                actions: [this.$dialog.defaultActions.ok]
+            };
+
+            let location = e.detail.location.replace("state/", "");
+            let documentString = e.detail.document;
+            let documentData = undefined;
+            try {
+                documentData = JSON.parse(documentString);
+            } catch(err) {
+                failedToSaveDialog.text = err.message;
+                this.$dialog.pushDialogToQueue(failedToSaveDialog);
+                this.$dialog.showDialog();
+                return;
+            }
+
+            this.api.put(`state/${location}`, documentData).then(response => {
+                this.$editor.data = response;
+                this.$editor.updateButtons();
+                this.updateView();
+            }).catch(err => {
+                failedToSaveDialog.text = err;
+                this.$dialog.pushDialogToQueue(failedToSaveDialog);
+                this.$dialog.showDialog();
+            });
         });
 
         document.addEventListener("message:delete", (e) => {

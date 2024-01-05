@@ -113,14 +113,20 @@ class DialEditor extends LitElement {
             this.emitEvent("parse-error", err);
             return;
         }
+
+        let eventDetails = {
+            document: documentString,
+            location: this.location
+        }
+
         if(this.location.startsWith("message/")) {
-            this.emitEvent("save-message", documentString);
+            this.emitEvent("save-message", eventDetails);
         }
         if(this.location.startsWith("state/")) {
-            this.emitEvent("save-state", documentString);
+            this.emitEvent("save-state", eventDetails);
         }
         if(this.location === "TEMPLATE") {
-            this.emitEvent("add-message", documentString);
+            this.emitEvent("add-message", eventDetails);
         }
 
     }
