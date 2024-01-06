@@ -29,7 +29,6 @@ class StateEndpoints:
             "colors": color_transitions,
             "neighbors": neighbor_transitions
         }
-
         return self.api.response(status=200, response=response)
 
     def get_state(self, node: str, algorithm: str, instance: str):
