@@ -370,6 +370,8 @@ class DialSimulator extends LitElement {
                 return;
             }
 
+            //TODO: Changing color in the editor does not affect color circles
+
             this.api.put(`state/${location}`, documentData).then(response => {
                 this.$editor.data = response;
                 this.$editor.updateButtons();

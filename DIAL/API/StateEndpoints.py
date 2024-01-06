@@ -1,8 +1,7 @@
 from flask import request
 from DIAL.Address import Address
-from DIAL.Color import Color
-from DIAL.State import State
-import uuid
+from DIAL.Error import Error
+from DIAL.State import State, StateParser
 
 
 class StateEndpoints:
@@ -36,44 +35,43 @@ class StateEndpoints:
     def get_state(self, node: str, algorithm: str, instance: str):
         address = Address(node_name=node, algorithm=algorithm, instance=instance)
         if address not in self.api.simulator.states.keys():
-            return self.api.response(status=300, response=f'State with address {str(address)} does not exist')
+            return self.api.response(status=400, response=f'State with address {str(address)} does not exist')
         return self.api.response(status=200, response=self.api.simulator.states[address][-1].to_json())
 
     def put_state(self, node: str, algorithm: str, instance: str):
         address = Address(node_name=node, algorithm=algorithm, instance=instance)
         if address not in self.api.simulator.states.keys():
-            return self.api.response(status=300, response=f'State with address {str(address)} does not exist')
-        state: State = self.api.simulator.states[address][-1]
-        new_values: dict[str, any] = request.get_json()
-        changes: dict[str, any] = {}
-        if "color" in new_values.keys():
-            color = Color.from_string(new_values["color"])
-            if color is None:
-                return self.api.response(status=300, response=f'Failed to parse attribute message.color')
-            changes["color"] = color
-        # CAVE: Only the address which is seen by the node itself is changed.
-        # The address within the simulator under which a node is reachable by other nodes does NOT change!¼¼
-        if "address" in new_values.keys():
-            address = Address.from_string(new_values["address"])
-            if address not in self.api.simulator.states.keys():
-                return self.api.response(status=300, response=f'State with address {str(address)} does not exist')
-        if "neighbors" in new_values.keys():
-            if not isinstance(new_values["neighbors"], list):
-                return self.api.response(status=300, response=f'state.neighbors must be of type list[str]')
-            if not all(isinstance(elem, str) for elem in new_values["neighbors"]):
-                return self.api.response(status=300, response=f'state.neighbors must be of type dict[str, str]')
-        if "data" in new_values.keys():
-            if not isinstance(new_values["data"], dict):
-                return self.api.response(status=300, response=f'state.data must be of type dict[str, any]')
-            if not all(isinstance(elem, str) for elem in new_values["data"].keys()):
-                return self.api.response(status=300, response=f'state.data must be of type dict[str, any]')
-            changes["data"] = new_values["data"]
-        if "data" in changes.keys():
-            state.data = changes["data"]
-        if "color" in changes.keys():
-            state.color = changes["color"]
-        if "neighbors" in changes.keys():
-            state.color = changes["neighbors"]
-        if "address" in changes.keys():
-            state.color = changes["address"]
-        return self.api.response(status=200, response=state.to_json())
+            return self.api.response(status=400, response=f'State with address {str(address)} does not exist')
+        json: dict[str, any] = request.get_json()
+        state_parser = StateParser(simulator=self.api.simulator)
+        new_state = state_parser.parse_state(json)
+        if isinstance(new_state, Error):
+            return self.api.response(status=400, response=new_state.message)
+        old_state: State = self.api.simulator.states[address][-1]
+        for key in json.keys():
+            if key not in ["color", "address", "neighbors", "data"]:
+                return self.api.response(status=300, response=f'Invalid attribute message.{key}')
+        if new_state.address != old_state.address:
+            return self.api.response(status=400, response=f'Modifying state.address is not allowed')
+        node_colors = self.api.simulator.node_colors
+        latest_time_tuple = None
+        for time_tuple in node_colors.keys():
+            if old_state.address not in node_colors[time_tuple].keys():
+                continue
+            if latest_time_tuple is None:
+                latest_time_tuple = time_tuple
+                continue
+            if time_tuple[0] is None and time_tuple[1] is None:
+                latest_time_tuple = time_tuple
+                break
+            if (time_tuple[0] < latest_time_tuple[0]) or (time_tuple[0] == latest_time_tuple[0] and time_tuple[1] < latest_time_tuple[1]):
+                latest_time_tuple = time_tuple
+                continue
+        if latest_time_tuple is None:
+            return self.api.response(status=400, response=f'Can not change color :( OH No! This error should never happen...')
+        node_colors[latest_time_tuple][old_state.address] = new_state.color
+        old_state.neighbors = new_state.neighbors
+        old_state.color = new_state.color
+        old_state.data = new_state.data
+
+        return self.api.response(status=200, response=new_state.to_json())
