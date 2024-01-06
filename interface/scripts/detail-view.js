@@ -225,9 +225,11 @@ class DialDetailView extends LitElement {
         stateView =  [];
 
         let states = {};
-
         if(this.states.colors !== undefined) {
             Object.keys(this.states.colors).forEach(time => {
+                if(Number(time.split("/")[0]) > this.time) {
+                    return;
+                }
                 Object.keys(this.states.colors[time]).forEach(instanceAddress => {
                     let splitAddress = instanceAddress.split("/");
                     let stateGroup = splitAddress[1] + "/" + splitAddress[2];
