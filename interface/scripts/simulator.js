@@ -52,6 +52,7 @@ class DialSimulator extends LitElement {
         };
         this.instanceUsedForStateColor = undefined;
         this.selectedMessages = [];
+        this.selectedNodes = [];
     }
 
     updateView(selectCurrentMessage) {
@@ -88,7 +89,7 @@ class DialSimulator extends LitElement {
         });
     }
 
-    handleSelection(selectedIds) {
+    handleMessageSelection(selectedIds) {
         this.selectedMessages = selectedIds;
         Object.keys(this.messages).forEach(t => {
             this.messages[t].forEach(msg => {
@@ -96,6 +97,13 @@ class DialSimulator extends LitElement {
             });
         });
         this.updateMessages();
+    }
+
+    handleNodeSelection(selectedIds) {
+        this.selectedNodes = selectedIds;
+        this.$graph.setSelectedNodes(selectedIds);
+        this.$timeline.setSelectedStates(selectedIds);
+        this.$detailView.setSelectedStates(selectedIds);
     }
 
     setupEventHandlers() {
@@ -333,7 +341,7 @@ class DialSimulator extends LitElement {
         });
 
         document.addEventListener("message:highlight", (e) => {
-            this.handleSelection(e.detail);
+            this.handleMessageSelection(e.detail);
         });
 
         document.addEventListener("state:edit", (e) => {
@@ -348,7 +356,8 @@ class DialSimulator extends LitElement {
         });
 
         document.addEventListener("state:highlight", (e) => {
-            this.handleSelection(e.detail);
+            let highlightedState = e.detail;
+            this.handleNodeSelection([highlightedState]);
         });
 
         document.addEventListener("dial-editor:save-state", (e) => {
@@ -390,12 +399,28 @@ class DialSimulator extends LitElement {
         });
 
         document.addEventListener("dial-graph:select-message", (e) => {
-            this.handleSelection(e.detail);
+            this.handleMessageSelection(e.detail);
         });
 
         document.addEventListener("dial-timeline:select-message", (e) => {
-            this.handleSelection(e.detail);
+            this.handleMessageSelection(e.detail);
         });
+
+        document.addEventListener("dial-timeline:select-state", (e) => {
+            this.handleNodeSelection(e.detail);
+        });
+
+        document.addEventListener("dial-graph:select-node", (e) => {
+            let highlightedStates = [];
+            e.detail.forEach(highlightedState => {
+                console.log(this.$graph.selectedAlgorithm);
+                if (this.selectedView === "graph" && this.$graph.selectedAlgorithm !== undefined) {
+                    highlightedState = highlightedState + "/" + this.$graph.selectedAlgorithm;
+                }
+                highlightedStates.push(highlightedState);
+            });
+            this.handleNodeSelection(highlightedStates);
+        })
 
 
 

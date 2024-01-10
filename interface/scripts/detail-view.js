@@ -31,11 +31,35 @@ class DialDetailView extends LitElement {
         this.sortables = [];
         this.messages = {};
         this.states = {};
+        this.selectedStates = [];
         this.time = 0;
         this.theta = 0;
         this.editingEnabled = true;
+
+        let savedSelectedView = this.getCookie("dial-detail-view-selected-view");
+        if (savedSelectedView === undefined || savedSelectedView === null) {
+            savedSelectedView = "message-view";
+            this.setCookie("dial-detail-view-selected-view", savedSelectedView);
+        }
+        this.selectedView = savedSelectedView;
     }
 
+    firstUpdated()  {
+        this.$messageViewTab = this.renderRoot.getElementById("message-view-tab");
+        this.$stateViewTab = this.renderRoot.getElementById("state-view-tab");
+
+        if(this.selectedView === this.$messageViewTab.panel) {
+            this.$messageViewTab = true;
+        }
+        if(this.selectedView === this.$stateViewTab.panel) {
+            this.$stateViewTab.active = true;
+        }
+    }
+
+    handleSelectedViewChange(view) {
+        this.selectedView = view.detail.name;
+        this.setCookie("dial-detail-view-selected-view", this.selectedView);
+    }
 
     emitEvent(name, data) {
         console.log(name);
@@ -48,6 +72,24 @@ class DialDetailView extends LitElement {
         this.dispatchEvent(event);
     }
 
+    setCookie(name, value) {
+        let date = new Date();
+        date.setTime(date.getTime() + (14 * 24 * 60 * 60 * 1000));
+        const expires = "expires=" + date.toUTCString();
+        document.cookie = name + "=" + value + "; " + expires + "; path=/; SameSite=Strict";
+    }
+
+    getCookie(name) {
+        name = name + "=";
+        const cDecoded = decodeURIComponent(document.cookie); //to be careful
+        const cArr = cDecoded .split('; ');
+        let res;
+        cArr.forEach(val => {
+            if (val.indexOf(name) === 0) res = val.substring(name.length);
+        });
+        return res;
+
+    }
 
     setMessages(messages) {
         this.messages = messages;
@@ -56,6 +98,11 @@ class DialDetailView extends LitElement {
 
     setStates(states) {
         this.states = states;
+        this.requestUpdate();
+    }
+
+    setSelectedStates(selectedStates) {
+        this.selectedStates = selectedStates;
         this.requestUpdate();
     }
 
@@ -123,6 +170,10 @@ class DialDetailView extends LitElement {
         box-sizing: border-box;
         border-radius: var(--sl-border-radius-medium);
       }
+        
+      dial-card-group dial-state {
+          margin-bottom: 5px;
+      }
 
       .past-messages {
         //background-color: red;
@@ -148,7 +199,7 @@ class DialDetailView extends LitElement {
             let futureMessages = [];
             this.messages[time].forEach(msg => {
                 let wasCreated =
-                    (msg.creation_time <= this.time)
+                    (msg.creation_time < this.time)
                     ||
                     (msg.creation_time === this.time && msg.creation_theta <= this.theta);
                 if (!wasCreated && msg.parent !== 'None') {
@@ -211,19 +262,6 @@ class DialDetailView extends LitElement {
             messageView.push(cardGroup);
         });
 
-        let stateView = html`
-            <dial-card-group headline="flooding/example1">
-                <dial-state></dial-state>
-                <dial-state></dial-state>
-            </dial-card-group>
-            <dial-card-group headline="echo/test_instance">
-                <dial-state></dial-state>
-                <dial-state></dial-state>
-                <dial-state></dial-state>
-            </dial-card-group>
-        `
-        stateView =  [];
-
         let states = {};
         if(this.states.colors !== undefined) {
             Object.keys(this.states.colors).forEach(time => {
@@ -246,14 +284,22 @@ class DialDetailView extends LitElement {
             });
         }
 
+        let stateView = [];
         Object.keys(states).forEach(stateAddress => {
             let stateElements = [];
             Object.keys(states[stateAddress]).forEach(node => {
                 let address = states[stateAddress][node].address;
                 let color = states[stateAddress][node].color;
                 let neighbors = states[stateAddress][node].neighbors;
+                let nodeIsSelected = this.selectedStates.includes(node);
+                let stateIsSelected = this.selectedStates.includes(address);
                 stateElements.push(html`
-                <dial-state color="${color}" address="${address}" neighbors="${JSON.stringify(neighbors)}"></dial-state>
+                <dial-state 
+                        color="${color}"
+                        address="${address}"
+                        neighbors="${JSON.stringify(neighbors)}"
+                        class="${nodeIsSelected || stateIsSelected ? "selected": "" }"
+                "></dial-state>
                 `);
             });
 
@@ -266,13 +312,13 @@ class DialDetailView extends LitElement {
         });
 
         return html`
-            <sl-tab-group>
-                <sl-tab slot="nav" panel="general">Messages</sl-tab>
-                <sl-tab slot="nav" panel="custom">Node States</sl-tab>
-                <sl-tab-panel name="general">
+            <sl-tab-group id="tab-view" @sl-tab-show=${this.handleSelectedViewChange}>
+                <sl-tab slot="nav" panel="message-view" id="message-view-tab">Messages</sl-tab>
+                <sl-tab slot="nav" panel="state-view" id="state-view-tab">Node States</sl-tab>
+                <sl-tab-panel name="message-view">
                     ${messageView}
                 </sl-tab-panel>
-                <sl-tab-panel name="custom">
+                <sl-tab-panel name="state-view">
                     ${stateView}
                 </sl-tab-panel>
             </sl-tab-group>

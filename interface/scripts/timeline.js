@@ -40,6 +40,8 @@ class DialTimeline extends LitElement {
             matchTarget: false
         };
         this.selectedAlgorithm = undefined;
+        this.barPositions = {};
+        this.selectedStates = [];
 
         this.mouse = {
             dragStart: {
@@ -242,6 +244,20 @@ class DialTimeline extends LitElement {
         return t;
     }
 
+    setSelectedStates(stateIds) {
+        let stateNames = [];
+        stateIds.forEach(name => {
+            console.log(name);
+           if(name.includes("/") && this.reducedTimeline) {
+               stateNames.push(name.split("/")[0])
+           } else {
+               stateNames.push(name);
+           }
+        });
+        this.selectedStates = stateNames;
+        this.renderCanvas();
+    }
+
     onClick(event) {
         let screenResolutionScale = this.viewport.screenResolution.dppx();
         const clickPos = new Victor(
@@ -260,6 +276,19 @@ class DialTimeline extends LitElement {
                 selectedMessages.push(msg.messageId);
             }
         });
+
+        this.selectedStates = [];
+        Object.keys(this.barPositions).forEach(address => {
+            let bar = this.barPositions[address];
+            if (clickPos.x > bar.x_max || clickPos.x < bar.x_min) {
+                return;
+            }
+            if (clickPos.y > bar.y_max || clickPos.y < bar.y_min) {
+                return;
+            }
+            this.selectedStates.push(address);
+        });
+        this.emitEvent("select-state", this.selectedStates);
         this.emitEvent("select-message", selectedMessages);
     }
 
@@ -363,6 +392,7 @@ class DialTimeline extends LitElement {
         let historyBars = {};
         let lastChangeTime = {};
         let lastChangeColor = {};
+        this.barPositions = {};
 
         Object.keys(this.colorTransitions).forEach((timeStr) => {
             let time = Number(timeStr.split("/")[0]);
@@ -441,14 +471,38 @@ class DialTimeline extends LitElement {
         }
 
         historyBarsKeys.forEach(address => {
-            ctx.strokeStyle = this.config.messageBorderColor;
+            if (this.selectedStates.includes(address)) {
+                ctx.strokeStyle = this.config.messageBorderSelectedColor;
+                ctx.lineWidth = this.config.borderWidthSelected * screenResolutionScale;
+            } else {
+                ctx.strokeStyle = this.config.messageBorderColor;
+                ctx.lineWidth = 1 * screenResolutionScale
+            }
             let yPos = barIndex * barHeight + (barIndex + 1) * barSpacing;
             addressToIndexMapping[address] = barIndex;
+            let min_x = Number.POSITIVE_INFINITY;
+            let max_x = Number.NEGATIVE_INFINITY;
             historyBars[address].forEach(bar => {
                ctx.fillStyle = bar.color;
-               ctx.fillRect(bar.start * timeUnitWidth, yPos, timeUnitWidth * (bar.end - bar.start), barHeight);
-               ctx.strokeRect(bar.start * timeUnitWidth, yPos, timeUnitWidth * (bar.end - bar.start), barHeight);
+                let bar_width = timeUnitWidth * (bar.end - bar.start);
+                let bar_start_x = bar.start * timeUnitWidth;
+
+                if(bar_start_x < min_x) {
+                   min_x = bar_start_x;
+                }
+                if(bar_start_x + bar_width > max_x) {
+                    max_x = bar_start_x + bar_width;
+                }
+
+               ctx.fillRect(bar_start_x, yPos, bar_width, barHeight);
+               ctx.strokeRect(bar_start_x, yPos, bar_width, barHeight);
             });
+            this.barPositions[address]= {
+                x_min: min_x,
+                x_max: max_x,
+                y_min: yPos,
+                y_max: yPos + barHeight
+            }
             ctx.font = "30px Arial";
             ctx.fillStyle = this.config.messageBorderColor;
             ctx.fillText(address,  20, yPos + 2*barHeight/3);

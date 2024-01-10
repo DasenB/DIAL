@@ -83,6 +83,7 @@ class DialGraph extends LitElement {
             }};
         this.topology.nodes.update(node);
     }
+
     setSelectedAlgorithm(algorithm) {
         this.selectedAlgorithm = algorithm;
     }
@@ -108,6 +109,16 @@ class DialGraph extends LitElement {
         }
     }
 
+    setSelectedNodes(nodes) {
+        this.selectedNodes = []
+        nodes.forEach(nodeName => {
+            if(nodeName.includes("/")) {
+                nodeName = nodeName.split("/")[0];
+            }
+            this.selectedNodes.push(nodeName);
+        });
+        this.network.selectNodes(this.selectedNodes);
+    }
 
     setMessages(messages) {
         this.messages = messages;
@@ -157,6 +168,7 @@ class DialGraph extends LitElement {
             matchTarget: false
         };
         this.screenResolution = new ScreenResolution();
+        this.selectedNodes = []
     }
 
 
@@ -179,8 +191,8 @@ class DialGraph extends LitElement {
                     }
                 },
                 shape: "ellipse",
-                borderWidth: 1.4,
-                borderWidthSelected: 3,
+                borderWidth: 1.4 * this.screenResolution.dppx(),
+                borderWidthSelected: 3 * this.screenResolution.dppx(),
                 heightConstraint: {
                     minimum: 20,
                 },
@@ -239,11 +251,12 @@ class DialGraph extends LitElement {
            const distance = centerPos.distance(clickPos);
            msg.selected = distance <= circle.radius;
            if(msg.selected) {
-               this.network.unselectAll();
                selectedMessages.push(msg.messageId);
            }
         });
+        let selectedNodes = this.network.getSelectedNodes();
         this.emitEvent("select-message", selectedMessages);
+        this.emitEvent("select-node", selectedNodes);
     }
 
     static styles = css`
@@ -468,10 +481,10 @@ class DialGraph extends LitElement {
 
             if(msg.selected) {
                 context.strokeStyle = this.config.visjsOptions.nodes.color.highlight.border;
-                context.lineWidth = this.config.visjsOptions.nodes.borderWidthSelected;
+                context.lineWidth = this.config.visjsOptions.nodes.borderWidthSelected / this.network.getScale();
             } else {
                 context.strokeStyle = this.config.visjsOptions.nodes.color.border;
-                context.lineWidth = this.config.visjsOptions.nodes.borderWidth;
+                context.lineWidth = this.config.visjsOptions.nodes.borderWidth / this.network.getScale();
             }
 
             context.globalAlpha = 0.8;
