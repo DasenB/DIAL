@@ -4,7 +4,7 @@ import uuid
 from copy import deepcopy
 from uuid import UUID
 import textwrap
-from DIAL.Color import Color, Colors
+from DIAL.Color import Color, DefaultColors
 from DIAL.Address import Address
 from DIAL.Error import Error
 
@@ -26,7 +26,7 @@ class Message:
     _creation_time: int
     _creation_theta: int
 
-    def __init__(self, target_address: Address, source_address: Address, title: str = None, color: Color = None, data: dict[str, any] = None):
+    def __init__(self, target_address: Address | str, source_address: Address | str, title: str = None, color: Color | DefaultColors | None = None, data: dict[str, any] = None):
         self._id = uuid.uuid4()
 
         if title is None:
@@ -36,6 +36,8 @@ class Message:
 
         if color is None:
             self.color = Color()
+        elif type(color) == DefaultColors:
+            self.color = color.value
         else:
             self.color = color
 
@@ -43,6 +45,16 @@ class Message:
             self.data = {}
         else:
             self.data = data
+
+        if type(source_address) == str:
+            self.source_address = Address.from_string(source_address)
+        else:
+            self.source_address = source_address
+
+        if type(target_address) == str:
+            self.target_address = Address.from_string(target_address)
+        else:
+            self.target_address = target_address
 
         self._child_messages = []
         self._parent_message = None
@@ -53,8 +65,7 @@ class Message:
         self._arrival_theta = 0
         self._creation_time = 0
         self._creation_theta = 0
-        self.target_address = target_address
-        self.source_address = source_address
+
 
     def copy(self):
         new_message: Message = Message(
@@ -68,7 +79,7 @@ class Message:
 
     def summary(self):
         color = self.color
-        if isinstance(color, Colors):
+        if isinstance(color, DefaultColors):
             color = color.value
         summary: dict[str, str] = {
             "source": str(self.source_address),

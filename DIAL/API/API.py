@@ -1,12 +1,8 @@
 import copy
 import json
 import os
-import sys
+from multiprocessing import Process
 
-import math
-import uuid
-from enum import Enum
-from typing import Tuple
 
 from flask import Flask
 from flask_cors import CORS
@@ -66,6 +62,9 @@ class API:
         self.api.route('/step-backward/<steps_str>', methods=['GET'])(self.control_endpoint.get_step_backward)
         self.api.route('/time-forward/<time_str>', methods=['GET'])(self.control_endpoint.get_time_forward)
         self.api.route('/time-backward/<time_str>', methods=['GET'])(self.control_endpoint.get_time_backward)
+
+        p = Process(target=self.run)
+        p.start()
 
 
     def response(self, status: int, response: any):

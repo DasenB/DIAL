@@ -39,7 +39,7 @@ class Color:
         color = Color(r=color_rgb[0], g=color_rgb[1], b=color_rgb[2])
         return color
 
-class Colors(Enum):
+class DefaultColors(Enum):
     RED = Color(255, 0, 0)
     GREEN = Color(0, 255, 0)
     BLUE = Color(0, 0, 255)

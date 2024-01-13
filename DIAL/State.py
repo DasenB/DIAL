@@ -4,7 +4,7 @@ from copy import deepcopy
 import numpy
 from DIAL.Error import Error
 from DIAL.Address import Address
-from DIAL.Color import Color, Colors
+from DIAL.Color import Color, DefaultColors
 
 
 class State:
@@ -26,7 +26,7 @@ class State:
 
     def to_json(self):
         color = self.color
-        if isinstance(color, Colors):
+        if isinstance(color, DefaultColors):
             color = color.value
         json_representation: dict[str, any] = {
             "color": str(color.__repr__()),

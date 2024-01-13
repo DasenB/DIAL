@@ -1,3 +1,5 @@
+import enum
+
 import random
 import textwrap
 import types
@@ -7,10 +9,10 @@ from typing import Callable, Tuple
 import numpy.random
 
 from DIAL.Address import Address
-from DIAL.Color import Colors, Color
+from DIAL.Color import DefaultColors, Color
 from DIAL.Message import Message
 from DIAL.State import State
-from DIAL.Topology import Topology, EdgeConfig
+from DIAL.Topology import Topology, EdgeConfig, DefaultTopologies
 
 # Algorithm = Callable[[State, Message], tuple[State, list[Message]]]
 Algorithm = Callable[[State, Message, int], None]
@@ -47,15 +49,19 @@ class Simulator:
     random_number_generator_states: list[any]
     random_generator: numpy.random.Generator
 
-    def __init__(self, topology: Topology, algorithms: dict[str, Algorithm], initial_messages: dict[int, list[Message]],
+    def __init__(self, topology: Topology | DefaultTopologies, algorithms: dict[str, Algorithm], initial_messages: dict[int, list[Message]],
                  seed=0,
                  condition_hooks: list[ConditionHook] = []):
+
         # Setup RNG
         self.random_generator = numpy.random.default_rng(seed)
         self.random_number_generator_states = [self.random_generator.__getstate__()]
 
         # Store static information of the simulation environment
-        self.topology = topology
+        if isinstance(topology, DefaultTopologies):
+            self.topology = topology.topology_object
+        else:
+            self.topology = topology
         self.algorithms = algorithms
         self.condition_hooks = condition_hooks
 
@@ -64,6 +70,12 @@ class Simulator:
             print("Error: No initial messages supplied!")
             exit(1)
         self.messages = initial_messages
+        for t in self.messages.keys():
+            for message in self.messages[t]:
+                if message.target_address.algorithm not in self.algorithms.keys():
+                    print(f"ERROR: Unknown algorithm in target_address '{message.target_address}'")
+                    exit(1)
+
         self.time = None
         self.theta = None
 
@@ -113,6 +125,10 @@ class Simulator:
             return False
         message._is_lost = self.random_generator.random() > edge_config.reliability
 
+        if message.target_address.algorithm not in self.algorithms.keys():
+            print(f"ERROR: Unknown algorithm in target_address '{message.target_address}'")
+            exit(1)
+
         # Determine position in the queue
         scheduler = edge_config.scheduler
         insert_time = time
@@ -140,6 +156,9 @@ class Simulator:
         return None
 
     def insert_self_message_to_queue(self, message: Message):
+        if message.target_address.algorithm not in self.algorithms.keys():
+            print(f"ERROR: Unknown algorithm in target_address '{message.target_address}'")
+            exit(1)
         insert_time = self.time + message._self_message_delay
         message._arrival_time = insert_time
         if insert_time not in self.messages.keys():
@@ -179,7 +198,7 @@ class Simulator:
         # also possible that this reduces usability as users can not import their own modules anymore
         # TODO: Test and remove if necessary
         scope: dict[str, any] = {
-            "Colors": Colors,
+            "DefaultColors": DefaultColors,
             "Color": Color,
             "Message": Message,
             "Address": Address,

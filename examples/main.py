@@ -6,16 +6,17 @@ import requests
 from DIAL.API.API import API
 from DIAL.Message import Message
 from DIAL.State import State
-from DIAL.Topology import Topology, EdgeConfig, EdgeDirection, DefaultScheduler
-from DIAL.Color import Colors
+from DIAL.Topology import Topology, EdgeConfig, EdgeDirection
+from DIAL.Scheduler import DefaultScheduler
+from DIAL.Color import DefaultColors
 from DIAL.Address import Address
 from DIAL.Simulator import Simulator, send, send_to_self
 
 
 def flooding(node: State, message: Message, time: int):
-    if node.color == Colors.RED.value:
+    if node.color == DefaultColors.RED.value:
         return
-    node.color = Colors.RED.value
+    node.color = DefaultColors.RED.value
     for neighbor in node.neighbors:
         if neighbor == node.address.node_name:
             continue
@@ -26,7 +27,7 @@ def flooding(node: State, message: Message, time: int):
 
 
 def print_after_delay(node: State, message: Message, time: int):
-    node.color = Colors.BLUE.value
+    node.color = DefaultColors.BLUE.value
     print(
         f'Hi. The current time is {time} ({time - message.data["t"]} after {message.data["t"]}) '
         f'and you are on {node.address}')
@@ -37,7 +38,7 @@ def example_hook(node: State, messages: list[Message], time: int):
         self_message = Message(source_address=node.address.copy(),
                                target_address=node.address.copy(algorithm="print_after_delay"))
         self_message.data["t"] = int(time)
-        self_message.color = Colors.BLUE.value
+        self_message.color = DefaultColors.BLUE.value
         send_to_self(self_message, 5)
 
 
@@ -70,7 +71,7 @@ initial_message = Message(
     source_address=initial_address,
     title="Initial Message"
 )
-initial_message.color = Colors.RED
+initial_message.color = DefaultColors.RED
 initial_message._creation_time = -1
 lost_message = Message(
     target_address=Address(node_name="F", algorithm="flooding", instance="flooding-example"),
@@ -78,7 +79,7 @@ lost_message = Message(
     title="Example for a lost message"
 )
 lost_message._is_lost = True
-lost_message.color = Colors.PINK.value
+lost_message.color = DefaultColors.PINK.value
 a = {
     "flooding": flooding,
     "print_after_delay": print_after_delay
@@ -93,8 +94,6 @@ s = Simulator(topology=t, algorithms=a, initial_messages={1: [initial_message], 
 #
 
 api = API(simulator=s, verbose=True)
-p = Process(target=api.run)
-p.start()
 
 
 def prettyPrint(x):

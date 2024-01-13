@@ -1,17 +1,43 @@
 from DIAL.Message import Message
 from DIAL.State import State
-from DIAL.Topology import Topology, EdgeConfig, EdgeDirection, DefaultScheduler
-from DIAL.Color import Colors
+from DIAL.Topology import DefaultTopologies
+from DIAL.Color import DefaultColors
 from DIAL.Address import Address
 from DIAL.Simulator import Simulator, send, send_to_self
 import numpy.random
+from DIAL.API.API import API
+
+def flooding_algorithm(node: State, message: Message, time: int):
+    if node.color == DefaultColors.RED.value:
+        return
+    node.color = DefaultColors.RED.value
+    for neighbor in node.neighbors:
+        if neighbor == node.address.node_name:
+            continue
+        m = message.copy()
+        m.source_address = node.address
+        m.target_address = node.address.copy(node=neighbor)
+        send(m)
+
+topology = DefaultTopologies.EXAMPLE_NETWORK_3
+message = Message(source_address="A/initial_message/instance", target_address="B/flooding/instance", color=DefaultColors.RED)
+initial_message_queue = {
+    0: [message]
+}
+algorithms = {
+    "flooding": flooding_algorithm
+}
+simulator = Simulator(topology=topology, algorithms=algorithms, initial_messages=initial_message_queue)
+api = API(simulator=simulator, verbose=True)
+
+exit(0)
 
 def voting_ring(state: State, message: Message, time: int):
     # Initialization
-    if state.color == Colors.WHITE:
+    if state.color == DefaultColors.WHITE:
         state.data["value"] = numpy.random.randint(0, 1000)
         state.data["leader"] = state.address.node
-        state.color = Colors.RED
+        state.color = DefaultColors.RED
         neighbors_without_predecessor = state.neighbors.copy()
         neighbors_without_predecessor.remove(message.source_address.node)
         state.data["successor"] = neighbors_without_predecessor[0]
@@ -24,7 +50,7 @@ def voting_ring(state: State, message: Message, time: int):
 
     # Node has lost the vote and relays messages
     if message.data["value"] > state.data["value"]:
-        state.color = Colors.BLUE
+        state.color = DefaultColors.BLUE
         state.data["value"] = message.data["value"]
         state.data["leader"] = message.data["value"]
         relay_address = state.address.copy(node=state.data["successor"])
@@ -33,12 +59,12 @@ def voting_ring(state: State, message: Message, time: int):
 
 
 def flooding(state: State, message: Message, time: int):
-    if state.color == Colors.RED:
+    if state.color == DefaultColors.RED:
         self_message = Message(source_address=state.address.copy(), target_address=state.address.copy(algorithm="print_after_delay"))
         self_message.data["t"] = time
         send_to_self(self_message, 5)
         return
-    state.color = Colors.RED
+    state.color = DefaultColors.RED
     for neighbor in state.neighbors:
         m = message.copy()
         m.source_address = state.address
@@ -47,9 +73,9 @@ def flooding(state: State, message: Message, time: int):
 
 
 def echo(state: State, message: Message, time: int):
-    if state.color == Colors.RED:
+    if state.color == DefaultColors.RED:
         return
-    state.color = Colors.RED
+    state.color = DefaultColors.RED
     for neighbor in state.neighbors:
         if neighbor == message.source_address.node:
             continue
