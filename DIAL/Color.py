@@ -49,4 +49,5 @@ class DefaultColors(Enum):
     PINK = Color(252, 3, 244)
     BLACK = Color(0, 0, 0)
     WHITE = Color(255, 255, 255)
+    DARK_GREEN = Color(0, 120, 90)
 

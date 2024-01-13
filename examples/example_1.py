@@ -1,18 +1,18 @@
-from DIAL import Message, State, DefaultTopologies, DefaultColors, Simulator, send, API
+from DIAL import Message, State, DefaultTopologies, DefaultColors, Simulator, send, API, ReadOnlyDict
 
 
 # Step 1: Implementing an algorithm
-# Create a function with the following signature: (node: State, message: Message, time: int) -> None
-def flooding_algorithm(node: State, message: Message, time: int) -> None:
-    if node.color == message.color:
+# Create a function with the following signature: (state: State, message: Message, time: int, local_states: ReadOnlyDict) -> None:
+def flooding_algorithm(state: State, message: Message, time: int, local_states: ReadOnlyDict) -> None:
+    if state.color == message.color:
         return
-    node.color = message.color
-    for neighbor in node.neighbors:
-        if neighbor == node.address.node_name:
+    state.color = message.color
+    for neighbor in state.neighbors:
+        if neighbor == state.address.node_name:
             continue
         m = message.copy()
-        m.source_address = node.address
-        m.target_address = node.address.copy(node=neighbor)
+        m.source_address = state.address
+        m.target_address = state.address.copy(node=neighbor)
         send(m)
 
 

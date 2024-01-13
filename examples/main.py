@@ -11,29 +11,30 @@ from DIAL.Scheduler import DefaultSchedulers
 from DIAL.Color import DefaultColors
 from DIAL.Address import Address
 from DIAL.Simulator import Simulator, send, send_to_self
+from DIAL.ReadOnlyDict import ReadOnlyDict
 
 
-def flooding(node: State, message: Message, time: int):
-    if node.color == DefaultColors.RED.value:
+def flooding(state: State, message: Message, time: int, local_states: ReadOnlyDict):
+    if state.color == DefaultColors.RED.value:
         return
-    node.color = DefaultColors.RED.value
-    for neighbor in node.neighbors:
-        if neighbor == node.address.node_name:
+    state.color = DefaultColors.RED.value
+    for neighbor in state.neighbors:
+        if neighbor == state.address.node_name:
             continue
         m = message.copy()
-        m.source_address = node.address
-        m.target_address = node.address.copy(node=neighbor)
+        m.source_address = state.address
+        m.target_address = state.address.copy(node=neighbor)
         send(m)
 
 
-def print_after_delay(node: State, message: Message, time: int):
+def print_after_delay(node: State, message: Message, time: int, local_states: ReadOnlyDict):
     node.color = DefaultColors.BLUE.value
     print(
         f'Hi. The current time is {time} ({time - message.data["t"]} after {message.data["t"]}) '
         f'and you are on {node.address}')
 
 
-def example_hook(node: State, messages: list[Message], time: int):
+def example_hook(node: State, messages: list[Message], time: int, local_states: ReadOnlyDict):
     if len(messages) > 0:
         self_message = Message(source_address=node.address.copy(),
                                target_address=node.address.copy(algorithm="print_after_delay"))

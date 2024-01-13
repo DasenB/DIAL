@@ -1,6 +1,4 @@
-import enum
-
-import random
+import copy
 import textwrap
 import types
 from copy import deepcopy
@@ -13,10 +11,10 @@ from DIAL.Color import DefaultColors, Color
 from DIAL.Message import Message
 from DIAL.State import State
 from DIAL.Topology import Topology, EdgeConfig, DefaultTopologies
+from DIAL.ReadOnlyDict import ReadOnlyDict
 
-# Algorithm = Callable[[State, Message], tuple[State, list[Message]]]
-Algorithm = Callable[[State, Message, int], None]
-ConditionHook = Callable[[State, list[Message], int], None]
+Algorithm = Callable[[State, Message, int, ReadOnlyDict], None]
+ConditionHook = Callable[[State, list[Message], int, ReadOnlyDict], None]
 
 _send_messages_: list[Message] = []
 
@@ -200,6 +198,12 @@ class Simulator:
         current_state = self.states[target_address][-1]
         algorithm = self.algorithms[target_address.algorithm]
 
+        # Collect all local states
+        local_state_copies: dict[Address, State] = {}
+        for address in self.states.keys():
+            if address.node_name == current_message.target_address.node_name:
+                local_state_copies[address] = copy.deepcopy(self.states[address][-1])
+
         # Modify algorithm to always include relevant objects for better usability
         # also possible that this reduces usability as users can not import their own modules anymore
         # TODO: Test and remove if necessary
@@ -220,9 +224,9 @@ class Simulator:
         new_state = current_state
         if not current_message._is_lost:
             new_state = deepcopy(current_state)
-            algorithm(new_state, current_message, self.time)
+            algorithm(new_state, current_message, self.time, ReadOnlyDict(local_state_copies))
             for hook in self.condition_hooks:
-                hook(new_state, _send_messages_, self.time)
+                hook(new_state, _send_messages_, self.time, ReadOnlyDict(local_state_copies))
         new_messages: list[Message] = _send_messages_
         _send_messages_ = []
 

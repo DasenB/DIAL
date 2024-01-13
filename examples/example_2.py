@@ -1,21 +1,31 @@
-from DIAL import Message, State, DefaultTopologies, DefaultColors, Simulator, send, API
+from DIAL import Message, State, DefaultTopologies, DefaultColors, Simulator, send, API, ReadOnlyDict, send_to_self
 
-def election_ring(state: State, message: Message, time: int):
+def election_ring(state: State, message: Message, time: int, local_states: ReadOnlyDict) -> None:
     # BLUE  => Node stil has hopes to win the election
     # RED   => Node knows it has lost the election
     # GREEN => Node knows it has won the election
 
     if state.color == DefaultColors.WHITE:
-        state.data["successor"] = state.neighbors[0]
-        if message.source_address.node_name in state.neighbors:
-            neighbors_without_predecessor = state.neighbors.copy()
-            neighbors_without_predecessor.remove(message.source_address.node_name)
-            state.data["successor"] = neighbors_without_predecessor[0]
+        neighbors = state.neighbors.copy()
+        if message.source_address.node_name in neighbors:
+            neighbors.remove(message.source_address.node_name)
+        if state.address.node_name in neighbors:
+            neighbors.remove(state.address.node_name)
+        state.data["successor"] = neighbors[0]
 
         random_value = int(state.random_number_generator.integers(low=0, high=10000))
         state.data["value"] = random_value
         state.data["leader"] = state.address.node_name
         state.color = DefaultColors.BLUE
+
+    if state.color == DefaultColors.DARK_GREEN:
+        return
+
+    if message.color == DefaultColors.YELLOW and state.color == DefaultColors.GREEN:
+        state.color = DefaultColors.DARK_GREEN
+        finished = Message(source_address=state.address.copy(), target_address=state.address.copy(), color=DefaultColors.PINK)
+        send_to_self(finished, 5)
+        return
 
     m = Message(source_address=state.address, target_address=state.address.copy(node=state.data["successor"]))
 
@@ -39,18 +49,40 @@ def election_ring(state: State, message: Message, time: int):
     send(m)
 
 
-initial_message = Message(
+def election_finished_hook(state: State, messages: list[Message], time: int, local_states: ReadOnlyDict) -> None:
+    if state.address.algorithm != "election":
+        return
+    if len(messages) != 1:
+        return
+    if messages[0].color != DefaultColors.PINK:
+        return
+    print("Election finished. Initialize exclusion token..")
+    m = Message(source_address=state.address.copy(), target_address=state.address.copy(algorithm="exclusion"), color=DefaultColors.ORANGE)
+    send_to_self(m, 10)
+
+def token_exclusion(state: State, message: Message, time: int, local_states: ReadOnlyDict) -> None:
+    pass
+
+initial_message_1 = Message(
     source_address="A/initiator_algorithm/initiator_instance",
-    target_address="B/election/instance1"
+    target_address="B/election/instance"
+)
+
+initial_message_2 = Message(
+    source_address="M/initiator_algorithm/initiator_instance",
+    target_address="N/election/instance"
 )
 
 simulator = Simulator(
     topology = DefaultTopologies.RING_UNIDIRECTIONAL,
     algorithms = {
-        "election": election_ring
+        "election": election_ring,
+        "exclusion": token_exclusion
     },
+    condition_hooks=[election_finished_hook],
     initial_messages={
-        0: [initial_message]
+        0: [initial_message_1],
+        40: [initial_message_2]
     }
 )
 
