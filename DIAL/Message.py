@@ -44,7 +44,7 @@ class Message:
         if data is None:
             self.data = {}
         else:
-            self.data = data
+            self.data = copy.deepcopy(data)
 
         if type(source_address) == str:
             self.source_address = Address.from_string(source_address)
@@ -193,6 +193,8 @@ class MessageParser:
             return Error("Violated constraint: message.arrival_theta >= 0")
         if message._self_message_delay < 0:
             return Error("Violated constraint: message.self_message_delay >= 0")
+        if message._is_self_message and message.source_address.node_name != message.target_address.node_name:
+            return Error("Violated constraint: target node must be equal to source node for self-messages")
 
         if message._creation_time >= message._arrival_time:
             return Error("Violated constraint: message.creation_time < message.arrival_time")

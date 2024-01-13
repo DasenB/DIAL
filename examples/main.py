@@ -7,7 +7,7 @@ from DIAL.API.API import API
 from DIAL.Message import Message
 from DIAL.State import State
 from DIAL.Topology import Topology, EdgeConfig, EdgeDirection
-from DIAL.Scheduler import DefaultScheduler
+from DIAL.Scheduler import DefaultSchedulers
 from DIAL.Color import DefaultColors
 from DIAL.Address import Address
 from DIAL.Simulator import Simulator, send, send_to_self
@@ -45,7 +45,7 @@ def example_hook(node: State, messages: list[Message], time: int):
 reliable_local_fifo = EdgeConfig(
     reliability=1.0,
     direction=EdgeDirection.BIDIRECTIONAL,
-    scheduler=DefaultScheduler.LOCAL_FIFO
+    scheduler=DefaultSchedulers.LOCAL_FIFO
 )
 
 t = Topology(all_nodes_have_loops=True)

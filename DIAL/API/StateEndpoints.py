@@ -2,6 +2,7 @@ from flask import request
 from DIAL.Address import Address
 from DIAL.Error import Error
 from DIAL.State import State, StateParser
+from DIAL.Color import DefaultColors
 
 
 class StateEndpoints:
@@ -15,8 +16,11 @@ class StateEndpoints:
         for time_tuple in self.api.simulator.node_colors.keys():
             time_str = str(time_tuple[0]) + "/" + str(time_tuple[1])
             for address in self.api.simulator.node_colors[time_tuple].keys():
+                color_object = self.api.simulator.node_colors[time_tuple][address]
+                if isinstance(color_object, DefaultColors):
+                    color_object = color_object.value
                 color_transitions[time_str] = {
-                    address.__repr__(): self.api.simulator.node_colors[time_tuple][address].__str__()
+                    address.__repr__(): color_object.__str__()
                 }
         neighbor_transitions: dict[str, any] = {}
         for time_tuple in self.api.simulator.node_neighbors.keys():

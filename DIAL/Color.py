@@ -18,7 +18,7 @@ class Color:
         return "#" + r_str + g_str + b_str
 
     def __eq__(self, other) -> bool:
-        if other.__class__.__name__ == "Colors":
+        if other.__class__.__name__ == "DefaultColors":
             other = other.value
         if self.red != other.red:
             return False

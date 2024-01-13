@@ -1,7 +1,7 @@
 from __future__ import annotations
 from enum import Enum
 from typing import Tuple
-from DIAL.Scheduler import Scheduler, DefaultScheduler
+from DIAL.Scheduler import Scheduler, DefaultSchedulers
 
 
 
@@ -15,7 +15,7 @@ class EdgeConfig:
     direction: EdgeDirection
     reliability: float
 
-    def __init__(self, scheduler: Scheduler | DefaultScheduler, direction: EdgeDirection, reliability: float = 1.0):
+    def __init__(self, scheduler: Scheduler | DefaultSchedulers, direction: EdgeDirection, reliability: float = 1.0):
         self.scheduler = scheduler
         self.direction = direction
         self.reliability = reliability
@@ -52,7 +52,7 @@ class Topology:
             self_edge_config = EdgeConfig(
                 reliability=1.0,
                 direction=EdgeDirection.UNIDIRECTIONAL,
-                scheduler=DefaultScheduler.LOCAL_FIFO
+                scheduler=DefaultSchedulers.LOCAL_FIFO
             )
             self.add_edge(node, node, self_edge_config)
         return True
@@ -106,7 +106,7 @@ class DefaultTopologies(Enum):
         edge_config = EdgeConfig(
             reliability=1.0,
             direction=EdgeDirection.BIDIRECTIONAL,
-            scheduler=DefaultScheduler.LOCAL_FIFO
+            scheduler=DefaultSchedulers.LOCAL_FIFO
         )
         for index in range(0, len(nodes)):
             source_node = nodes[index - 1]
@@ -122,7 +122,7 @@ class DefaultTopologies(Enum):
         edge_config = EdgeConfig(
             reliability=1.0,
             direction=EdgeDirection.UNIDIRECTIONAL,
-            scheduler=DefaultScheduler.LOCAL_FIFO
+            scheduler=DefaultSchedulers.LOCAL_FIFO
         )
         for index in range(0, len(nodes)):
             source_node = nodes[index - 1]
@@ -138,7 +138,7 @@ class DefaultTopologies(Enum):
         edge_config = EdgeConfig(
             reliability=1.0,
             direction=EdgeDirection.UNIDIRECTIONAL,
-            scheduler=DefaultScheduler.LOCAL_FIFO
+            scheduler=DefaultSchedulers.LOCAL_FIFO
         )
         t.add_edge("A", "B", edge_config)
         t.add_edge("A", "C", edge_config)
@@ -161,7 +161,7 @@ class DefaultTopologies(Enum):
         edge_config = EdgeConfig(
             reliability=1.0,
             direction=EdgeDirection.BIDIRECTIONAL,
-            scheduler=DefaultScheduler.LOCAL_FIFO
+            scheduler=DefaultSchedulers.LOCAL_FIFO
         )
         nodes = ["A", "B", "C", "D", "E", "F"]
         for node in nodes:
@@ -181,7 +181,7 @@ class DefaultTopologies(Enum):
         edge_config = EdgeConfig(
             reliability=1.0,
             direction=EdgeDirection.UNIDIRECTIONAL,
-            scheduler=DefaultScheduler.LOCAL_FIFO
+            scheduler=DefaultSchedulers.LOCAL_FIFO
         )
         nodes = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W"]
         edges = [(0, 1), (1, 0), (21, 2), (6, 19), (2, 5), (12, 9), (17, 10), (9, 16), (21, 15), (2, 4), (8, 19), (7, 13), (11, 12), (7, 18), (12, 22), (19, 11), (12, 5), (22, 7), (22, 20), (3, 21), (13, 6), (15, 7), (16, 19), (17, 6), (2, 11), (13, 22), (5, 21), (5, 21), (14, 6), (8, 18), (22, 8), (3, 20), (7, 0), (6, 14), (17, 11), (20, 10), (14, 21), (1, 1), (0, 19), (18, 2), (3, 20), (12, 0)]
@@ -196,7 +196,7 @@ class DefaultTopologies(Enum):
         edge_config = EdgeConfig(
             reliability=1.0,
             direction=EdgeDirection.BIDIRECTIONAL,
-            scheduler=DefaultScheduler.LOCAL_FIFO
+            scheduler=DefaultSchedulers.LOCAL_FIFO
         )
         nodes = ["A", "B", "C", "D", "E", "F", "G"]
         for node in nodes:

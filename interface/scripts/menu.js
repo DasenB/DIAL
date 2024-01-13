@@ -404,7 +404,7 @@ class DialMenu extends LitElement {
                     <div id="time-indicator_value">${this.timeIndicator}</div>
                 </div>
                 <sl-divider vertical></sl-divider>
-                <sl-input @sl-change=${this.handleSpeedChange} label="Speed" id="speed-input" type="number" value="${this.speed}" min="0.1" max="9.9" step="0.1">
+                <sl-input @sl-change=${this.handleSpeedChange} label="Speed" id="speed-input" type="number" value="${this.speed}" min="0.1" max="100.0" step="0.1">
                     <sl-icon name="speedometer" slot="prefix"></sl-icon>
                 </sl-input>
                 <sl-divider vertical></sl-divider>

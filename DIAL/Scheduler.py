@@ -66,7 +66,7 @@ def random_scheduler(
     insert_time = random_number_generator.integers(low=time + 1, high=time + 11)
     return insert_time
 
-class DefaultScheduler(Enum):
+class DefaultSchedulers(Enum):
     LOCAL_FIFO = local_fifo_scheduler
     RANDOM = random_scheduler
     GLOBAL_FIFO = global_fifo_scheduler

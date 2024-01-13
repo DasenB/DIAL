@@ -159,7 +159,13 @@ class Simulator:
         if message.target_address.algorithm not in self.algorithms.keys():
             print(f"ERROR: Unknown algorithm in target_address '{message.target_address}'")
             exit(1)
-        insert_time = self.time + message._self_message_delay
+        if message.target_address.node_name != message.source_address.node_name:
+            print(f"ERROR: Self-Messages can not be send to a different node.")
+            exit(1)
+        current_time = self.time
+        if current_time is None:
+            current_time = self.find_first()[0]
+        insert_time = current_time + message._self_message_delay
         message._arrival_time = insert_time
         if insert_time not in self.messages.keys():
             self.messages[insert_time] = []

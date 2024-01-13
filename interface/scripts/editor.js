@@ -78,7 +78,7 @@ class DialEditor extends LitElement {
         let documentString = undefined;
         try {
             let document = this.codemirror.getDoc();
-            documentString = document.getValue();
+            documentString = document.getValue("");
         } catch (err) {
             // This error seems to have no effect. This is just to silence it.
         }
@@ -100,7 +100,7 @@ class DialEditor extends LitElement {
         let documentString = undefined;
         try {
             let document = this.codemirror.getDoc();
-            documentString = document.getValue();
+            documentString = document.getValue("");
         } catch (err) {
             // This error seems to have no effect. This is just to silence it.
         }

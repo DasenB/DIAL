@@ -278,7 +278,7 @@ class DialSimulator extends LitElement {
                 actions: [this.$dialog.defaultActions.ok]
             };
 
-            let documentString = e.detail;
+            let documentString = e.detail.document;
             let documentData = undefined;
             try {
                 documentData = JSON.parse(documentString);
