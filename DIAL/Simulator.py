@@ -113,7 +113,7 @@ class Simulator:
                 return t, len(self.messages[t]) - 1
         return None
 
-    def insert_message_to_queue(self, message: Message, time: int | None = None, theta: int | None = None) -> bool:
+    def insert_message_to_queue(self, message: Message, time: int | None = None, theta: int | None = None, is_lost: bool | None = None) -> bool:
 
         # Determine whether message is lost
         edge_config: EdgeConfig | None = self.topology.get_edge_config(message.source_address.node_name,
@@ -121,7 +121,10 @@ class Simulator:
         if edge_config is None:
             print(f'No edge exists between {message.source_address.node_name} and {message.target_address.node_name}. Can not send message.')
             return False
-        message._is_lost = self.random_generator.random() > edge_config.reliability
+        if is_lost is None:
+            message._is_lost = self.random_generator.random() > edge_config.reliability
+        else:
+            message._is_lost = is_lost
 
         if message.target_address.algorithm not in self.algorithms.keys():
             print(f"ERROR: Unknown algorithm in target_address '{message.target_address}'")

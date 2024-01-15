@@ -2,7 +2,7 @@ import copy
 import json
 import os
 from multiprocessing import Process
-
+import webbrowser
 
 from flask import Flask
 from flask_cors import CORS
@@ -65,6 +65,7 @@ class API:
 
         p = Process(target=self.run)
         p.start()
+        webbrowser.open(f"https://127.0.0.1:{port}/index.html", new=0, autoraise=True)
 
 
     def response(self, status: int, response: any):

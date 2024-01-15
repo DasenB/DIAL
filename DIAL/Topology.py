@@ -26,10 +26,16 @@ class Topology:
     edges: dict[Tuple[str, str], EdgeConfig]
     all_nodes_have_loops: bool
 
-    def __init__(self, all_nodes_have_loops: bool = True, template: DefaultTopologies | None = None):
+    def __init__(self, nodes: list[str] = [], edges: list[Tuple[str, str, EdgeConfig]] = [], all_nodes_have_loops: bool = True, template: DefaultTopologies | None = None):
         self.nodes = []
         self.edges = {}
         self.all_nodes_have_loops = all_nodes_have_loops
+
+        for node in nodes:
+            self.add_node(node)
+
+        for edge in edges:
+            self.add_edge(edge[0], edge[1], edge[2])
 
     def has_node(self, node: str) -> bool:
         return node in self.nodes
@@ -99,7 +105,7 @@ class DefaultTopologies(Enum):
         if value == 5:
             self.topology_object = self.example_network_3()
     def ring_bidirectional(self):
-        t = Topology(all_nodes_have_loops=False, template=None)
+        t = Topology(all_nodes_have_loops=True, template=None)
         nodes = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R"]
         for node in nodes:
             t.add_node(node)
@@ -115,7 +121,7 @@ class DefaultTopologies(Enum):
         return t
 
     def ring_unidirectional(self):
-        t = Topology(all_nodes_have_loops=True, template=None)
+        t = Topology(all_nodes_have_loops=False, template=None)
         nodes = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R"]
         for node in nodes:
             t.add_node(node)

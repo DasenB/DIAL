@@ -229,7 +229,7 @@ class DialDetailView extends LitElement {
                             creationTime="${msg.creation_time + "/" + msg.creation_theta}"
                             ?received=${wasReceived}
                             ?disableEditing=${!this.editingEnabled || processedByBackend}
-                            ?isLost=${msg.is_lost === "True"}
+                            ?isLost=${msg.is_lost}
                             class="${msg.selected ? "selected": "" }"
                     ></dial-message>
                 `;

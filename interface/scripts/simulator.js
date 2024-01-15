@@ -608,8 +608,8 @@ class DialSimulator extends LitElement {
                     msg.arrival_time,
                     msg.arrival_theta,
                     msg.color,
-                    msg.is_lost === "True",
-                    msg.self_message === "True"
+                    msg.is_lost,
+                    msg.self_message
                 );
                 if (msg.selected !== undefined) {
                     graphMessage.selected = msg.selected;

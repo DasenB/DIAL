@@ -81,7 +81,7 @@ class Message:
         color = self.color
         if isinstance(color, DefaultColors):
             color = color.value
-        summary: dict[str, str] = {
+        summary: dict[str, any] = {
             "source": str(self.source_address),
             "target": str(self.target_address),
             "color": str(color.__repr__()),
@@ -93,8 +93,8 @@ class Message:
             "arrival_theta": int(self._arrival_theta),
             "creation_time": int(self._creation_time),
             "creation_theta": int(self._creation_theta),
-            "is_lost": str(self._is_lost),
-            "self_message": str(self._is_self_message),
+            "is_lost": bool(self._is_lost),
+            "self_message": bool(self._is_self_message),
             "self_message_delay": int(self._self_message_delay)
         }
         return summary
@@ -183,6 +183,8 @@ class MessageParser:
         return msg
 
     def validate_message(self, message: Message) -> Error | None:
+        if message.target_address.algorithm not in self.simulator.algorithms.keys():
+            return Error(f"Algorithm of attribute message.target_address does not exist")
         if message._creation_time < 0:
             return Error("Violated constraint: message.creation_time >= 0")
         if message._creation_theta < 0:
@@ -261,8 +263,6 @@ class MessageParser:
             return Error(f"Invalid attribute message.{key}")
         if not self.simulator.topology.has_node(address.node_name):
             return Error(f"Node of attribute message.{key} is not in topology")
-        if address.algorithm not in self.simulator.algorithms.keys():
-            return Error(f"Algorithm of attribute message.{key} does not exist")
         return address
 
     def parse_int(self, json: dict[str, any], key: str) -> int | Error:
@@ -277,14 +277,9 @@ class MessageParser:
     def parse_bool(self, json: dict[str, any], key: str) -> bool | Error:
         if key not in json.keys():
             return Error(f"Missing attribute message.{key}")
-        if not isinstance(json[key], str):
-            return Error(f"message.{key} is not a string")
-        value = json[key]
-        if value == "True":
-            return True
-        if value == "False":
-            return False
-        return Error(f'message.{key} bust be "True" or "False"')
+        if not isinstance(json[key], bool):
+            return Error(f"message.{key} is not a bool")
+        return json[key]
 
     def parse_children(self, json: dict[str, any], key: str) -> list[uuid.UUID] | Error:
         if key not in json.keys():

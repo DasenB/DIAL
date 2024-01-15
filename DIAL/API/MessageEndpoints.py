@@ -74,7 +74,7 @@ class MessageEndpoints:
             if edge_config is None:
                 return self.api.response(status=400,
                                          response="No edge exists between nodes in message.source and message.target")
-            self.api.simulator.insert_message_to_queue(message, time=message._arrival_time)
+            self.api.simulator.insert_message_to_queue(message, time=message._arrival_time, theta=message._arrival_theta, is_lost=message._is_lost)
         return self.api.response(status=200, response=f'OK')
 
     def put_message(self, message_id: str):

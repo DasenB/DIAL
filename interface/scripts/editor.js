@@ -154,8 +154,8 @@ class DialEditor extends LitElement {
             "arrival_theta": 0,
             "creation_time": 0,
             "creation_theta": 0,
-            "is_lost": "False",
-            "self_message": "False",
+            "is_lost": false,
+            "self_message": false,
             "self_message_delay": 0,
             "data": {}
         }
