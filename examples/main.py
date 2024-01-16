@@ -34,6 +34,35 @@ def print_after_delay(node: State, message: Message, time: int, local_states: Re
         f'and you are on {node.address}')
 
 
+
+
+def token_exclusion_algorithm(state: State, message: Message, time: int, local_states: ReadOnlyDict) -> None:
+    # PURPLE => Node has exclusive access to a resource
+    # WHITE => Node has no access to the exclusive resource
+    m = message.copy()
+    m.color = DefaultColors.PURPLE
+    m.source_address = state.address.copy()
+
+    if state.color == DefaultColors.WHITE:
+        state.color = DefaultColors.PURPLE
+        state.data["has_token"] = True
+        state.data["received_token_from"] = message.source_address.node_name
+        m.target_address = state.address.copy()
+        send_to_self(m, 5)
+        return
+    if state.color == DefaultColors.PURPLE:
+        state.color = DefaultColors.WHITE
+        state.data["has_token"] = False
+        neighbors = state.neighbors.copy()
+        if state.data["received_token_from"] in neighbors:
+            neighbors.remove(state.data["received_token_from"])
+        if state.address.node_name in neighbors:
+            neighbors.remove(state.address.node_name)
+        successor = neighbors[0]
+        m.target_address = state.address.copy(node=successor)
+        send(m)
+        return
+
 def example_hook(node: State, messages: list[Message], time: int, local_states: ReadOnlyDict):
     if len(messages) > 0:
         self_message = Message(source_address=node.address.copy(),

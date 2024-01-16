@@ -61,17 +61,18 @@ class StateEndpoints:
         for time_tuple in node_colors.keys():
             if old_state.address not in node_colors[time_tuple].keys():
                 continue
-            if latest_time_tuple is None:
-                latest_time_tuple = time_tuple
-                continue
             if time_tuple[0] is None and time_tuple[1] is None:
                 latest_time_tuple = time_tuple
                 break
-            if (time_tuple[0] < latest_time_tuple[0]) or (time_tuple[0] == latest_time_tuple[0] and time_tuple[1] < latest_time_tuple[1]):
+            if latest_time_tuple is None:
+                latest_time_tuple = time_tuple
+                continue
+            if (time_tuple[0] > latest_time_tuple[0]) or (time_tuple[0] == latest_time_tuple[0] and time_tuple[1] > latest_time_tuple[1]):
                 latest_time_tuple = time_tuple
                 continue
         if latest_time_tuple is None:
             return self.api.response(status=400, response=f'Can not change color :( OH No! This error should never happen...')
+        print(latest_time_tuple)
         node_colors[latest_time_tuple][old_state.address] = new_state.color
         old_state.neighbors = new_state.neighbors
         old_state.color = new_state.color

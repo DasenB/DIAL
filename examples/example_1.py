@@ -1,12 +1,12 @@
 import DIAL
-from DIAL import Message, State, Topology, DefaultColors, Simulator, send, API, ReadOnlyDict, EdgeConfig
+from DIAL import Message, State, Topology, DefaultColors, Simulator, send, API, ReadOnlyDict, EdgeConfig, Address
 
 # Goal:
 # Understand how to create a distributed algorithm and run it on a network of nodes
 
 # Step 1: Implementing an algorithm
 # Create a function with the following signature: (state: State, message: Message, time: int, local_states: ReadOnlyDict) -> None:
-def flooding_algorithm(state: State, message: Message, time: int, local_states: ReadOnlyDict) -> None:
+def flooding_algorithm(state: State, message: Message, time: int, local_states: ReadOnlyDict[Address, any]) -> None:
     if state.color == message.color:
         return
     state.color = message.color
@@ -67,4 +67,5 @@ simulator = Simulator(
 )
 
 # Step 5: Run the webinterface
-api = API(simulator=simulator)
+if __name__ == "__main__":
+    api = API(simulator=simulator)

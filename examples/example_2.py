@@ -1,22 +1,25 @@
-from DIAL import Message, State, DefaultTopologies, DefaultColors, Simulator, send, API, ReadOnlyDict, send_to_self
+from DIAL import Message, State, DefaultTopologies, DefaultColors, Simulator, send, API, ReadOnlyDict, send_to_self, Address
 
 # Goal: Understand composition, self_messages
-def ring_election_algorithm(state: State, message: Message, time: int, local_states: ReadOnlyDict) -> None:
+def ring_election_algorithm(state: State, message: Message, time: int, local_states: ReadOnlyDict[Address, any]) -> None:
     # BLUE  => Node stil has hopes to win the election
     # RED   => Node knows it has lost the election
     # GREEN => Node knows it has won the election
+
+    def next_neighbor() -> str:
+        neighbors = state.neighbors.copy()
+        if state.address.node_name in neighbors:
+            neighbors.remove(state.address.node_name)
+        if message.source_address.node_name in neighbors:
+            neighbors.remove(message.source_address.node_name)
+        return neighbors[0]
+
     if "value" in state.data.keys() and "value" in message.data.keys():
         if state.color == DefaultColors.BLUE and message.data["value"] < state.data["value"]:
             return
 
     if state.color == DefaultColors.WHITE:
-        neighbors = state.neighbors.copy()
-        if message.source_address.node_name in neighbors:
-            neighbors.remove(message.source_address.node_name)
-        if state.address.node_name in neighbors:
-            neighbors.remove(state.address.node_name)
-        state.data["successor"] = neighbors[0]
-
+        state.data["successor"] = next_neighbor()
         random_value = int(state.random_number_generator.integers(low=0, high=10000))
         state.data["value"] = random_value
         state.data["leader"] = state.address.node_name
@@ -56,9 +59,19 @@ def ring_election_algorithm(state: State, message: Message, time: int, local_sta
     m.data["value"] = state.data["value"]
     send(m)
 
-def token_exclusion_algorithm(state: State, message: Message, time: int, local_states: ReadOnlyDict) -> None:
+
+
+def token_exclusion_algorithm(state: State, message: Message, time: int, local_states: ReadOnlyDict[Address, any]) -> None:
     # PURPLE => Node has exclusive access to a resource
     # WHITE => Node has no access to the exclusive resource
+    def next_neighbor() -> str:
+        neighbors = state.neighbors.copy()
+        if state.address.node_name in neighbors:
+            neighbors.remove(state.address.node_name)
+        if state.data["received_token_from"] in neighbors:
+            neighbors.remove(state.data["received_token_from"])
+        return neighbors[0]
+
     m = message.copy()
     m.color = DefaultColors.PURPLE
     m.source_address = state.address.copy()
@@ -68,18 +81,12 @@ def token_exclusion_algorithm(state: State, message: Message, time: int, local_s
         state.data["has_token"] = True
         state.data["received_token_from"] = message.source_address.node_name
         m.target_address = state.address.copy()
-        send_to_self(m, 5)
+        send_to_self(m, 6)
         return
     if state.color == DefaultColors.PURPLE:
         state.color = DefaultColors.WHITE
         state.data["has_token"] = False
-        neighbors = state.neighbors.copy()
-        if state.data["received_token_from"] in neighbors:
-            neighbors.remove(state.data["received_token_from"])
-        if state.address.node_name in neighbors:
-            neighbors.remove(state.address.node_name)
-        successor = neighbors[0]
-        m.target_address = state.address.copy(node=successor)
+        m.target_address = state.address.copy(node=next_neighbor())
         send(m)
         return
 
@@ -105,4 +112,5 @@ simulator = Simulator(
     }
 )
 
-api = API(simulator=simulator)
+if __name__ == "__main__":
+    api = API(simulator=simulator)
