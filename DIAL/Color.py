@@ -42,6 +42,7 @@ class Color:
 class DefaultColors(Enum):
     RED = Color(255, 0, 0)
     GREEN = Color(0, 255, 0)
+    GRAY = Color(100, 100, 100)
     BLUE = Color(0, 0, 255)
     PURPLE = Color(186, 3, 252)
     ORANGE = Color(252, 173, 3)

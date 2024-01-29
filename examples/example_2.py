@@ -1,6 +1,7 @@
 from DIAL import Message, State, DefaultTopologies, DefaultColors, Simulator, send, API, ReadOnlyDict, send_to_self, Address
+from example_1 import flooding_algorithm
 
-# Goal: Understand composition, self_messages
+# Goal: Understand composition, access to random values, self_messages
 def ring_election_algorithm(state: State, message: Message, time: int, local_states: ReadOnlyDict[Address, any]) -> None:
     # BLUE  => Node stil has hopes to win the election
     # RED   => Node knows it has lost the election
@@ -32,7 +33,7 @@ def ring_election_algorithm(state: State, message: Message, time: int, local_sta
         state.color = DefaultColors.DARK_GREEN
         finished = Message(
             source_address=state.address.copy(),
-            target_address=state.address.copy(algorithm="exclusion"),
+            target_address=state.address.copy(algorithm="flooding"),
             color=DefaultColors.ORANGE
         )
         send_to_self(finished, 5)
@@ -60,36 +61,6 @@ def ring_election_algorithm(state: State, message: Message, time: int, local_sta
     send(m)
 
 
-
-def token_exclusion_algorithm(state: State, message: Message, time: int, local_states: ReadOnlyDict[Address, any]) -> None:
-    # PURPLE => Node has exclusive access to a resource
-    # WHITE => Node has no access to the exclusive resource
-    def next_neighbor() -> str:
-        neighbors = state.neighbors.copy()
-        if state.address.node_name in neighbors:
-            neighbors.remove(state.address.node_name)
-        if state.data["received_token_from"] in neighbors:
-            neighbors.remove(state.data["received_token_from"])
-        return neighbors[0]
-
-    m = message.copy()
-    m.color = DefaultColors.PURPLE
-    m.source_address = state.address.copy()
-
-    if state.color == DefaultColors.WHITE:
-        state.color = DefaultColors.PURPLE
-        state.data["has_token"] = True
-        state.data["received_token_from"] = message.source_address.node_name
-        m.target_address = state.address.copy()
-        send_to_self(m, 6)
-        return
-    if state.color == DefaultColors.PURPLE:
-        state.color = DefaultColors.WHITE
-        state.data["has_token"] = False
-        m.target_address = state.address.copy(node=next_neighbor())
-        send(m)
-        return
-
 initial_message_1 = Message(
     source_address="A/initiator_algorithm/initiator_instance",
     target_address="B/election/instance"
@@ -104,7 +75,7 @@ simulator = Simulator(
     topology = DefaultTopologies.RING_BIDIRECTIONAL,
     algorithms = {
         "election": ring_election_algorithm,
-        "exclusion": token_exclusion_algorithm
+        "flooding": flooding_algorithm
     },
     initial_messages={
         0: [initial_message_1],
