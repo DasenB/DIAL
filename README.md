@@ -1,6 +1,10 @@
 # DIAL
 DIAL is a framework for implementing and simulating distributed algorithms in Python.
 
+## TODO
+- Release Packet
+- Readme Documentation
+
 ## Functions
 
 ## 
