@@ -53,7 +53,7 @@ def start_benchmark_hook(state: State, messages: list[Message], time: int, local
     for message in messages:
         if message.target_address.algorithm == "flooding":
             m = Message(target_address=state.address.copy(algorithm="benchmark"), source_address=state.address, color=DefaultColors.GRAY)
-            send_to_self(message=m, min_time_delay=7)
+            send_to_self(message=m, delay=7)
 
 
 initial_message_1 = Message(

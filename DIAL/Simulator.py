@@ -24,10 +24,10 @@ def send(message: Message):
     _send_messages_.append(message)
 
 
-def send_to_self(message: Message, min_time_delay: int):
+def send_to_self(message: Message, delay: int):
     global _send_messages_
     message._is_self_message = True
-    message._self_message_delay = min_time_delay
+    message._self_message_delay = delay
     _send_messages_.append(message)
 
 
@@ -207,15 +207,11 @@ class Simulator:
             if address.node_name == current_message.target_address.node_name:
                 local_state_copies[address] = copy.deepcopy(self.states[address][-1])
 
-        # Modify algorithm to always include relevant objects for better usability
-        # also possible that this reduces usability as users can not import their own modules anymore
-        # TODO: Test and remove if necessary
         scope: dict[str, any] = {
             "DefaultColors": DefaultColors,
             "Color": Color,
             "Message": Message,
             "Address": Address,
-            "State": State,
             "send": send,
             "send_to_self": send_to_self
         }

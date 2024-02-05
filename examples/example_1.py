@@ -1,6 +1,4 @@
-import DIAL
-from DIAL import Message, State, Topology, DefaultColors, Simulator, send, API, ReadOnlyDict, EdgeConfig, Address
-
+from DIAL import *
 # Goal:
 # Understand how to create a distributed algorithm and run it on a network of nodes
 
@@ -40,7 +38,7 @@ conflicting_message = Message(
 conflicting_message._is_lost = True
 
 # Step 3: Define a topology
-edge_config = EdgeConfig(DIAL.DefaultSchedulers.LOCAL_FIFO, DIAL.EdgeDirection.BIDIRECTIONAL, reliability=1.0)
+edge_config = EdgeConfig(DefaultSchedulers.LOCAL_FIFO, EdgeDirection.BIDIRECTIONAL, reliability=1.0)
 nodes = ["A", "B", "C", "D", "E", "F", "G", "H"]
 edges = [
     ("A", "C", edge_config),
