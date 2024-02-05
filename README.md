@@ -1,6 +1,7 @@
 # DIAL
 DIAL is a framework for simulating and visualizing distributed algorithms in Python.
 
+![Screenshot of the DIAL visualization](https://github.com/DasenB/DIAL/blob/main/Documents/screenshot.png?raw=true)
 
 ## Getting started
 
@@ -78,6 +79,16 @@ You can send messages within your algorithm using two different methods:
 
 - `send(message)`: Can send messages between nodes that are connected through an edge. The arrival time of the message is determined by the edge of the topology.
 - `send_to_self(message, delay)`: Can send messages to instances that are located on the same node. The delay until the message is received can be chosen.
+
+
+### Simulator and Frontend
+The simulator-object is initialized with some a topology, a set of algorithms and a set of initial messages.
+You can make the simulator execute steps by either calling ``simulator.step_forward()`` from your code or by
+starting the api-frontend with the simulator (which is the recommended method).
+
+When the api is started a browser window should be opened with the url ``https://127.0.0.1:10101/index.html``.
+If that is not the case you can open it manually. In the frontend you can manipulate the state of the simulation by stepping forward or backward
+and by changing messages and instance-states.
 
 
 ### Minimal Example
