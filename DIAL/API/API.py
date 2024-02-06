@@ -13,6 +13,8 @@ from DIAL.API.ControlEndpoints import ControlEndpoints
 from DIAL.API.MessageEndpoints import MessageEndpoints
 from DIAL.API.StateEndpoints import StateEndpoints
 from DIAL.API.TopologyEndpoints import TopologyEndpoints
+from DIAL.API.SSL import SSL
+
 
 class API:
     simulator: Simulator
@@ -26,7 +28,7 @@ class API:
     state_endpoint: StateEndpoints
     topology_endpoint: TopologyEndpoints
 
-    def __init__(self, simulator: Simulator, host: str = "127.0.0.1", port: int = 10101, verbose: bool = False):
+    def __init__(self, simulator: Simulator, host: str = "localhost", port: int = 10101, verbose: bool = False):
         self.initial_simulator = copy.deepcopy(simulator)
 
         self.simulator = simulator
@@ -55,7 +57,8 @@ class API:
         self.api.route('/message/<message_id>', methods=['DELETE'])(self.message_endpoint.del_message)
         self.api.route('/message/<message_id>', methods=['PUT'])(self.message_endpoint.put_message)
 
-        self.api.route('/reschedule/<message_id>/<time_str>/<theta_str>', methods=['GET'])(self.control_endpoint.get_reschedule)
+        self.api.route('/reschedule/<message_id>/<time_str>/<theta_str>', methods=['GET'])(
+            self.control_endpoint.get_reschedule)
         self.api.route('/reset', methods=['GET'])(self.control_endpoint.get_reset)
         self.api.route('/step-forward/<steps_str>', methods=['GET'])(self.control_endpoint.get_step_forward)
         self.api.route('/step-backward/<steps_str>', methods=['GET'])(self.control_endpoint.get_step_backward)
@@ -64,8 +67,7 @@ class API:
 
         p = Process(target=self.run)
         p.start()
-        webbrowser.open(f"https://127.0.0.1:{port}/index.html", new=0, autoraise=True)
-
+        webbrowser.open(f"https://{host}:{port}/index.html", new=0, autoraise=True)
 
     def response(self, status: int, response: any):
         response = self.api.response_class(
@@ -75,10 +77,9 @@ class API:
         )
         return response
 
+
+
     def run(self):
-        cert_path_prefix = ""
-        if os.getcwd().endswith("/DIAL/DIAL"):
-            cert_path_prefix = "../"
-        self.api.run(host=self.host, port=self.port, ssl_context=(cert_path_prefix + 'certs/cert.pem', cert_path_prefix + 'certs/key.pem'))
-
-
+        ssl_context = SSL().ssl_context()
+        print(ssl_context)
+        self.api.run(host=self.host, port=self.port, ssl_context=ssl_context)
