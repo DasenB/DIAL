@@ -1,0 +1,27 @@
+
+[build-system]
+requires = ["setuptools>=69.0.2", "wheel>=0.41.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dial-simulator"
+version = "1.0"
+description = "DIAL is a framework for simulating and visualizing distributed algorithms in Python."
+readme = "README.md"
+authors = [{ name = "DasenB" }]
+license = { file = "LICENSE.md" }
+classifiers = [
+    "Topic :: System :: Distributed Computing",
+    "Topic :: Scientific/Engineering :: Visualization",
+]
+keywords = ["distributed system", "simulator", "visualization"]
+dependencies = [
+    "flask >= 2.3.3",
+    "flask-cors >= 4.0.0",
+    "numpy >= 1.26.2",
+    "cryptography >= 41.0.7"
+]
+requires-python = ">=3.11"
+
+[project.urls]
+"Source Code" = "https://github.com/DasenB/DIAL"
