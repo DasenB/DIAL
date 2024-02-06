@@ -114,7 +114,7 @@ class Simulator:
         return None
 
     def insert_message_to_queue(self, message: Message, time: int | None = None, theta: int | None = None, is_lost: bool | None = None) -> bool:
-
+        message = deepcopy(message)
         # Determine whether message is lost
         edge_config: EdgeConfig | None = self.topology.get_edge_config(message.source_address.node_name,
                                                                        message.target_address.node_name)
@@ -157,6 +157,7 @@ class Simulator:
         return None
 
     def insert_self_message_to_queue(self, message: Message):
+        message = deepcopy(message)
         if message.target_address.algorithm not in self.algorithms.keys():
             print(f"ERROR: Unknown algorithm in target_address '{message.target_address}'")
             exit(1)

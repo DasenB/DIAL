@@ -7,16 +7,17 @@ DIAL is a framework for simulating and visualizing distributed algorithms in Pyt
 
 ### Installation
 
+You can use `pip` to install DIAL. Python 3.11 is recommended and the only version of python that has been tested.
+
 ```bash
 pip install dial-simulator
 ```
 
-Now you can use import the simulator in your python file.
+Now you can import the simulator in your python file.
 
 ```python
 from DIAL import *
 ```
-
 
 ### Distributed Algorithm
 Any function with a signature of 
@@ -27,20 +28,28 @@ Because the behaviour of the simulator should be deterministic, there are some r
 an algorithm-function. To prevent you from accidentally breaking the determinism, access to objects defined outside the algorithm
 is not possible. Only the following objects defined outside your algorithm can be accessed:
 
-| Type               | Description                                                                                                  |
-|--------------------|--------------------------------------------------------------------------------------------------------------|
-| Python Builtins    | print, range, min, max, dict, ...                                                                            |
-| DIAL.Address       | A reference to an instance of an algorithm on a node                                                         |
-| DIAL.Color         | Representation of colors in RGB                                                                              |
-| DIAL.DefaultColors | Enum with predefined colors                                                                                  |
-| DIAL.Message       | Object to communicate between different instances                                                            |
-| DIAL.State         | A State-object acts as the scope of an instance and is the only place where data persists between executions |
-| DIAL.send          | Function to send messages between nodes that are directly connected within the topology                      |
-| DIAL.send_to_self  | Function to send messages that will be received on the same node after a specified delay                     |
+| Type                   | Description                                                                                                  |
+|------------------------|--------------------------------------------------------------------------------------------------------------|
+| ``Python Builtins``    | print, range, min, max, dict, ...                                                                            |
+| ``DIAL.Address``       | A reference to an instance of an algorithm on a node                                                         |
+| ``DIAL.Color``         | Representation of colors in RGB                                                                              |
+| ``DIAL.DefaultColors`` | Enum with predefined colors                                                                                  |
+| ``DIAL.Message``       | Object to communicate between different instances                                                            |
+| ``DIAL.State``         | A State-object acts as the scope of an instance and is the only place where data persists between executions |
+| ``DIAL.send``          | Function to send messages between nodes that are directly connected within the topology                      |
+| ``DIAL.send_to_self``  | Function to send messages that will be received on the same node after a specified delay                     |
 
 **Note:** This also mean that you can not use any function provided by libraries like numpy. If you really need to use a library
 you can import it directly within your algorithm function. But do so at your own risk!
 
+Any algorithm-function receives the following four arguments: 
+
+| Argument                                     | Description                                                                                                                                                                                 |
+|----------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ``state: State``                             | The state of the instance that is called. You can make changes to the values. They will persist between multiple function calls of the same instance.                                       |
+| ``message: Message``                         | The message that is being received in the current processing step.                                                                                                                          |
+| ``time: int``                                | The current system time.                                                                                                                                                                    |
+| ``local_states: ReadOnlyDict[Address, any]`` | A read-only copy of all instance states that are stored on the same lokal node. You should not try to change it as modifications are not persistent but might have unintended side effects. | 
 
 ### Topology
 A topology-object defines the system your algorithm is running on. It consists of nodes and edges.
@@ -71,9 +80,10 @@ created once the message is being received.
 
 Every message has a color and a title which both can be seen in the frontend.
 If no color is explicitly specified it defaults to white. The title is a string that can be freely chosen.
-Arbitrary data can be placed in the messages data-attribute. To prevent object references from breaking the determinism and to be able
+Arbitrary data can be placed in the messages data-attribute. To prevent object references from causing side effects across different nodes and to be able
 to display the message as string in the frontend, all values stored in a message must be serializable to JSON. If you store objects in a message
-you might need to implement your own json encoding and decoding.
+you might need to implement your own json encoding and decoding. Also, object-references are deliberately broken up by replacing a send message with a deepcopy before it is being delivered.
+Keep that in mind when putting objects into messages.
 
 You can send messages within your algorithm using two different methods:
 

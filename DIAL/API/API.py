@@ -3,11 +3,10 @@ import json
 import os
 from multiprocessing import Process
 import webbrowser
+import logging
 
 from flask import Flask
 from flask_cors import CORS
-from ipaddr import IPAddress
-import logging
 
 from DIAL.Simulator import Simulator
 from DIAL.API.ControlEndpoints import ControlEndpoints
@@ -17,7 +16,7 @@ from DIAL.API.TopologyEndpoints import TopologyEndpoints
 
 class API:
     simulator: Simulator
-    host: IPAddress
+    host: str
     port: int
     api: Flask
     initial_simulator: Simulator
@@ -27,7 +26,7 @@ class API:
     state_endpoint: StateEndpoints
     topology_endpoint: TopologyEndpoints
 
-    def __init__(self, simulator: Simulator, host: IPAddress = "127.0.0.1", port: int = 10101, verbose: bool = False):
+    def __init__(self, simulator: Simulator, host: str = "127.0.0.1", port: int = 10101, verbose: bool = False):
         self.initial_simulator = copy.deepcopy(simulator)
 
         self.simulator = simulator
