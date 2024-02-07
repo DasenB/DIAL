@@ -2,11 +2,11 @@
 - [x] Skip lost messages
 - [x] Fix bug where rescheduling is impossible before the first step was executed. 
 - [ ] good way to distribute package
-- [ ] generate certs if they do not exist
+- [x] generate certs if they do not exist
 
 # General
 - [x] Warning if no connection to backend can be made
-- [ ] A way to add new messages
+- [x] A way to add new messages
 - [x] Prevent Alert-Overlay from being closeable by clicking on the background or the cross. Only actions close it.
 - [ ] Use node modules for all imported libraries
 
@@ -20,7 +20,6 @@
 - [x] Self messages do not stay still but complete one circle around the border of its node
 - [x] Visually distinguish between unidirectional and bidirectional links
 - [x] Add optional statistics overlay (active messages, total messages; active_messages-selected-algo, total messages-selected-algo)
-- [ ] When the detail-view highlights a message a currently highlighted node should be un-highlighted
 
 # Timeline View:
 - [ ] Implement

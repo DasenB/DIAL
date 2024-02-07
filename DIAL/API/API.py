@@ -34,7 +34,7 @@ class API:
         self.simulator = simulator
         self.host = host
         self.port = port
-        self.api = Flask(__name__, static_folder="../../interface/", static_url_path="/")
+        self.api = Flask(__name__, static_folder="web/", static_url_path="/")
         CORS(self.api)
         if not verbose:
             # Do not print every HTTP-request
