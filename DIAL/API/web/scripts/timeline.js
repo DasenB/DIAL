@@ -121,7 +121,7 @@ class DialTimeline extends LitElement {
                     earliestEmitTime = msg.emitTime;
                 }
             });
-             // this.viewport.offset.x = this.viewport.zoom * -1 * earliestEmitTime;
+            this.viewport.offset.x = 100.0 * this.viewport.zoom * -1 * earliestEmitTime;
         }
         this.messages = messages;
         this.messages.sort(
@@ -142,15 +142,15 @@ class DialTimeline extends LitElement {
 
     mouseMoveWhilstDown(target, whileMove) {
         let f = (event) => {
-            this.mouse.position.x = event.clientX;
-            this.mouse.position.y = event.clientY;
-            this.renderCanvas();
+            this.mouse.position.x = event.pageX;
+            this.mouse.position.y = event.pageY;
+            whileMove(event);
         };
         let endMove =  (event) => {
             this.mouse.isDown = false;
             window.removeEventListener('mousemove', f);
             window.removeEventListener('mouseup', endMove);
-            if (event.clientX === this.mouse.dragStart.x && event.clientY === this.mouse.dragStart.y) {
+            if (event.pageX === this.mouse.dragStart.x && event.pageY === this.mouse.dragStart.y) {
                 return;
             }
             this.viewport.offset = {
@@ -160,12 +160,12 @@ class DialTimeline extends LitElement {
         };
         target.addEventListener('mousedown', (event) => {
             this.mouse.isDown = true;
-            this.mouse.dragStart.x = event.clientX;
-            this.mouse.dragStart.y = event.clientY;
+            this.mouse.dragStart.x = event.pageX;
+            this.mouse.dragStart.y = event.pageY;
+            f(event);
             event.stopPropagation();
             window.addEventListener('mousemove', f);
             window.addEventListener('mouseup', endMove);
-            f(event);
         });
     }
 
@@ -198,15 +198,7 @@ class DialTimeline extends LitElement {
         window.addEventListener("sl-reposition", () => {
             this.renderCanvas();
         });
-        this.$canvas.addEventListener('mousemove', (event) => {
-            this.mouse.position = {
-                x: event.clientX,
-                y: event.clientY,
-            };
-
-        });
         this.$canvas.addEventListener('wheel', (event) =>{
-            let oldZoom = this.viewport.zoom;
             let y = event.wheelDeltaY  * 0.0002;
             this.viewport.zoom += y;
             if (this.viewport.zoom < 0.01) {
@@ -215,22 +207,6 @@ class DialTimeline extends LitElement {
             if (this.viewport.zoom > 5) {
                 this.viewport.zoom = 5;
             }
-            let newZoom = this.viewport.zoom;
-
-            let screenResolutionScale = this.viewport.screenResolution.dppx();
-            let scaledXpos = this.mouse.position.x * screenResolutionScale;
-            let scaledYpos = this.mouse.position.y * screenResolutionScale;
-
-            const clickPos = new Victor(
-            event.clientX * screenResolutionScale - this.viewport.offset.x,
-            event.clientY * screenResolutionScale - this.viewport.offset.y);
-
-            let zoomChange = (oldZoom - newZoom);
-
-            this.viewport.offset.x = (this.viewport.offset.x) + (clickPos.x - this.viewport.offset.x * screenResolutionScale) * zoomChange;
-            this.viewport.offset.y = (this.viewport.offset.y) + (clickPos.y - this.viewport.offset.y * screenResolutionScale) * zoomChange;
-            // this.viewport.offset.y = (this.viewport.offset.y) + scaledYpos * zoomChange;
-
             event.preventDefault();
             this.renderCanvas();
         }, false);
@@ -380,6 +356,7 @@ class DialTimeline extends LitElement {
         this.$context.fillText("  Send Messages:", pos.x, pos.y + lineHeight * 6);
         this.$context.fillText("  Received Messages:", pos.x, pos.y + lineHeight * 7);
         this.$context.fillText("  Pending Messages:", pos.x, pos.y + lineHeight * 8);
+        // Which Algorithm is a message pending for with source:AlgoX, target:AlgoY??? (target??..!)
 
         this.$context.textAlign = "right";
         this.$context.fillText(statistics.total_send_messages, width - numberOffset, pos.y + lineHeight * 1);
@@ -400,24 +377,16 @@ class DialTimeline extends LitElement {
 
         let barHeight = 70;
         let barSpacing = 0.75 * barHeight;
-        let timeUnitWidth = 100.0;
+        let timeUnitWidth = 100.0 * this.viewport.zoom;
         let barIndex = 0;
 
-        let scaledXpos = this.mouse.position.x * screenResolutionScale;
-        let scaledYpos = this.mouse.position.y * screenResolutionScale;
-
-        ctx.translate(-scaledXpos, -scaledYpos);
-        ctx.scale(this.viewport.zoom, this.viewport.zoom);
-        ctx.translate(scaledXpos * (1/this.viewport.zoom), scaledYpos * (1/this.viewport.zoom));
-
-        ctx.translate(this.viewport.offset.x / this.viewport.zoom, this.viewport.offset.y / this.viewport.zoom);
+        ctx.translate(this.viewport.offset.x, this.viewport.offset.y);
         if(this.mouse.isDown) {
             ctx.translate(
-                screenResolutionScale * (this.mouse.position.x - this.mouse.dragStart.x)/ this.viewport.zoom,
-                screenResolutionScale * (this.mouse.position.y - this.mouse.dragStart.y)/ this.viewport.zoom
+                screenResolutionScale * (this.mouse.position.x - this.mouse.dragStart.x),
+                screenResolutionScale * (this.mouse.position.y - this.mouse.dragStart.y)
             );
         }
-
 
 
         let historyBars = {};
