@@ -1,8 +1,9 @@
-from DIAL import Message, State, DefaultTopologies, DefaultColors, Simulator, send, API, ReadOnlyDict, send_to_self, Address
+from DIAL import Message, State, DefaultTopologies, DefaultColors, Simulator, send, API, send_to_self
 from example_1 import flooding_algorithm
 
+
 # Goal: Understand composition, access to random values, self_messages
-def ring_election_algorithm(state: State, message: Message, time: int, local_states: ReadOnlyDict[Address, any]) -> None:
+def ring_election_algorithm(state: State, message: Message) -> None:
     # BLUE  => Node stil has hopes to win the election
     # RED   => Node knows it has lost the election
     # GREEN => Node knows it has won the election
@@ -72,8 +73,8 @@ initial_message_2 = Message(
 )
 
 simulator = Simulator(
-    topology = DefaultTopologies.RING_BIDIRECTIONAL,
-    algorithms = {
+    topology=DefaultTopologies.RING_BIDIRECTIONAL,
+    algorithms={
         "election": ring_election_algorithm,
         "flooding": flooding_algorithm
     },

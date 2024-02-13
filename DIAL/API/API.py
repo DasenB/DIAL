@@ -81,5 +81,4 @@ class API:
 
     def run(self):
         ssl_context = SSL().ssl_context()
-        print(ssl_context)
         self.api.run(host=self.host, port=self.port, ssl_context=ssl_context)

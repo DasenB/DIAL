@@ -13,8 +13,8 @@ from DIAL.State import State
 from DIAL.Topology import Topology, EdgeConfig, DefaultTopologies
 from DIAL.ReadOnlyDict import ReadOnlyDict
 
-Algorithm = Callable[[State, Message, int, ReadOnlyDict], None]
-ConditionHook = Callable[[State, list[Message], int, ReadOnlyDict], None]
+Algorithm = Callable[[State, Message], None]
+ConditionHook = Callable[[State, list[Message]], None]
 
 _send_messages_: list[Message] = []
 
@@ -29,6 +29,16 @@ def send_to_self(message: Message, delay: int):
     message._is_self_message = True
     message._self_message_delay = delay
     _send_messages_.append(message)
+
+
+def get_time() -> int:
+    print("You can only call 'get_time' within an algorithm-function or within a hook-function.")
+    exit(1)
+
+
+def get_local_states() -> ReadOnlyDict[Address, any]:
+    print("You can only call 'get_local_states' within an algorithm-function or within a hook-function.")
+    exit(1)
 
 
 class Simulator:
@@ -47,7 +57,8 @@ class Simulator:
     random_number_generator_states: list[any]
     random_generator: numpy.random.Generator
 
-    def __init__(self, topology: Topology | DefaultTopologies, algorithms: dict[str, Algorithm], initial_messages: dict[int, list[Message]],
+    def __init__(self, topology: Topology | DefaultTopologies, algorithms: dict[str, Algorithm],
+                 initial_messages: dict[int, list[Message]],
                  seed=0,
                  condition_hooks: list[ConditionHook] = []):
 
@@ -113,13 +124,15 @@ class Simulator:
                 return t, len(self.messages[t]) - 1
         return None
 
-    def insert_message_to_queue(self, message: Message, time: int | None = None, theta: int | None = None, is_lost: bool | None = None) -> bool:
+    def insert_message_to_queue(self, message: Message, time: int | None = None, theta: int | None = None,
+                                is_lost: bool | None = None) -> bool:
         message = deepcopy(message)
         # Determine whether message is lost
         edge_config: EdgeConfig | None = self.topology.get_edge_config(message.source_address.node_name,
                                                                        message.target_address.node_name)
         if edge_config is None:
-            print(f'No edge exists between {message.source_address.node_name} and {message.target_address.node_name}. Can not send message.')
+            print(
+                f'No edge exists between {message.source_address.node_name} and {message.target_address.node_name}. Can not send message.')
             return False
         if is_lost is None:
             message._is_lost = self.random_generator.random() > edge_config.reliability
@@ -183,7 +196,8 @@ class Simulator:
         self.theta = new_position[1]
         # Find inputs for the next processing step
         current_message = self.messages[self.time][self.theta]
-        edge_is_in_topology = self.topology.has_edge(current_message.source_address.node_name, current_message.target_address.node_name)
+        edge_is_in_topology = self.topology.has_edge(current_message.source_address.node_name,
+                                                     current_message.target_address.node_name)
         if not edge_is_in_topology:
             warning_message = f'''
             > WARNING: Message {str(current_message._id)} violates topology!
@@ -214,7 +228,9 @@ class Simulator:
             "Message": Message,
             "Address": Address,
             "send": send,
-            "send_to_self": send_to_self
+            "send_to_self": send_to_self,
+            "get_time": lambda: self.time,
+            "get_local_states": lambda: ReadOnlyDict(copy.deepcopy(local_state_copies))
         }
         algorithm = types.FunctionType(algorithm.__code__, dict(scope, **__builtins__))
 
@@ -224,9 +240,10 @@ class Simulator:
         new_state = current_state
         if not current_message._is_lost:
             new_state = deepcopy(current_state)
-            algorithm(new_state, current_message, self.time, ReadOnlyDict(local_state_copies))
+            algorithm(new_state, current_message)
             for hook in self.condition_hooks:
-                hook(new_state, _send_messages_, self.time, ReadOnlyDict(local_state_copies))
+                hook_function = types.FunctionType(hook.__code__, dict(scope, **__builtins__))
+                hook_function(new_state, _send_messages_)
         new_messages: list[Message] = _send_messages_
         _send_messages_ = []
 
@@ -253,7 +270,9 @@ class Simulator:
 
         if verbose:
             new_row = "\n                    "
-            new_messages_str = "[" + new_row + new_row.join([( str(msg._arrival_time) + " -> " + msg.target_address.__repr__()) for msg in new_messages]) + "\n               ]"
+            new_messages_str = "[" + new_row + new_row.join(
+                [(str(msg._arrival_time) + " -> " + msg.target_address.__repr__()) for msg in
+                 new_messages]) + "\n               ]"
             if len(new_messages) == 0:
                 new_messages_str = "[]"
 
@@ -320,7 +339,6 @@ class Simulator:
             del self.states[current_message.target_address]
         self.random_number_generator_states.pop()
         self.random_generator.__setstate__(self.random_number_generator_states[-1])
-
 
         # Decrease time
         new_position = self.find_previous()

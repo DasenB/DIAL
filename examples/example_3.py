@@ -1,9 +1,11 @@
-from DIAL import Message, State, DefaultTopologies, DefaultColors, Simulator, send, API, ReadOnlyDict, send_to_self, Address
+from DIAL import Message, State, DefaultTopologies, DefaultColors, Simulator, send, API, ReadOnlyDict, send_to_self, \
+    Address
 from example_2 import ring_election_algorithm
+
 
 # Goal: Understand use of hooks to modify existing algorithms
 
-def token_exclusion_algorithm(state: State, message: Message, time: int, local_states: ReadOnlyDict[Address, any]) -> None:
+def token_exclusion_algorithm(state: State, message: Message) -> None:
     # PURPLE => Node has exclusive access to a resource
     # WHITE => Node has no access to the exclusive resource
     def next_neighbor() -> str:
@@ -33,7 +35,7 @@ def token_exclusion_algorithm(state: State, message: Message, time: int, local_s
         return
 
 
-def modify_election_hook(state: State, messages: list[Message], time: int, local_states: ReadOnlyDict[Address, any]) -> None:
+def modify_election_hook(state: State, messages: list[Message]) -> None:
     if state.address.algorithm != "election":
         return
     for message in messages:
@@ -41,16 +43,14 @@ def modify_election_hook(state: State, messages: list[Message], time: int, local
             message.target_address.algorithm = "exclusion"
 
 
-
 initial_message_1 = Message(
     source_address="A/initiator_algorithm/initiator_instance",
     target_address="B/election/instance"
 )
 
-
 simulator = Simulator(
-    topology = DefaultTopologies.RING_BIDIRECTIONAL,
-    algorithms = {
+    topology=DefaultTopologies.RING_BIDIRECTIONAL,
+    algorithms={
         "election": ring_election_algorithm,
         "exclusion": token_exclusion_algorithm
     },

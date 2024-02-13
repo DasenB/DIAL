@@ -1,10 +1,12 @@
 from DIAL import *
+
 # Goal:
 # Understand how to create a distributed algorithm and run it on a network of nodes
 
+
 # Step 1: Implementing an algorithm
-# Create a function with the following signature: (state: State, message: Message, time: int, local_states: ReadOnlyDict) -> None:
-def flooding_algorithm(state: State, message: Message, time: int, local_states: ReadOnlyDict[Address, any]) -> None:
+# Create a function with the following signature: (state: State, message: Message) -> None:
+def flooding_algorithm(state: State, message: Message) -> None:
     if state.color == message.color:
         return
     state.color = message.color
@@ -15,6 +17,7 @@ def flooding_algorithm(state: State, message: Message, time: int, local_states: 
         m.source_address = state.address
         m.target_address = state.address.copy(node=neighbor)
         send(m)
+
 
 # Step 2: Create one or more initial messages
 initial_message_1 = Message(
@@ -53,8 +56,8 @@ topology = Topology(nodes, edges, all_nodes_have_loops=True)
 
 # Step 4: Create the simulator with the previously defined parameters
 simulator = Simulator(
-    topology = topology,
-    algorithms = {
+    topology=topology,
+    algorithms={
         "flooding": flooding_algorithm
     },
     initial_messages={

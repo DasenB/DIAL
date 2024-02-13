@@ -1,10 +1,12 @@
-from DIAL import State, Message, ReadOnlyDict, Address, send, DefaultColors, Color, Simulator, DefaultTopologies, API, send_to_self
+from DIAL import State, Message, ReadOnlyDict, Address, send, DefaultColors, Color, Simulator, DefaultTopologies, API, \
+    send_to_self, get_local_states
 from example_2 import ring_election_algorithm
 from example_3 import token_exclusion_algorithm, modify_election_hook
 
-# Goal: Understand use of local_states argument
 
-def benchmark_algorithm(state: State, message: Message, time: int, local_states: ReadOnlyDict[Address, any]) -> None:
+# Goal: Understand get_local_states() to access other local instances
+
+def benchmark_algorithm(state: State, message: Message) -> None:
     def next_neighbor() -> str:
         neighbors = state.neighbors.copy()
         if state.address.node_name in neighbors:
@@ -22,9 +24,12 @@ def benchmark_algorithm(state: State, message: Message, time: int, local_states:
             m.source_address.node_name = state.address.node_name
             send(m)
 
+    # Get local states
+    local_states: ReadOnlyDict[Address, any] = get_local_states()
+
     # Generate new messages if node has the token
     exclusion_instance_address = state.address.copy(algorithm="exclusion")
-    if not exclusion_instance_address in local_states.keys():
+    if exclusion_instance_address not in local_states.keys():
         return
     if local_states[exclusion_instance_address].data["has_token"] and state.color == DefaultColors.WHITE:
         state.color = DefaultColors.RED
@@ -47,12 +52,14 @@ def benchmark_algorithm(state: State, message: Message, time: int, local_states:
     if not local_states[exclusion_instance_address].data["has_token"]:
         state.color = DefaultColors.WHITE
 
-def start_benchmark_hook(state: State, messages: list[Message], time: int, local_states: ReadOnlyDict[Address, any]) -> None:
+
+def start_benchmark_hook(state: State, messages: list[Message]) -> None:
     if state.address.algorithm != "election":
         return
     for message in messages:
         if message.target_address.algorithm == "flooding":
-            m = Message(target_address=state.address.copy(algorithm="benchmark"), source_address=state.address, color=DefaultColors.GRAY)
+            m = Message(target_address=state.address.copy(algorithm="benchmark"), source_address=state.address,
+                        color=DefaultColors.GRAY)
             send_to_self(message=m, delay=7)
 
 
@@ -61,10 +68,9 @@ initial_message_1 = Message(
     target_address="B/election/instance"
 )
 
-
 simulator = Simulator(
-    topology = DefaultTopologies.RING_BIDIRECTIONAL,
-    algorithms = {
+    topology=DefaultTopologies.RING_BIDIRECTIONAL,
+    algorithms={
         "election": ring_election_algorithm,
         "exclusion": token_exclusion_algorithm,
         "benchmark": benchmark_algorithm

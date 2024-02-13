@@ -72,7 +72,6 @@ class StateEndpoints:
                 continue
         if latest_time_tuple is None:
             return self.api.response(status=400, response=f'Can not change color :( OH No! This error should never happen...')
-        print(latest_time_tuple)
         node_colors[latest_time_tuple][old_state.address] = new_state.color
         old_state.neighbors = new_state.neighbors
         old_state.color = new_state.color

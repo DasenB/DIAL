@@ -21,35 +21,36 @@ from DIAL import *
 
 ### Distributed Algorithm
 Any function with a signature of 
-`(state: State, message: Message, time: int, local_states: ReadOnlyDict[Address, any]) -> None`
-can be used as an algorithm. It can be passed to the simulator on initialisation.
+`(state: State, message: Message) -> None`
+can be used as an algorithm. It must be passed to the simulator on initialisation.
 
 Because the behaviour of the simulator should be deterministic, there are some restrictions on what you can do within
 an algorithm-function. To prevent you from accidentally breaking the determinism, access to objects defined outside the algorithm
 is not possible. Only the following objects defined outside your algorithm can be accessed:
 
-| Type                   | Description                                                                                                  |
-|------------------------|--------------------------------------------------------------------------------------------------------------|
-| ``Python Builtins``    | print, range, min, max, dict, ...                                                                            |
-| ``DIAL.Address``       | A reference to an instance of an algorithm on a node                                                         |
-| ``DIAL.Color``         | Representation of colors in RGB                                                                              |
-| ``DIAL.DefaultColors`` | Enum with predefined colors                                                                                  |
-| ``DIAL.Message``       | Object to communicate between different instances                                                            |
-| ``DIAL.State``         | A State-object acts as the scope of an instance and is the only place where data persists between executions |
-| ``DIAL.send``          | Function to send messages between nodes that are directly connected within the topology                      |
-| ``DIAL.send_to_self``  | Function to send messages that will be received on the same node after a specified delay                     |
+| Type                      | Description                                                                                                                                                                  |
+|---------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ``Python Builtins``       | print, range, min, max, dict, ...                                                                                                                                            |
+| ``DIAL.Address``          | A reference to an instance of an algorithm on a node                                                                                                                         |
+| ``DIAL.Color``            | Representation of colors in RGB                                                                                                                                              |
+| ``DIAL.DefaultColors``    | Enum with predefined colors                                                                                                                                                  |
+| ``DIAL.Message``          | Object to communicate between different instances                                                                                                                            |
+| ``DIAL.State``            | A State-object acts as the scope of an instance and is the only place where data persists between executions                                                                 |
+| ``DIAL.send``             | Function to send messages between nodes that are directly connected within the topology                                                                                      |
+| ``DIAL.send_to_self``     | Function to send messages that will be received on the same node after a specified delay                                                                                     |
+| ``DIAL.get_local_states`` | Function that gives you a read-only copy of all instance states that are stored on the same lokal node. You should not try to change it as modifications are not persistent. |
+| ``DIAL.get_time``         | Function that gives you the global simulation time                                                                                                                           |
 
 **Note:** This also mean that you can not use any function provided by libraries like numpy. If you really need to use a library
 you can import it directly within your algorithm function. But do so at your own risk!
 
-Any algorithm-function receives the following four arguments: 
+Any algorithm-function receives the following two arguments: 
 
 | Argument                                     | Description                                                                                                                                                                                 |
 |----------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | ``state: State``                             | The state of the instance that is called. You can make changes to the values. They will persist between multiple function calls of the same instance.                                       |
 | ``message: Message``                         | The message that is being received in the current processing step.                                                                                                                          |
-| ``time: int``                                | The current system time.                                                                                                                                                                    |
-| ``local_states: ReadOnlyDict[Address, any]`` | A read-only copy of all instance states that are stored on the same lokal node. You should not try to change it as modifications are not persistent but might have unintended side effects. | 
+
 
 ### Topology
 A topology-object defines the system your algorithm is running on. It consists of nodes and edges.
@@ -108,7 +109,7 @@ and by changing messages and instance-states.
 from DIAL import *
 
 # 2. Implement some algorithm
-def hello_world_algorithm(state: State, message: Message, time: int, local_states: ReadOnlyDict[Address, any]) -> None:
+def hello_world_algorithm(state: State, message: Message) -> None:
   state.color = DefaultColors.RED
 
 # 3. Create an initial message
