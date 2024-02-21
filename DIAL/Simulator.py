@@ -16,29 +16,24 @@ from DIAL.ReadOnlyDict import ReadOnlyDict
 Algorithm = Callable[[State, Message], None]
 ConditionHook = Callable[[State, list[Message]], None]
 
-_send_messages_: list[Message] = []
+
+def send(message: Message) -> None:
+    raise Exception("Forbidden call to `DIAL.send` outside of algorithm simulation.")
 
 
-def send(message: Message):
-    global _send_messages_
-    _send_messages_.append(message)
+def send_to_self(message: Message, delay: int) -> None:
+    raise Exception("Forbidden call to `DIAL.send_to_self` outside of algorithm simulation.")
 
-
-def send_to_self(message: Message, delay: int):
-    global _send_messages_
-    message._is_self_message = True
-    message._self_message_delay = delay
-    _send_messages_.append(message)
 
 
 def get_time() -> int:
-    print("You can only call 'get_time' within an algorithm-function or within a hook-function.")
-    exit(1)
+    raise Exception("Forbidden call to `DIAL.get_time` outside of algorithm simulation.")
+
 
 
 def get_local_states() -> ReadOnlyDict[Address, any]:
-    print("You can only call 'get_local_states' within an algorithm-function or within a hook-function.")
-    exit(1)
+    raise Exception("Forbidden call to `DIAL.get_local_states` outside of algorithm simulation.")
+
 
 
 class Simulator:
@@ -49,6 +44,8 @@ class Simulator:
     states: dict[Address, list[State]]
     node_colors: dict[Tuple[int | None, int | None], dict[Address, Color]]
     node_neighbors: dict[Tuple[int | None, int | None], dict[Address, list[str]]]
+
+    last_send_messages: list[Message] = []
 
     topology: Topology
     algorithms: dict[str, Algorithm]
@@ -97,6 +94,14 @@ class Simulator:
         self.states = {}
         self.node_colors = {}
         self.node_neighbors = {}
+
+    def send(self, message: Message):
+        self.last_send_messages.append(message)
+
+    def send_to_self(self, message: Message, delay: int):
+        message._is_self_message = True
+        message._self_message_delay = delay
+        self.last_send_messages.append(message)
 
     def find_first(self) -> Tuple[int, int] | None:
         if len(self.messages.keys()) == 0:
@@ -227,25 +232,24 @@ class Simulator:
             "Color": Color,
             "Message": Message,
             "Address": Address,
-            "send": send,
-            "send_to_self": send_to_self,
+            "send": lambda msg: self.send(msg),
+            "send_to_self": lambda msg, delay: self.send_to_self(msg, delay),
             "get_time": lambda: self.time,
             "get_local_states": lambda: ReadOnlyDict(copy.deepcopy(local_state_copies))
         }
         algorithm = types.FunctionType(algorithm.__code__, dict(scope, **__builtins__))
 
         # Execute the algorithm function and retrieve its results
-        global _send_messages_
-        _send_messages_ = []
+        self.last_send_messages = []
         new_state = current_state
         if not current_message._is_lost:
             new_state = deepcopy(current_state)
             algorithm(new_state, current_message)
             for hook in self.condition_hooks:
                 hook_function = types.FunctionType(hook.__code__, dict(scope, **__builtins__))
-                hook_function(new_state, _send_messages_)
-        new_messages: list[Message] = _send_messages_
-        _send_messages_ = []
+                hook_function(new_state, self.last_send_messages)
+        new_messages: list[Message] = self.last_send_messages
+        self.last_send_messages = []
 
         # Update state
         self.states[target_address].append(new_state)

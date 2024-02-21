@@ -3,7 +3,6 @@ from DIAL import *
 # Goal:
 # Understand how to create a distributed algorithm and run it on a network of nodes
 
-
 # Step 1: Implementing an algorithm
 # Create a function with the following signature: (state: State, message: Message) -> None:
 def flooding_algorithm(state: State, message: Message) -> None:

@@ -38,7 +38,7 @@ is not possible. Only the following objects defined outside your algorithm can b
 | ``DIAL.State``            | A State-object acts as the scope of an instance and is the only place where data persists between executions                                                                 |
 | ``DIAL.send``             | Function to send messages between nodes that are directly connected within the topology                                                                                      |
 | ``DIAL.send_to_self``     | Function to send messages that will be received on the same node after a specified delay                                                                                     |
-| ``DIAL.get_local_states`` | Function that gives you a read-only copy of all instance states that are stored on the same lokal node. You should not try to change it as modifications are not persistent. |
+| ``DIAL.get_local_states`` | Function that gives you a read-only copy of all instance states that are stored on the same local node. You should not try to change it as modifications are not persistent. |
 | ``DIAL.get_time``         | Function that gives you the global simulation time                                                                                                                           |
 
 **Note:** This also mean that you can not use any function provided by libraries like numpy. If you really need to use a library
