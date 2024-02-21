@@ -14,7 +14,7 @@ classifiers = [
     "Topic :: System :: Distributed Computing",
     "Topic :: Scientific/Engineering :: Visualization",
 ]
-keywords = ["distributed system", "simulator", "visualization"]
+keywords = ["distributed system", "distributed algorithm", "simulator", "visualization"]
 dependencies = [
     "flask >= 2.3.3",
     "flask-cors >= 4.0.0",
