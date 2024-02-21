@@ -1,7 +1,7 @@
 # DIAL
 DIAL is a framework for simulating and visualizing distributed algorithms in Python.
 
-![Screenshot of the DIAL visualization](https://github.com/DasenB/DIAL/blob/main/Documents/screenshot.png?raw=true)
+![Screenshot of the DIAL visualization](https://github.com/DasenB/DIAL/blob/media/Readme-Images/screenshot_24_01_21.png?raw=true)
 
 ## Getting started
 
