@@ -7,7 +7,7 @@ DIAL is a framework for simulating and visualizing distributed algorithms in Pyt
 
 ### Installation
 
-You can use `pip` to install DIAL. Python 3.11 is recommended and the only version of python that has been tested.
+You can use `pip` to install DIAL. Python 3.12 is recommended and the only version of python that has been tested.
 
 ```bash
 pip install dial-simulator
