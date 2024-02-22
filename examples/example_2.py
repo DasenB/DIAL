@@ -81,7 +81,8 @@ simulator = Simulator(
     initial_messages={
         0: [initial_message_1],
         40: [initial_message_2]
-    }
+    },
+    seed=None   # By setting seed to None every time this simulation is run a new winner is randomly chosen.
 )
 
 if __name__ == "__main__":

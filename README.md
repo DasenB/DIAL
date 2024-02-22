@@ -101,6 +101,52 @@ When the api is started a browser window should be opened with the url ``https:/
 If that is not the case you can open it manually. In the frontend you can manipulate the state of the simulation by stepping forward or backward
 and by changing messages and instance-states.
 
+### Randomness and Determinism
+Distributed systems are inherently non-deterministic. This is one of the main reasons why creating distributed programs is so hard.
+To aid in the development of such programs it is desirable to enable deterministic behaviour of the simulator.
+In DIAL there are two mechanisms that control two different aspects of this:
+
+#### Determinism of Algorithm Functions
+The first is the ability to step through the program execution step by step in both forward and backward directions.
+Every processing step receives a state as input and produces an altered state as output. The sequence of states for 
+every algorithm instance is being recorded. When stepping forward though the simulation new states are produced and added to the 
+record. When going a step backwards the latest state is removed from the record and the previous state is outputted. 
+To ensure that the next time a forward-step is taken it produces the same output that was previously removed the individual calls
+to the algorithm function have to be deterministic.
+
+DIAL archives this by limiting what can be done within an algorithm function. To make sure the output of an algorithm function
+only depends on the arguments supplied to the function access to the global scope is prevented. You can not access any variables declared
+outside your function. This includes imported libraries. If you need to use a library you can import it directly within your function.
+BUT: This can lead to unintended side effects which might break the deterministic behaviour of the simulation.
+
+For some algorithms access to random numbers is necessary. In this case the random numbers must be obtained through the simulator
+and not for example by importing the ``random``-module. The following code shows how you can get a random number within an algorithm function.
+The ``state.random_number_generator``-object is a [NumPy Random Generator](https://numpy.org/doc/stable/reference/random/generator.html)-Object
+which is provided by the simulator and you can use its functions.
+
+```python
+def algorithm(state: State, message: Message) -> None:
+    x = int(state.random_number_generator.integers(low=0, high=10000))
+```
+
+#### Determinism of Simulator Executions
+The second desired property is the ability to reproduce behaviour across multiple executions of the python-script.
+This can help when debugging and also enables the sharing of examples which always execute the same way.
+For this reason the simulator can take a seed as argument. It defaults to 0 if you do not manually set it.
+
+```python
+simulator = Simulator(
+    topology=...,
+    algorithms=...,
+    initial_messages=...,
+    seed=0
+)
+```
+
+There might be times when you want to test different execution paths of your program. This can be done by setting supplying ``None`` as a seed
+to the Simulator. Now every time the python script is run a new seed is used. The ability to step forward and backward through the 
+simulation as described in the previous section is still given.
+
 
 ### Minimal Example
 
