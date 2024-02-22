@@ -3,9 +3,8 @@ DIAL is a framework for simulating and visualizing distributed algorithms in Pyt
 
 ![Screenshot of the DIAL visualization](https://github.com/DasenB/DIAL/blob/media/Readme-Images/screenshot_24_01_21.png?raw=true)
 
-## Getting started
 
-### Installation
+## Installation
 
 You can use `pip` to install DIAL. Python 3.12 is recommended and the only version of python that has been tested.
 
@@ -19,7 +18,42 @@ Now you can import the simulator in your python file.
 from DIAL import *
 ```
 
-### Distributed Algorithm
+
+## Minimal Example
+
+```python
+# 1. Import the DIAL framework
+from DIAL import *
+
+# 2. Implement some algorithm
+def hello_world_algorithm(state: State, message: Message) -> None:
+  state.color = DefaultColors.RED
+
+# 3. Create an initial message
+initial_message = Message(
+  source_address="A/hello_world/example_instance_asdf",
+  target_address="B/hello_world/example_instance_asdf",
+)
+
+# 4. Create the simulator
+simulator = Simulator(
+  topology=DefaultTopologies.EXAMPLE_NETWORK_3,
+  algorithms={
+    "hello_world": hello_world_algorithm,
+  },
+  initial_messages={
+    1: [initial_message]
+  }
+)
+
+# 5. Run the simulator
+api = API(simulator=simulator)
+```
+
+
+## Concepts
+
+### 1. Distributed Algorithm
 Any function with a signature of 
 `(state: State, message: Message) -> None`
 can be used as an algorithm. It must be passed to the simulator on initialisation.
@@ -52,7 +86,7 @@ Any algorithm-function receives the following two arguments:
 | ``message: Message``                         | The message that is being received in the current processing step.                                                                                                                          |
 
 
-### Topology
+### 2. Topology
 A topology-object defines the system your algorithm is running on. It consists of nodes and edges.
 The nodes receive, process and send messages and store an internal state. The edges transport messages between nodes.
 Nodes are identified by their name, edges by their source and target node.
@@ -65,7 +99,7 @@ The following properties are defined by an edges ``EdgeConfig``-object:
 - ``scheduler``: Function that determines the arrival time for a message send through the edge. There are predefined scheduler-functions, but you also can implement your own.
 
 
-### Address
+### 3. Address
 An address consists of three elements:
 
 - **Node**:       Name of a processing unit that is part of the topology.
@@ -75,7 +109,7 @@ An address consists of three elements:
 Addresses are represented by ``DIAL.Address``-objects and can be formatted as a string in the following way: ``node/algorithm/instance``
 
 
-### Message
+### 4. Message
 Messages are send between instances. The target-node and the target-algorithm must already exist. If the target-instance does not yet exist it is
 created once the message is being received.
 
@@ -92,21 +126,21 @@ You can send messages within your algorithm using two different methods:
 - `send_to_self(message, delay)`: Can send messages to instances that are located on the same node. The delay until the message is received can be chosen.
 
 
-### Simulator and Frontend
+### 5. Simulator and Frontend
 The simulator-object is initialized with some a topology, a set of algorithms and a set of initial messages.
 You can make the simulator execute steps by either calling ``simulator.step_forward()`` from your code or by
 starting the api-frontend with the simulator (which is the recommended method).
 
 When the api is started a browser window should be opened with the url ``https://127.0.0.1:10101/index.html``.
 If that is not the case you can open it manually. In the frontend you can manipulate the state of the simulation by stepping forward or backward
-and by changing messages and instance-states.
+and by changing messages and instance-states. The only browser that has been tested is Firefox. Other browsers might or might not work.
 
-### Randomness and Determinism
+### 6. Randomness and Determinism
 Distributed systems are inherently non-deterministic. This is one of the main reasons why creating distributed programs is so hard.
 To aid in the development of such programs it is desirable to enable deterministic behaviour of the simulator.
 In DIAL there are two mechanisms that control two different aspects of this:
 
-#### Determinism of Algorithm Functions
+#### 6.1 Determinism of Algorithm Functions
 The first is the ability to step through the program execution step by step in both forward and backward directions.
 Every processing step receives a state as input and produces an altered state as output. The sequence of states for 
 every algorithm instance is being recorded. When stepping forward though the simulation new states are produced and added to the 
@@ -129,7 +163,7 @@ def algorithm(state: State, message: Message) -> None:
     x = int(state.random_number_generator.integers(low=0, high=10000))
 ```
 
-#### Determinism of Simulator Executions
+#### 6.2 Determinism of Simulator Executions
 The second desired property is the ability to reproduce behaviour across multiple executions of the python-script.
 This can help when debugging and also enables the sharing of examples which always execute the same way.
 For this reason the simulator can take a seed as argument. It defaults to 0 if you do not manually set it.
@@ -148,36 +182,6 @@ to the Simulator. Now every time the python script is run a new seed is used. Th
 simulation as described in the previous section is still given.
 
 
-### Minimal Example
-
-```python
-# 1. Import the DIAL framework
-from DIAL import *
-
-# 2. Implement some algorithm
-def hello_world_algorithm(state: State, message: Message) -> None:
-  state.color = DefaultColors.RED
-
-# 3. Create an initial message
-initial_message = Message(
-  source_address="A/hello_world/example_instance_asdf",
-  target_address="B/hello_world/example_instance_asdf",
-)
-
-# 4. Create the simulator
-simulator = Simulator(
-  topology=DefaultTopologies.EXAMPLE_NETWORK_3,
-  algorithms={
-    "hello_world": hello_world_algorithm,
-  },
-  initial_messages={
-    1: [initial_message]
-  }
-)
-
-# 5. Run the simulator
-api = API(simulator=simulator)
-```
 
 
 
