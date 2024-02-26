@@ -183,12 +183,7 @@ simulation as described in the previous section is still given.
 
 
 
-
-
-
 ## License
-Dieses Projekt steht unter der **Creative Commons BY-NC-ND 3.0 DE** Lizenz.
+This project is licensed under **Creative Commons BY-NC-SA 4.0**
 
-Unter https://creativecommons.org/licenses/by-nc-nd/3.0/de/legalcode ist die Lizenz einsehbar.
-Eine Kopie dieser Lizenz ist diesem Projekt beigefügt.
-Unter https://creativecommons.org/licenses/by-nc-nd/3.0/de/ ist eine einfache Zusammenfassung der Lizenz einsehbar. 
+A simple summary of the license can be found under: https://creativecommons.org/licenses/by-nc-sa/4.0/deed
