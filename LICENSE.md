@@ -1,3 +1,7 @@
+This project is licensed under Creative Commons BY-NC-SA 4.0
+
+=======================================================================
+
 Attribution-NonCommercial-ShareAlike 4.0 International
 
 =======================================================================
