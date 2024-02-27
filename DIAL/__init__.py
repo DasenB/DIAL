@@ -5,6 +5,6 @@ from DIAL.Error import Error
 from DIAL.Message import Message
 from DIAL.ReadOnlyDict import ReadOnlyDict
 from DIAL.Scheduler import Scheduler, DefaultSchedulers
-from DIAL.Simulator import Algorithm, ConditionHook, Simulator, send, send_to_self, get_time, get_local_states
+from DIAL.Simulator import Algorithm, ConditionHook, Simulator, send, send_to_self, get_global_time, get_local_states
 from DIAL.State import State
 from DIAL.API.API import API

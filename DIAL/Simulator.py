@@ -26,8 +26,8 @@ def send_to_self(message: Message, delay: int) -> None:
 
 
 
-def get_time() -> int:
-    raise Exception("Forbidden call to `DIAL.get_time` outside of algorithm simulation.")
+def get_global_time() -> int:
+    raise Exception("Forbidden call to `DIAL.get_global_time` outside of algorithm simulation.")
 
 
 
@@ -234,7 +234,7 @@ class Simulator:
             "Address": Address,
             "send": lambda msg: self.send(msg),
             "send_to_self": lambda msg, delay: self.send_to_self(msg, delay),
-            "get_time": lambda: self.time,
+            "get_global_time": lambda: self.time,
             "get_local_states": lambda: ReadOnlyDict(copy.deepcopy(local_state_copies))
         }
         algorithm = types.FunctionType(algorithm.__code__, dict(scope, **__builtins__))

@@ -73,7 +73,7 @@ is not possible. Only the following objects defined outside your algorithm can b
 | ``DIAL.send``             | Function to send messages between nodes that are directly connected within the topology                                                                                      |
 | ``DIAL.send_to_self``     | Function to send messages that will be received on the same node after a specified delay                                                                                     |
 | ``DIAL.get_local_states`` | Function that gives you a read-only copy of all instance states that are stored on the same local node. You should not try to change it as modifications are not persistent. |
-| ``DIAL.get_time``         | Function that gives you the global simulation time                                                                                                                           |
+| ``DIAL.get_global_time``  | Function that gives you the global simulation time                                                                                                                           |
 
 **Note:** This also mean that you can not use any function provided by libraries like numpy. If you really need to use a library
 you can import it directly within your algorithm function. But do so at your own risk!
