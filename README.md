@@ -6,17 +6,43 @@ DIAL is a framework for simulating and visualizing distributed algorithms in Pyt
 
 ## Installation
 
-You can use `pip` to install DIAL. Python 3.12 is recommended and the only version of python that has been tested.
+You can use either `pip` or `nix` to install DIAL.
+Python 3.12 is recommended and the only version that has been tested.
+
+To run the simulator you need a `.py` file in which you import the DIAL package. Examples for this file are provided in the [examples directory](https://github.com/DasenB/DIAL/tree/main/examples).
+
+
+```python
+from DIAL import *
+```
+
+
+### Installation using PIP
 
 ```bash
 pip install dial-simulator
 ```
 
-Now you can import the simulator in your python file.
+Now you can run your `.py`-file.
 
-```python
-from DIAL import *
+```bash
+python <PATH_TO_YOUR_PYTHON_FILE>
 ```
+
+### Installation using Nix
+The following command automaticly uses the correct version of python with all dependencies installed.
+It does not make permanent changes to your system or your default python installation.
+
+```
+nix run github:DasenB/DIAL#python <PATH_TO_YOUR_PYTHON_FILE>
+```
+
+For this to work you need the [Nix Package Manager](https://nixos.org/download/) with enabled support for flakes.
+To temporarily enable flakes you can add the flag `--experimental-features 'nix-command flakes'` to the command.
+
+Using the nix package manager you get the **exact** version of all dependencies that are specified in the repository. 
+The result is a "works on all machines installation" similar to docker. 
+If the installation using `pip` fails the `nix` approach probably still works.
 
 
 ## Minimal Example
@@ -59,8 +85,10 @@ Any function with a signature of
 can be used as an algorithm. It must be passed to the simulator on initialisation.
 
 Because the behaviour of the simulator should be deterministic, there are some restrictions on what you can do within
-an algorithm-function. To prevent you from accidentally breaking the determinism, access to objects defined outside the algorithm
-is not possible. Only the following objects defined outside your algorithm can be accessed:
+an algorithm-function.
+To prevent you from accidentally breaking the determinism, access to objects defined outside the algorithm
+is not possible.
+Only the following objects defined outside your algorithm can be accessed:
 
 | Type                      | Description                                                                                                                                                                  |
 |---------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
