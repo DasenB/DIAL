@@ -17,12 +17,7 @@
             version = dialVersion;
             format = "pyproject";
 
-            src = pkgs.fetchFromGitHub {
-                owner = "DasenB";
-                repo = "DIAL";
-                rev = "fe01610f73898d197989c22ddafb502a543dac37";
-                sha256 = "sha256-FkZHCjpHFkb4RyL90cI0OUctz3CfNEkNqgV+23G1s9o=";
-            };
+            src = ./.;
 
             propagatedBuildInputs = [
                 pythonPackages.setuptools
