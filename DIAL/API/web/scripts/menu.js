@@ -418,9 +418,11 @@ class DialMenu extends LitElement {
                     <sl-dropdown>
                         <sl-button id="config-button" slot="trigger" caret><sl-icon name="gear"></sl-icon></sl-button>
                         <sl-menu>
-                            <sl-menu-item type="checkbox" id="graph-view-selection-item" ?checked=${this.selectedView === "graph"} @click="${(e) => {this.handleSelectedViewChange("graph"); this.handleViewChangeVerification();}}">Graph View</sl-menu-item>
+                            <sl-menu-label>Visualization</sl-menu-label>
+                            <sl-menu-item type="checkbox" id="graph-view-selection-item" ?checked=${this.selectedView === "graph"} @click="${(e) => {this.handleSelectedViewChange("graph"); this.handleViewChangeVerification();}}">Network View</sl-menu-item>
                             <sl-menu-item type="checkbox" id="time-view-selection-item" ?checked=${this.selectedView === "time"} @click="${(e) => {this.handleSelectedViewChange("time"); this.handleViewChangeVerification();}}">Time View</sl-menu-item>
                             <sl-divider></sl-divider>
+                            <sl-menu-label>Display Options</sl-menu-label>
                             <sl-menu-item type="checkbox" ?checked=${this.reducedTimelineState} @click=${ () => {this.reducedTimelineState = !this.reducedTimelineState; this.handleConfigToggleReducedTimeline();}}>Reduced Timeline</sl-menu-item>
                             <sl-menu-item type="checkbox" ?checked=${this.sortTimelineState} @click=${ () => {this.sortTimelineState = !this.sortTimelineState; this.handleConfigToggleSortTimeline();}}>Sort Timeline</sl-menu-item>
                             <sl-menu-item type="checkbox" ?checked=${this.statisticsState} @click=${ () => {this.statisticsState = !this.statisticsState; this.handleConfigToggleStatistic();}}>Show Statistics</sl-menu-item>
