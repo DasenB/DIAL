@@ -45,6 +45,24 @@ The result is a "works on all machines installation" similar to docker.
 If the installation using `pip` fails the `nix` approach probably still works.
 
 
+### Installation using Docker
+
+```
+git clone git@github.com:DasenB/DIAL.git DIAL
+docker build --tag "dial" DIAL/Dockerfile
+docker run --network host -p 10101:10101 -v ~/:/dial -it dial
+```
+
+After doing this you receive a shell within a container that has the DIAL framework installed and your home-directory mounted.
+From there you can run your `.py`-file.
+
+```bash
+python <PATH_TO_YOUR_PYTHON_FILE>
+```
+
+Now you must navigate to `https://localhost:10101/index.html` in your browser.
+
+
 ## Minimal Example
 
 ```python
