@@ -215,7 +215,7 @@ class Simulator:
         target_address = current_message.target_address
         if target_address not in self.states.keys():
             neighbors = self.topology.get_neighbors(target_address.node_name)
-            new_seed = self.random_generator.integers(low=0, high=100)
+            new_seed = self.random_generator.integers(low=0, high=100000000)
             empty_state: State = State(address=target_address, neighbors=neighbors, seed=new_seed)
             self.states[target_address] = [empty_state]
         current_state = self.states[target_address][-1]
