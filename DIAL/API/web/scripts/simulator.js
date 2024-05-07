@@ -501,6 +501,24 @@ class DialSimulator extends LitElement {
                 }
             });
         }
+        if(document.DIAL_BENCHMARK_FRAMES === undefined) {
+            document.DIAL_BENCHMARK_FRAMES = 0;
+        }
+        document.DIAL_BENCHMARK_FRAMES += 1;
+    }
+
+    benchmark_frames() {
+        let start_time = this.time.frontendTime.time;
+        this.run(true);
+        setTimeout(() => {
+            this.stop();
+            let end_time = this.time.frontendTime.time;
+
+            var div = document.createElement('div');
+            div.innerText = `frame_count: ${document.DIAL_BENCHMARK_FRAMES}, animation_progress: ${end_time - start_time}`;
+            div.id = "DIAL_BENCHMARK_FRAMES";
+            document.body.insertAdjacentElement("afterbegin", div)
+        }, 10 * 1000);
     }
 
     loadTopology() {
@@ -642,21 +660,29 @@ class DialSimulator extends LitElement {
         this.api.get(`time-forward/${time}`).then(response => {
             this.time.backendTime.time = Number(response.time);
             this.time.backendTime.theta = Number(response.theta);
-            this.loadStates();
             if (response.actions.length > 0) {
-                this.api.get("messages").then(messages => {
-                    this.messages = messages.messages;
-                    Object.keys(this.messages).forEach(t => {
-                        this.messages[t].forEach(msg => {
-                            msg.selected = this.selectedMessages.includes(msg.id);
-                        })
+                Object.keys(response.actions).forEach(actionIndex => {
+                    let action = response.actions[actionIndex];
+                    let actionColor =  {};
+                    actionColor[`${action.consumed_message.target}`] =  action["new_state_color"];
+                    let actionNeighbors =  {};
+                    actionNeighbors[`${action.consumed_message.target}`] =  JSON.stringify(action["new_state_neighbors"]);
+                    this.states.colors[`${this.time.backendTime.time}/${this.time.backendTime.theta}`] = actionColor;
+                    this.states.neighbors[`${this.time.backendTime.time}/${this.time.backendTime.theta}`] = actionNeighbors
+
+                    response.actions[actionIndex].produced_messages.forEach(msg => {
+                       let t = msg.arrival_time;
+                       if (!(t in this.messages)) {
+                           this.messages[t] = [];
+                       }
+                       this.messages[t].push(msg);
                     });
-                    this.isFetchingData = false;
-                    this.updateMessages();
-                    if(this.isRunning) {
-                        this.run();
-                    }
                 });
+                this.updateMessages();
+                this.isFetchingData = false;
+                if(this.isRunning) {
+                    this.run();
+                }
             } else {
                 this.stop();
                 this.isFetchingData = false;

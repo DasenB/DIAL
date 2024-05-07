@@ -131,7 +131,6 @@ class Simulator:
 
     def insert_message_to_queue(self, message: Message, time: int | None = None, theta: int | None = None,
                                 is_lost: bool | None = None) -> bool:
-        message = deepcopy(message)
         # Determine whether message is lost
         edge_config: EdgeConfig | None = self.topology.get_edge_config(message.source_address.node_name,
                                                                        message.target_address.node_name)
@@ -175,7 +174,6 @@ class Simulator:
         return None
 
     def insert_self_message_to_queue(self, message: Message):
-        message = deepcopy(message)
         if message.target_address.algorithm not in self.algorithms.keys():
             print(f"ERROR: Unknown algorithm in target_address '{message.target_address}'")
             exit(1)
@@ -248,7 +246,7 @@ class Simulator:
             for hook in self.condition_hooks:
                 hook_function = types.FunctionType(hook.__code__, dict(scope, **__builtins__))
                 hook_function(new_state, self.last_send_messages)
-        new_messages: list[Message] = self.last_send_messages
+        new_messages: list[Message] = [deepcopy(msg) for msg in self.last_send_messages]
         self.last_send_messages = []
 
         # Update state
@@ -304,12 +302,18 @@ class Simulator:
                   f'===================================================================================\n'
                   )
 
+        new_color_object = new_state.color
+        if isinstance(new_color_object, DefaultColors):
+            new_color_object = new_color_object.value
+
         # Build summary of the last action
         action: dict[str, any] = {
             "time": self.time,
             "theta": self.theta,
             "consumed_message": current_message.summary(),
-            "produced_messages": [msg.summary() for msg in new_messages]
+            "produced_messages": [msg.summary() for msg in new_messages],
+            "new_state_color": new_color_object.__str__(),
+            "new_state_neighbors": new_state.neighbors
         }
         return action
 

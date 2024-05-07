@@ -257,6 +257,18 @@ class DialGraph extends LitElement {
         let selectedNodes = this.network.getSelectedNodes();
         this.emitEvent("select-message", selectedMessages);
         this.emitEvent("select-node", selectedNodes);
+
+        if(document.DIAL_BENCHMARK_LOAD === undefined) {
+            var benchmark_value = window.performance.now();
+            var div = document.createElement('div');
+            div.innerText = `${benchmark_value}`;
+            div.style.display = 'none';
+            div.style.visibility='hidden';
+            div.id = "DIAL_BENCHMARK_LOAD";
+            document.body.insertAdjacentElement("afterbegin", div)
+            document.DIAL_BENCHMARK_LOAD = benchmark_value;
+        }
+
     }
 
     static styles = css`

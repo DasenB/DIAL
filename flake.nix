@@ -77,7 +77,13 @@
       in
         {
             devShells.default = pkgs.mkShell {
-                buildInputs = [ pythonWithPackages dialPackage ];
+                buildInputs = [
+                    pythonWithPackages
+                    dialPackage
+                    pythonPackages.xlsxwriter
+                    pythonPackages.requests
+                    pythonPackages.selenium
+                ];
             };
             packages.dial = dialPackage;
             packages.default = dialPackage;
