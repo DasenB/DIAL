@@ -83,6 +83,7 @@
                     pythonPackages.xlsxwriter
                     pythonPackages.requests
                     pythonPackages.selenium
+                    pythonPackages.psutil
                 ];
             };
             packages.dial = dialPackage;

@@ -507,7 +507,7 @@ class DialSimulator extends LitElement {
         document.DIAL_BENCHMARK_FRAMES += 1;
     }
 
-    benchmark_frames() {
+    benchmark_frames(duration) {
         let start_time = this.time.frontendTime.time;
         this.run(true);
         setTimeout(() => {
@@ -518,7 +518,7 @@ class DialSimulator extends LitElement {
             div.innerText = `frame_count: ${document.DIAL_BENCHMARK_FRAMES}, animation_progress: ${end_time - start_time}`;
             div.id = "DIAL_BENCHMARK_FRAMES";
             document.body.insertAdjacentElement("afterbegin", div)
-        }, 10 * 1000);
+        }, duration * 1000);
     }
 
     loadTopology() {

@@ -1,5 +1,9 @@
+import copy
+import subprocess
 import time
 from datetime import datetime
+from typing import Tuple
+
 import requests
 import xlsxwriter
 from urllib3.exceptions import InsecureRequestWarning
@@ -11,6 +15,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
+import psutil
 
 
 class Measurement:
@@ -24,7 +29,7 @@ class Experiment:
     measurements: list[Measurement]
     title: str
 
-    def __int__(self, endpoint: str, sample_count: int = 100):
+    def __int__(self, endpoint: str, sample_count: int):
         self.endpoint = endpoint
         self.sample_count = sample_count
         self.measurements = []
@@ -53,9 +58,9 @@ class Experiment:
 
 
 class LoadTimeOfTimeForward(Experiment):
-    def __init__(self, steps_per_sample: int = 1000):
-        super().__int__(endpoint=f"https://localhost:10101/time-forward/{steps_per_sample}")
-        self.title = "time-forward"
+    def __init__(self, title: str, steps_per_sample: int, sample_count: int):
+        super().__int__(endpoint=f"https://localhost:10101/time-forward/{steps_per_sample}", sample_count=sample_count)
+        self.title = title
 
     def collect_measurement(self, url: str) -> Measurement:
         response = requests.get(url, verify=False)
@@ -67,9 +72,9 @@ class LoadTimeOfTimeForward(Experiment):
 
 
 class LoadTimeOfStepForward(Experiment):
-    def __init__(self, steps_per_sample: int = 200):
-        super().__int__(endpoint=f"https://localhost:10101/step-forward/{steps_per_sample}", sample_count=100)
-        self.title = "step-forward"
+    def __init__(self, title: str, steps_per_sample: int, sample_count: int):
+        super().__int__(endpoint=f"https://localhost:10101/step-forward/{steps_per_sample}", sample_count=sample_count)
+        self.title = title
 
     def collect_measurement(self, url: str) -> Measurement:
         response = requests.get(url, verify=False)
@@ -82,9 +87,9 @@ class LoadTimeOfStepForward(Experiment):
 
 class LoadTimeOfHTMLPage(Experiment):
 
-    def __init__(self, steps_per_sample: int = 50, sample_count: int = 20):
+    def __init__(self, title: str, steps_per_sample: int, sample_count):
         super().__int__(endpoint=f"https://localhost:10101/step-forward/{steps_per_sample}", sample_count=sample_count)
-        self.title = "page-load"
+        self.title = title
         self.keep_driver = False
         self.driver: webdriver.Firefox
 
@@ -124,24 +129,25 @@ class LoadTimeOfHTMLPage(Experiment):
 
 class FrameRate(LoadTimeOfHTMLPage):
 
-    def __init__(self):
-        super().__init__(steps_per_sample=400, sample_count=10)
-        self.title = "frame-rate"
+    def __init__(self, title: str, steps_per_sample: int, sample_count: int):
+        super().__init__(title=title, steps_per_sample=steps_per_sample, sample_count=sample_count)
+        self.title = title
         self.keep_driver = True
 
     def collect_measurement(self, url: str) -> Measurement:
+        benchmark_duration = 100
         measurement = super().collect_measurement(url)
         driver = self.driver
-        driver.execute_script("document.body.children[1].benchmark_frames()")
+        driver.execute_script(f"document.body.children[1].benchmark_frames({benchmark_duration})")
 
         try:
-            element = WebDriverWait(driver, 60).until(
+            element = WebDriverWait(driver, benchmark_duration + 60).until(
                 EC.presence_of_element_located((By.ID, "DIAL_BENCHMARK_FRAMES"))
             )
             measurement.data_point = element.get_attribute("innerText")
         finally:
             if measurement.data_point is None:
-                measurement.data_point = "benchmark did not finish within 60s"
+                measurement.data_point = f"benchmark did not finish within {benchmark_duration + 60}s"
 
         driver.close()
 
@@ -149,18 +155,59 @@ class FrameRate(LoadTimeOfHTMLPage):
         return measurement
 
 
+samples = 15
+steps = 100
+repetition = 4
 
-benchmark: list[Experiment] = [
-    LoadTimeOfTimeForward(),
-    LoadTimeOfStepForward(),
-    LoadTimeOfHTMLPage(),
-    FrameRate()
+benchmark: list[Tuple[str, Experiment]] = [
+    ("examples/benchmarks/burst_messages.py",
+     LoadTimeOfHTMLPage(title="burst_page-load", steps_per_sample=steps, sample_count=samples)),
+    ("examples/benchmarks/infinite_messages.py",
+     LoadTimeOfHTMLPage(title="msg_page-load", steps_per_sample=steps, sample_count=samples)),
+    ("examples/benchmarks/infinite_states.py",
+     LoadTimeOfHTMLPage(title="state_page-load", steps_per_sample=steps, sample_count=samples)),
+
+    ("examples/benchmarks/burst_messages.py",
+     LoadTimeOfTimeForward(title="burst_time-forward", steps_per_sample=steps, sample_count=samples)),
+    ("examples/benchmarks/infinite_messages.py",
+     LoadTimeOfTimeForward(title="msg_time-forward", steps_per_sample=steps, sample_count=samples)),
+    ("examples/benchmarks/infinite_states.py",
+     LoadTimeOfTimeForward(title="state_time-forward", steps_per_sample=steps, sample_count=samples)),
+
+    ("examples/benchmarks/burst_messages.py",
+     LoadTimeOfStepForward(title="burst_step-forward", steps_per_sample=steps, sample_count=samples)),
+    ("examples/benchmarks/infinite_messages.py",
+     LoadTimeOfStepForward(title="msg_step-forward", steps_per_sample=steps, sample_count=samples)),
+    ("examples/benchmarks/infinite_states.py",
+     LoadTimeOfStepForward(title="state_step-forward", steps_per_sample=steps, sample_count=samples)),
+
+    ("examples/benchmarks/burst_messages.py",
+     FrameRate(title="burst_frame-rate", steps_per_sample=steps, sample_count=samples)),
+    ("examples/benchmarks/infinite_messages.py",
+     FrameRate(title="msg_frame-rate", steps_per_sample=steps, sample_count=samples)),
+    ("examples/benchmarks/infinite_states.py",
+     FrameRate(title="state_frame-rate", steps_per_sample=steps, sample_count=samples))
 ]
 
-requests.get("https://localhost:10101/reset", verify=False)
 workbook = xlsxwriter.Workbook(f'Benchmark_{datetime.now().strftime("%Y%m%d-%H%M%S")}.xlsx')
-for experiment in benchmark:
-    experiment.run()
-    experiment.export(workbook)
-    requests.get("https://localhost:10101/reset", verify=False)
+
+
+def kill(proc_pid):
+    process = psutil.Process(proc_pid)
+    for proc in process.children(recursive=True):
+        proc.kill()
+    process.kill()
+    time.sleep(5)
+
+
+for script, experiment in benchmark:
+    simulator_process = subprocess.Popen(["python", script], shell=False)
+    time.sleep(5)
+    for i in range(repetition):
+        requests.get("https://localhost:10101/reset", verify=False)
+        exp = copy.deepcopy(experiment)
+        exp.title = f"{experiment.title}_{i}"
+        exp.run()
+        exp.export(workbook)
+    kill(simulator_process.pid)
 workbook.close()

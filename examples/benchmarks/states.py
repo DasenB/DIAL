@@ -1,16 +1,16 @@
 from DIAL import *
 
-def infinite_messages(state: State, message: Message) -> None:
-    if state.color == DefaultColors.PINK:
-        state.color = DefaultColors.YELLOW
-    else:
-        state.color = DefaultColors.PINK
-    send(message.copy())
+def infinite_states(state: State, message: Message) -> None:
+    state.color = DefaultColors.PINK
+    msg = message.copy()
+    instance_addr = int(msg.target_address.instance)
+    msg.target_address.instance = str(instance_addr + 1)
+    send_to_self(msg, 1)
 
 
 initial_message = Message(
-    source_address="A/infinite_messages/instance",
-    target_address="A/infinite_messages/instance",
+    source_address="A/infinite_states/instance",
+    target_address="A/infinite_states/0",
     color=DefaultColors.PINK,
     title="A Message"
 )
@@ -23,7 +23,7 @@ topology = Topology(nodes, edges)
 simulator = Simulator(
     topology=topology,
     algorithms={
-        "infinite_messages": infinite_messages
+        "infinite_states": infinite_states
     },
     initial_messages={
         0: [initial_message]
