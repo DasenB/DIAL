@@ -1,4 +1,5 @@
 import copy
+import math
 import subprocess
 import time
 from datetime import datetime
@@ -160,33 +161,60 @@ steps = 100
 repetition = 4
 
 benchmark: list[Tuple[str, Experiment]] = [
-    ("examples/benchmarks/burst_messages.py",
-     LoadTimeOfHTMLPage(title="burst_page-load", steps_per_sample=steps, sample_count=samples)),
-    ("examples/benchmarks/infinite_messages.py",
-     LoadTimeOfHTMLPage(title="msg_page-load", steps_per_sample=steps, sample_count=samples)),
-    ("examples/benchmarks/infinite_states.py",
-     LoadTimeOfHTMLPage(title="state_page-load", steps_per_sample=steps, sample_count=samples)),
+    # ("examples/benchmarks/burst_messages.py",
+    #  LoadTimeOfHTMLPage(title="burst_page-load", steps_per_sample=steps, sample_count=samples)),
+    # ("examples/benchmarks/infinite_messages.py",
+    #  LoadTimeOfHTMLPage(title="msg_page-load", steps_per_sample=steps, sample_count=samples)),
+    # ("examples/benchmarks/infinite_states.py",
+    #  LoadTimeOfHTMLPage(title="state_page-load", steps_per_sample=steps, sample_count=samples)),
 
-    ("examples/benchmarks/burst_messages.py",
-     LoadTimeOfTimeForward(title="burst_time-forward", steps_per_sample=steps, sample_count=samples)),
-    ("examples/benchmarks/infinite_messages.py",
-     LoadTimeOfTimeForward(title="msg_time-forward", steps_per_sample=steps, sample_count=samples)),
-    ("examples/benchmarks/infinite_states.py",
-     LoadTimeOfTimeForward(title="state_time-forward", steps_per_sample=steps, sample_count=samples)),
+    # ("examples/benchmarks/burst_messages.py",
+    #  LoadTimeOfTimeForward(title="burst_time-forward", steps_per_sample=steps, sample_count=samples)),
+    # ("examples/benchmarks/infinite_messages.py",
+    #  LoadTimeOfTimeForward(title="msg_time-forward", steps_per_sample=steps, sample_count=samples)),
+    # ("examples/benchmarks/infinite_states.py",
+    #  LoadTimeOfTimeForward(title="state_time-forward", steps_per_sample=steps, sample_count=samples)),
 
-    ("examples/benchmarks/burst_messages.py",
-     LoadTimeOfStepForward(title="burst_step-forward", steps_per_sample=steps, sample_count=samples)),
-    ("examples/benchmarks/infinite_messages.py",
-     LoadTimeOfStepForward(title="msg_step-forward", steps_per_sample=steps, sample_count=samples)),
-    ("examples/benchmarks/infinite_states.py",
-     LoadTimeOfStepForward(title="state_step-forward", steps_per_sample=steps, sample_count=samples)),
+    # ("examples/benchmarks/burst_messages.py",
+    #  LoadTimeOfStepForward(title="burst_step-forward", steps_per_sample=steps, sample_count=samples)),
+    # ("examples/benchmarks/infinite_messages.py",
+    #  LoadTimeOfStepForward(title="msg_step-forward", steps_per_sample=steps, sample_count=samples)),
+    # ("examples/benchmarks/infinite_states.py",
+    #  LoadTimeOfStepForward(title="state_step-forward", steps_per_sample=steps, sample_count=samples)),
 
-    ("examples/benchmarks/burst_messages.py",
-     FrameRate(title="burst_frame-rate", steps_per_sample=steps, sample_count=samples)),
-    ("examples/benchmarks/infinite_messages.py",
-     FrameRate(title="msg_frame-rate", steps_per_sample=steps, sample_count=samples)),
-    ("examples/benchmarks/infinite_states.py",
-     FrameRate(title="state_frame-rate", steps_per_sample=steps, sample_count=samples))
+    # ("examples/benchmarks/burst_messages.py",
+    #  FrameRate(title="burst_frame-rate", steps_per_sample=steps, sample_count=samples)),
+    # ("examples/benchmarks/infinite_messages.py",
+    #  FrameRate(title="msg_frame-rate", steps_per_sample=steps, sample_count=samples)),
+    # ("examples/benchmarks/infinite_states.py",
+    #  FrameRate(title="state_frame-rate", steps_per_sample=steps, sample_count=samples))
+
+    # ("examples/benchmarks/msg_slow.py",
+    #  LoadTimeOfHTMLPage(title="slow_page-load", steps_per_sample=steps, sample_count=samples)),
+    # ("examples/benchmarks/msg_slow.py",
+    #  LoadTimeOfTimeForward(title="slow_time-forward", steps_per_sample=steps, sample_count=samples)),
+    # ("examples/benchmarks/msg_slow.py",
+    #  LoadTimeOfStepForward(title="slow_step-forward", steps_per_sample=steps, sample_count=samples)),
+    # ("examples/benchmarks/msg_slow.py",
+    #  FrameRate(title="slow_frame-rate", steps_per_sample=steps, sample_count=math.ceil(samples/2))),
+
+    # ("examples/benchmarks/actions.py",
+    #  LoadTimeOfHTMLPage(title="actions_page-load", steps_per_sample=steps, sample_count=samples)),
+    # ("examples/benchmarks/actions.py",
+    #  LoadTimeOfTimeForward(title="actions_time-forward", steps_per_sample=steps, sample_count=samples)),
+    # ("examples/benchmarks/actions.py",
+    #  LoadTimeOfStepForward(title="actions_step-forward", steps_per_sample=steps, sample_count=samples)),
+    # ("examples/benchmarks/actions.py",
+    #  FrameRate(title="actions_frame-rate", steps_per_sample=steps, sample_count=math.ceil(samples/2))),
+
+    # ("examples/benchmarks/topology.py",
+    #  LoadTimeOfHTMLPage(title="topology_page-load", steps_per_sample=steps, sample_count=samples)),
+    # ("examples/benchmarks/topology.py",
+    #  LoadTimeOfTimeForward(title="topology_time-forward", steps_per_sample=steps, sample_count=samples)),
+    # ("examples/benchmarks/topology.py",
+    #  LoadTimeOfStepForward(title="topology_step-forward", steps_per_sample=steps, sample_count=samples)),
+    # ("examples/benchmarks/topology.py",
+    #  FrameRate(title="topology_frame-rate", steps_per_sample=steps, sample_count=math.ceil(samples / 2))),
 ]
 
 workbook = xlsxwriter.Workbook(f'Benchmark_{datetime.now().strftime("%Y%m%d-%H%M%S")}.xlsx')
