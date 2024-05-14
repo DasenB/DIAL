@@ -1,5 +1,6 @@
 from DIAL import *
 
+
 def slow_messages(state: State, message: Message) -> None:
     if state.color == DefaultColors.YELLOW:
         state.color = DefaultColors.PINK

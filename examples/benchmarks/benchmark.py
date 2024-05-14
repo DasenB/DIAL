@@ -4,7 +4,7 @@ import subprocess
 import time
 from datetime import datetime
 from typing import Tuple
-
+from pathlib import Path
 import requests
 import xlsxwriter
 from urllib3.exceptions import InsecureRequestWarning
@@ -17,6 +17,14 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 import psutil
+
+
+def kill(proc_pid):
+    process = psutil.Process(proc_pid)
+    for proc in process.children(recursive=True):
+        proc.kill()
+    process.kill()
+    time.sleep(5)
 
 
 class Measurement:
@@ -41,8 +49,8 @@ class Experiment:
             sample: Measurement = self.collect_measurement(self.endpoint)
             self.measurements.append(sample)
 
-    def export(self, workbook: xlsxwriter.Workbook):
-        worksheet = workbook.add_worksheet(self.title)
+    def export(self, wb: xlsxwriter.Workbook):
+        worksheet = wb.add_worksheet(self.title)
         worksheet.write(0, 0, "Endpoint")
         worksheet.write(0, 1, self.endpoint)
         worksheet.write(3, 0, "Simulation Time")
@@ -159,83 +167,33 @@ class FrameRate(LoadTimeOfHTMLPage):
 samples = 15
 steps = 100
 repetition = 4
-
-benchmark: list[Tuple[str, Experiment]] = [
-    # ("examples/benchmarks/burst_messages.py",
-    #  LoadTimeOfHTMLPage(title="burst_page-load", steps_per_sample=steps, sample_count=samples)),
-    # ("examples/benchmarks/infinite_messages.py",
-    #  LoadTimeOfHTMLPage(title="msg_page-load", steps_per_sample=steps, sample_count=samples)),
-    # ("examples/benchmarks/infinite_states.py",
-    #  LoadTimeOfHTMLPage(title="state_page-load", steps_per_sample=steps, sample_count=samples)),
-
-    # ("examples/benchmarks/burst_messages.py",
-    #  LoadTimeOfTimeForward(title="burst_time-forward", steps_per_sample=steps, sample_count=samples)),
-    # ("examples/benchmarks/infinite_messages.py",
-    #  LoadTimeOfTimeForward(title="msg_time-forward", steps_per_sample=steps, sample_count=samples)),
-    # ("examples/benchmarks/infinite_states.py",
-    #  LoadTimeOfTimeForward(title="state_time-forward", steps_per_sample=steps, sample_count=samples)),
-
-    # ("examples/benchmarks/burst_messages.py",
-    #  LoadTimeOfStepForward(title="burst_step-forward", steps_per_sample=steps, sample_count=samples)),
-    # ("examples/benchmarks/infinite_messages.py",
-    #  LoadTimeOfStepForward(title="msg_step-forward", steps_per_sample=steps, sample_count=samples)),
-    # ("examples/benchmarks/infinite_states.py",
-    #  LoadTimeOfStepForward(title="state_step-forward", steps_per_sample=steps, sample_count=samples)),
-
-    # ("examples/benchmarks/burst_messages.py",
-    #  FrameRate(title="burst_frame-rate", steps_per_sample=steps, sample_count=samples)),
-    # ("examples/benchmarks/infinite_messages.py",
-    #  FrameRate(title="msg_frame-rate", steps_per_sample=steps, sample_count=samples)),
-    # ("examples/benchmarks/infinite_states.py",
-    #  FrameRate(title="state_frame-rate", steps_per_sample=steps, sample_count=samples))
-
-    # ("examples/benchmarks/msg_slow.py",
-    #  LoadTimeOfHTMLPage(title="slow_page-load", steps_per_sample=steps, sample_count=samples)),
-    # ("examples/benchmarks/msg_slow.py",
-    #  LoadTimeOfTimeForward(title="slow_time-forward", steps_per_sample=steps, sample_count=samples)),
-    # ("examples/benchmarks/msg_slow.py",
-    #  LoadTimeOfStepForward(title="slow_step-forward", steps_per_sample=steps, sample_count=samples)),
-    # ("examples/benchmarks/msg_slow.py",
-    #  FrameRate(title="slow_frame-rate", steps_per_sample=steps, sample_count=math.ceil(samples/2))),
-
-    # ("examples/benchmarks/actions.py",
-    #  LoadTimeOfHTMLPage(title="actions_page-load", steps_per_sample=steps, sample_count=samples)),
-    # ("examples/benchmarks/actions.py",
-    #  LoadTimeOfTimeForward(title="actions_time-forward", steps_per_sample=steps, sample_count=samples)),
-    # ("examples/benchmarks/actions.py",
-    #  LoadTimeOfStepForward(title="actions_step-forward", steps_per_sample=steps, sample_count=samples)),
-    # ("examples/benchmarks/actions.py",
-    #  FrameRate(title="actions_frame-rate", steps_per_sample=steps, sample_count=math.ceil(samples/2))),
-
-    # ("examples/benchmarks/topology.py",
-    #  LoadTimeOfHTMLPage(title="topology_page-load", steps_per_sample=steps, sample_count=samples)),
-    # ("examples/benchmarks/topology.py",
-    #  LoadTimeOfTimeForward(title="topology_time-forward", steps_per_sample=steps, sample_count=samples)),
-    # ("examples/benchmarks/topology.py",
-    #  LoadTimeOfStepForward(title="topology_step-forward", steps_per_sample=steps, sample_count=samples)),
-    # ("examples/benchmarks/topology.py",
-    #  FrameRate(title="topology_frame-rate", steps_per_sample=steps, sample_count=math.ceil(samples / 2))),
+testprogramms = [
+    "examples/benchmarks/actions.py",
+    "examples/benchmarks/msg_burst.py",
+    "examples/benchmarks/msg_continual.py",
+    "examples/benchmarks/msg_transient.py",
+    "examples/benchmarks/states.py",
+    "examples/benchmarks/topology.py",
 ]
+benchmarks = []
+for testprogramm in testprogramms:
+    filename = Path(testprogramm).stem
+    for i in range(4):
+        page_load = LoadTimeOfHTMLPage(title=f"{filename}_page-load_{i}", steps_per_sample=steps, sample_count=samples)
+        step_forward = LoadTimeOfStepForward(title=f"{filename}_step-forward_{i}", steps_per_sample=steps, sample_count=samples)
+        time_forward = LoadTimeOfTimeForward(title=f"{filename}_time-forward_{i}", steps_per_sample=steps, sample_count=samples)
+        frame_rate = FrameRate(title=f"{filename}_frame-rate_{i}", steps_per_sample=steps, sample_count=math.ceil(samples / 2))
+        benchmarks += [(filename, page_load)]
+        benchmarks += [(filename, step_forward)]
+        benchmarks += [(filename, time_forward)]
+        benchmarks += [(filename, frame_rate)]
 
 workbook = xlsxwriter.Workbook(f'Benchmark_{datetime.now().strftime("%Y%m%d-%H%M%S")}.xlsx')
-
-
-def kill(proc_pid):
-    process = psutil.Process(proc_pid)
-    for proc in process.children(recursive=True):
-        proc.kill()
-    process.kill()
+for script, experiment in benchmarks:
+    simulator_process = subprocess.Popen(["python", f"examples/benchmarks/{script}.py"], shell=False)
     time.sleep(5)
-
-
-for script, experiment in benchmark:
-    simulator_process = subprocess.Popen(["python", script], shell=False)
-    time.sleep(5)
-    for i in range(repetition):
-        requests.get("https://localhost:10101/reset", verify=False)
-        exp = copy.deepcopy(experiment)
-        exp.title = f"{experiment.title}_{i}"
-        exp.run()
-        exp.export(workbook)
+    requests.get("https://localhost:10101/reset", verify=False)
+    experiment.run()
+    experiment.export(workbook)
     kill(simulator_process.pid)
 workbook.close()

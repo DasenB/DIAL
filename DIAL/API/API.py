@@ -67,7 +67,7 @@ class API:
 
         p = Process(target=self.run)
         p.start()
-        webbrowser.open(f"https://{host}:{port}/index.html", new=0, autoraise=True)
+        # webbrowser.open(f"https://{host}:{port}/index.html", new=0, autoraise=True)
 
     def response(self, status: int, response: any):
         response = self.api.response_class(
