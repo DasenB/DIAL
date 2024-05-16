@@ -667,9 +667,8 @@ class DialSimulator extends LitElement {
                     actionColor[`${action.consumed_message.target}`] =  action["new_state_color"];
                     let actionNeighbors =  {};
                     actionNeighbors[`${action.consumed_message.target}`] =  JSON.stringify(action["new_state_neighbors"]);
-                    this.states.colors[`${this.time.backendTime.time}/${this.time.backendTime.theta}`] = actionColor;
-                    this.states.neighbors[`${this.time.backendTime.time}/${this.time.backendTime.theta}`] = actionNeighbors
-
+                    this.states.colors[`${action.time}/${action.theta}`] = actionColor;
+                    this.states.neighbors[`${action.time}/${action.theta}`] = actionNeighbors
                     response.actions[actionIndex].produced_messages.forEach(msg => {
                        let t = msg.arrival_time;
                        if (!(t in this.messages)) {
@@ -679,6 +678,7 @@ class DialSimulator extends LitElement {
                     });
                 });
                 this.updateMessages();
+                this.updateStates();
                 this.isFetchingData = false;
                 if(this.isRunning) {
                     this.run();

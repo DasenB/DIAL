@@ -28,7 +28,7 @@ class API:
     state_endpoint: StateEndpoints
     topology_endpoint: TopologyEndpoints
 
-    def __init__(self, simulator: Simulator, host: str = "localhost", port: int = 10101, verbose: bool = False):
+    def __init__(self, simulator: Simulator, host: str = "localhost", port: int = 10101, verbose: bool = False, open_browser: bool = True):
         self.initial_simulator = copy.deepcopy(simulator)
 
         self.simulator = simulator
@@ -67,7 +67,8 @@ class API:
 
         p = Process(target=self.run)
         p.start()
-        # webbrowser.open(f"https://{host}:{port}/index.html", new=0, autoraise=True)
+        if open_browser:
+            webbrowser.open(f"https://{host}:{port}/index.html", new=0, autoraise=True)
 
     def response(self, status: int, response: any):
         response = self.api.response_class(

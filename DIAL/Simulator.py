@@ -14,7 +14,7 @@ from DIAL.Topology import Topology, EdgeConfig, DefaultTopologies
 from DIAL.ReadOnlyDict import ReadOnlyDict
 
 Algorithm = Callable[[State, Message], None]
-ConditionHook = Callable[[State, list[Message]], None]
+ConditionHook = Callable[[State, Message, list[Message]], None]
 
 
 def send(message: Message) -> None:
@@ -31,7 +31,7 @@ def get_global_time() -> int:
 
 
 
-def get_local_states() -> ReadOnlyDict[Address, any]:
+def get_local_states() -> ReadOnlyDict[Address, State]:
     raise Exception("Forbidden call to `DIAL.get_local_states` outside of algorithm simulation.")
 
 
@@ -242,10 +242,10 @@ class Simulator:
         new_state = current_state
         if not current_message._is_lost:
             new_state = deepcopy(current_state)
-            algorithm(new_state, current_message)
+            algorithm(new_state, current_message.copy())
             for hook in self.condition_hooks:
                 hook_function = types.FunctionType(hook.__code__, dict(scope, **__builtins__))
-                hook_function(new_state, self.last_send_messages)
+                hook_function(new_state, current_message.copy(), self.last_send_messages)
         new_messages: list[Message] = [deepcopy(msg) for msg in self.last_send_messages]
         self.last_send_messages = []
 

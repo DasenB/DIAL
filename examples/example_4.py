@@ -53,7 +53,7 @@ def benchmark_algorithm(state: State, message: Message) -> None:
         state.color = DefaultColors.WHITE
 
 
-def start_benchmark_hook(state: State, messages: list[Message]) -> None:
+def start_benchmark_hook(state: State, message: Message, messages: list[Message]) -> None:
     if state.address.algorithm != "election":
         return
     for message in messages:

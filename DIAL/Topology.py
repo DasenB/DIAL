@@ -90,6 +90,7 @@ class DefaultTopologies(Enum):
     EXAMPLE_NETWORK_1 = 3
     EXAMPLE_NETWORK_2 = 4
     EXAMPLE_NETWORK_3 = 5
+    EXAMPLE_NETWORK_4 = 6
 
     def __init__(self, value):
         if value == 0:
@@ -104,6 +105,8 @@ class DefaultTopologies(Enum):
             self.topology_object = self.example_network_2()
         if value == 5:
             self.topology_object = self.example_network_3()
+        if value == 6:
+            self.topology_object = self.example_network_4()
     def ring_bidirectional(self):
         t = Topology(all_nodes_have_loops=True, template=None)
         nodes = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R"]
@@ -215,4 +218,27 @@ class DefaultTopologies(Enum):
         t.add_edge("D", "F", edge_config)
         t.add_edge("F", "G", edge_config)
         t.add_edge("E", "G", edge_config)
+        return t
+
+    def example_network_4(self):
+        t = Topology(all_nodes_have_loops=False)
+        edge_config = EdgeConfig(
+            reliability=1.0,
+            direction=EdgeDirection.BIDIRECTIONAL,
+            scheduler=DefaultSchedulers.LOCAL_FIFO
+        )
+        nodes = ["A", "B", "C", "D", "E", "F", "G"]
+        for node in nodes:
+            t.add_node(node)
+        t.add_edge("A", "A", edge_config)
+        t.add_edge("A", "B", edge_config)
+        t.add_edge("C", "D", edge_config)
+        t.add_edge("B", "D", edge_config)
+        t.add_edge("D", "E", edge_config)
+        t.add_edge("D", "F", edge_config)
+        t.add_edge("F", "G", edge_config)
+        t.add_edge("E", "G", edge_config)
+        t.add_edge("E", "B", edge_config)
+        t.add_edge("E", "G", edge_config)
+        t.add_edge("G", "D", edge_config)
         return t

@@ -35,7 +35,7 @@ def token_exclusion_algorithm(state: State, message: Message) -> None:
         return
 
 
-def modify_election_hook(state: State, messages: list[Message]) -> None:
+def modify_election_hook(state: State, message: Message, messages: list[Message]) -> None:
     if state.address.algorithm != "election":
         return
     for message in messages:

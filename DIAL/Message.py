@@ -67,13 +67,22 @@ class Message:
         self._creation_theta = 0
 
 
-    def copy(self):
+    def copy(self, source: Address = None, target: Address = None, color: Color | DefaultColors = None):
+        if source is None:
+            source = self.source_address
+        if target is None:
+            target = self.target_address
+        if color is None:
+            color = self.color
+        elif type(color) == DefaultColors:
+            color = color.value
+
         new_message: Message = Message(
-            target_address=deepcopy(self.target_address),
-            source_address=deepcopy(self.source_address)
+            target_address=deepcopy(target),
+            source_address=deepcopy(source)
         )
         new_message.title = self.title
-        new_message.color = deepcopy(self.color)
+        new_message.color = deepcopy(color)
         new_message.data = deepcopy(self.data)
         return new_message
 

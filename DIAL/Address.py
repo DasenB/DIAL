@@ -35,6 +35,9 @@ class Address:
     def __hash__(self):
         return hash(str(self))
 
+    def to_json(self):
+        return f"{self}"
+
     @classmethod
     def from_string(cls, string: str):
         if not isinstance(string, str):
