@@ -1,15 +1,8 @@
 from DIAL import *
 from echo import echo_algorithm, initial_message
-from spanning_tree import modify_election_hook
+from spanning_tree import extend_echo_hook
 
 def election_algorithm(state: State, message: Message) -> None:
-    echo_address = state.address.copy(algorithm="echo", instance="instance")
-    echo_state = get_local_states()[echo_address]
-    parent, children = echo_state.data["parent"], echo_state.data["children"]
-    neighbors = ({parent} | set(children)) - {state.address.node_name}
-    other_neighbors = list(neighbors - {message.source_address.node_name})
-    dc = DefaultColors
-
 
     def expand():
         state.color = DefaultColors.ORANGE
@@ -24,12 +17,12 @@ def election_algorithm(state: State, message: Message) -> None:
             contract()
 
     def contract():
-        state.color = DefaultColors.DARK_GREEN
-        contraction_msg = message.copy(source=state.address, color=dc.DARK_GREEN)
+        state.color = DefaultColors.YELLOW
+        contraction_msg = message.copy(source=state.address, color=dc.YELLOW)
         contraction_msg.target_address = state.address.copy(node=parent)
         if "candidates" not in state.data.keys():
             state.data["candidates"] = []
-        if message.color == DefaultColors.DARK_GREEN:
+        if message.color == DefaultColors.YELLOW:
             state.data["candidates"].append(message.data["id"])
         if len(state.data["candidates"]) != len(children):
             return
@@ -54,12 +47,21 @@ def election_algorithm(state: State, message: Message) -> None:
         for n in children:
             send(info_msg.copy(target=state.address.copy(node=n)))
 
+    echo_addr = state.address.copy(algorithm="echo", instance="instance")
+    echo_state = get_local_states()[echo_addr]
+    parent = echo_state.data["parent"]
+    children = echo_state.data["children"]
+    neighbors = ({parent} | set(children)) - {state.address.node_name}
+    msg_source = message.source_address.node_name
+    other_neighbors = list(neighbors - {msg_source})
+    dc = DefaultColors
+
     sc = state.color
     if message.color == dc.ORANGE and state.color == dc.WHITE:
         expand()
-    if message.color == dc.DARK_GREEN and (sc == dc.ORANGE or sc == dc.DARK_GREEN):
+    if message.color == dc.YELLOW and (sc == dc.ORANGE or sc == dc.YELLOW):
         contract()
-    if message.color == dc.BLUE and state.color == dc.DARK_GREEN:
+    if message.color == dc.BLUE and state.color == dc.YELLOW:
         inform()
 
 
@@ -75,7 +77,7 @@ simulator = Simulator(
         "echo": echo_algorithm,
         "election": election_algorithm
     },
-    condition_hooks=[modify_election_hook],
+    condition_hooks=[extend_echo_hook],
     initial_messages={
         1: [initial_message],
         50: [election_initial_message]

@@ -1,7 +1,7 @@
 from DIAL import *
 from echo import echo_algorithm, initial_message
 
-def modify_election_hook(state: State, message: Message, messages: list[Message]) -> None:
+def extend_echo_hook(state: State, message: Message, messages: list[Message]) -> None:
     if "children" not in state.data.keys():
         state.data["children"] = []
     source_node = message.source_address.node_name
@@ -14,7 +14,7 @@ def modify_election_hook(state: State, message: Message, messages: list[Message]
 simulator = Simulator(
     topology=DefaultTopologies.EXAMPLE_NETWORK_4,
     algorithms={"echo": echo_algorithm},
-    condition_hooks=[modify_election_hook],
+    condition_hooks=[extend_echo_hook],
     initial_messages={1: [initial_message]}
 )
 
