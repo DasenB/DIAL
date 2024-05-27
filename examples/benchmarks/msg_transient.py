@@ -7,7 +7,7 @@ def slow_messages(state: State, message: Message) -> None:
     else:
         state.color = DefaultColors.YELLOW
 
-    send_to_self(message.copy(), 1)
+    send_to_self(message.copy(), 2)
 
     msg = message.copy()
     msg.color = DefaultColors.BLUE
@@ -35,4 +35,4 @@ simulator = Simulator(
     }
 )
 if __name__ == "__main__":
-    api = API(simulator=simulator)
+    api = API(simulator=simulator, open_browser=False)

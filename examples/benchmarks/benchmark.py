@@ -139,7 +139,7 @@ class LoadTimeOfHTMLPage(Experiment):
 class FrameRate(LoadTimeOfHTMLPage):
 
     def __init__(self, title: str, steps_per_sample: int, sample_count: int):
-        super().__init__(title=title, steps_per_sample=steps_per_sample, sample_count=sample_count)
+        super().__init__(title=title, steps_per_sample=0, sample_count=sample_count)
         self.title = title
         self.keep_driver = True
 
@@ -166,7 +166,7 @@ class FrameRate(LoadTimeOfHTMLPage):
 
 samples = 15
 steps = 100
-repetition = 4
+repetition = 5
 testprogramms = [
     "examples/benchmarks/actions.py",
     "examples/benchmarks/msg_burst.py",
@@ -182,7 +182,7 @@ for testprogramm in testprogramms:
         page_load = LoadTimeOfHTMLPage(title=f"{filename}_page-load_{i}", steps_per_sample=steps, sample_count=samples)
         step_forward = LoadTimeOfStepForward(title=f"{filename}_step-forward_{i}", steps_per_sample=steps, sample_count=samples)
         time_forward = LoadTimeOfTimeForward(title=f"{filename}_time-forward_{i}", steps_per_sample=steps, sample_count=samples)
-        frame_rate = FrameRate(title=f"{filename}_frame-rate_{i}", steps_per_sample=steps, sample_count=math.ceil(samples / 2))
+        frame_rate = FrameRate(title=f"{filename}_frame-rate_{i}", steps_per_sample=steps, sample_count=samples)
         benchmarks += [(filename, page_load)]
         benchmarks += [(filename, step_forward)]
         benchmarks += [(filename, time_forward)]

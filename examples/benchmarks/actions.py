@@ -33,4 +33,4 @@ simulator = Simulator(
     }
 )
 if __name__ == "__main__":
-    api = API(simulator=simulator)
+    api = API(simulator=simulator, open_browser=False)
