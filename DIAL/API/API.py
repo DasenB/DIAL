@@ -1,5 +1,6 @@
 import copy
 import json
+import multiprocessing
 import os
 from multiprocessing import Process
 import webbrowser
@@ -34,6 +35,7 @@ class API:
         self.simulator = simulator
         self.host = host
         self.port = port
+        multiprocessing.set_start_method("fork")
         self.api = Flask(__name__, static_folder="web/", static_url_path="/")
         CORS(self.api)
         if not verbose:

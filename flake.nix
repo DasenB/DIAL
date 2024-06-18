@@ -8,7 +8,7 @@
     outputs = { self, nixpkgs, flake-utils, ... }@inputs:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        dialVersion = "0.1.3b0";
+        dialVersion = "1.0.1";
         pkgs = import nixpkgs { system = "${system}"; config.allowUnfree = true; };
         pythonPackages = pkgs.python312Packages;
         python = pkgs.python312;

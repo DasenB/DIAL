@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dial-simulator"
-version = "0.1.3b"
+version = "1.0.1"
 description = "DIAL is a framework for simulating and visualizing distributed algorithms in Python."
 readme = "README.md"
 authors = [{ name = "DasenB" }]
